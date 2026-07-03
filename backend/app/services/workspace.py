@@ -21,9 +21,17 @@ class WorkspaceService:
         self.workspaces = WorkspaceRepository(session)
         self.members = WorkspaceMemberRepository(session)
 
-    async def build_with_owner(self, *, owner_id: uuid.UUID, name: str) -> Workspace:
-        """Create a workspace and its owner membership (flush, no commit)."""
-        slug = await generate_unique_slug(name, self.workspaces.slug_exists)
+    async def build_with_owner(
+        self, *, owner_id: uuid.UUID, name: str, slug_source: str | None = None
+    ) -> Workspace:
+        """Create a workspace and its owner membership (flush, no commit).
+
+        ``name`` is the display name; ``slug_source`` seeds the canonical slug
+        and defaults to ``name`` when not provided (e.g. explicit creation).
+        """
+        slug = await generate_unique_slug(
+            slug_source or name, self.workspaces.slug_exists
+        )
         workspace = Workspace(name=name, slug=slug, owner_id=owner_id)
         await self.workspaces.add(workspace)
 

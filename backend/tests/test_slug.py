@@ -25,3 +25,14 @@ async def test_generate_unique_slug_appends_suffix_on_collision() -> None:
     result = await generate_unique_slug("Acme", exists)
     assert result != "acme"
     assert result.startswith("acme-")
+
+
+async def test_generate_unique_slug_avoids_reserved() -> None:
+    async def never_exists(_slug: str) -> bool:
+        return False
+
+    # "api" is reserved (would clash with system subdomains), so it must not
+    # be assigned even though the exists() check reports it free.
+    result = await generate_unique_slug("API", never_exists)
+    assert result != "api"
+    assert result.startswith("api-")

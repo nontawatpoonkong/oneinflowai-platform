@@ -25,7 +25,7 @@ from app.models.workspace import Workspace
 from app.repositories.user import UserRepository
 from app.schemas.auth import TokenResponse
 from app.services.workspace import WorkspaceService
-from app.services.workspace_naming import derive_workspace_name
+from app.services.workspace_naming import derive_workspace_naming
 
 settings = get_settings()
 
@@ -57,9 +57,11 @@ class AuthService:
         )
         await self.users.add(user)
 
+        naming = derive_workspace_naming(email=email, full_name=full_name)
         workspace = await self.workspaces.build_with_owner(
             owner_id=user.id,
-            name=derive_workspace_name(email=email, full_name=full_name),
+            name=naming.display_name,
+            slug_source=naming.slug_base,
         )
 
         await self.session.commit()

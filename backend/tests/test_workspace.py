@@ -45,8 +45,9 @@ def test_registration_uses_company_oriented_name(client_db: TestClient) -> None:
     )
     assert response.status_code == 201
     workspace = response.json()["data"]["workspace"]
+    # Display name keeps "Workspace"; slug is the independent canonical id.
     assert workspace["name"] == "Acme Workspace"
-    assert workspace["slug"] == "acme-workspace"
+    assert workspace["slug"] == "acme"
 
 
 def test_same_company_domain_gets_unique_slugs(client_db: TestClient) -> None:
@@ -59,6 +60,6 @@ def test_same_company_domain_gets_unique_slugs(client_db: TestClient) -> None:
         assert response.status_code == 201
         slugs.append(response.json()["data"]["workspace"]["slug"])
 
-    assert slugs[0] == "acme-workspace"
-    assert slugs[1].startswith("acme-workspace-")  # uniqueness suffix applied
+    assert slugs[0] == "acme"
+    assert slugs[1].startswith("acme-")  # uniqueness suffix applied
     assert slugs[0] != slugs[1]

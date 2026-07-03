@@ -54,6 +54,10 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
+    # -------------------------------------------------------------- Tenancy
+    # Root domain used to resolve workspace subdomains (acme.oneflow.ai).
+    BASE_DOMAIN: str = "oneflow.ai"
+
     # -------------------------------------------------- Derived / computed
     @computed_field  # type: ignore[prop-decorator]
     @property

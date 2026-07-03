@@ -1,18 +1,17 @@
 """Workspace naming strategy.
 
-Derives a company-oriented default workspace name at registration time.
+Produces two independent values at registration time:
+  - ``display_name``: human-facing label (e.g. "Acme Workspace");
+  - ``slug_base``: the seed for the canonical, URL/subdomain-safe slug
+    (e.g. "acme"), generated independently of the display name.
 
-Heuristic (kept deliberately simple and swappable):
-  - infer a company label from the email's domain (e.g. acme.com -> "Acme");
-  - for personal/free email providers or undeterminable domains, fall back to
-    the previous "<user>'s Workspace" behaviour to preserve backward
-    compatibility.
-
-This does not change any API contract: the request/response shapes are
-unchanged, only the *value* of the auto-generated workspace name differs.
+Slug is the canonical workspace identifier (supports oneflow.ai/acme and
+acme.oneflow.ai); the display name is presentational only. This does not
+change any API contract — only the generated values.
 """
 
 import re
+from dataclasses import dataclass
 
 # Common personal/free email providers -> treat as "no company".
 _PERSONAL_EMAIL_DOMAINS = frozenset(
@@ -45,6 +44,12 @@ _REGISTRY_LABELS = frozenset({"co", "com", "org", "net", "gov", "edu", "ac"})
 _WORD_SPLIT = re.compile(r"[-_]+")
 
 
+@dataclass(frozen=True, slots=True)
+class WorkspaceNaming:
+    display_name: str
+    slug_base: str
+
+
 def _company_label_from_domain(domain: str) -> str | None:
     domain = domain.strip().lower()
     if not domain or domain in _PERSONAL_EMAIL_DOMAINS:
@@ -65,12 +70,16 @@ def _prettify(label: str) -> str:
     return " ".join(word.capitalize() for word in words) or label.capitalize()
 
 
-def derive_workspace_name(*, email: str, full_name: str | None) -> str:
-    """Return a company-oriented workspace name, with a personal fallback."""
+def derive_workspace_naming(*, email: str, full_name: str | None) -> WorkspaceNaming:
+    """Return the display name and (independent) slug base for a new workspace."""
     domain = email.rsplit("@", 1)[-1] if "@" in email else ""
     label = _company_label_from_domain(domain)
     if label:
-        return f"{_prettify(label)} Workspace"
+        # Company-oriented: display "Acme Workspace", slug base "acme".
+        return WorkspaceNaming(
+            display_name=f"{_prettify(label)} Workspace",
+            slug_base=label,
+        )
 
     # Backward-compatible fallback for personal / unknown-domain emails.
     if full_name and full_name.strip():
@@ -79,4 +88,4 @@ def derive_workspace_name(*, email: str, full_name: str | None) -> str:
         base = email.split("@")[0]
     else:
         base = "My"
-    return f"{base}'s Workspace"
+    return WorkspaceNaming(display_name=f"{base}'s Workspace", slug_base=base)
