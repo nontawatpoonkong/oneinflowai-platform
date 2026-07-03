@@ -18,6 +18,7 @@ RESERVED_SLUGS = frozenset(
         "auth",
         "login",
         "logout",
+        "me",
         "dashboard",
         "static",
         "assets",

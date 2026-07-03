@@ -49,3 +49,21 @@ class NotFoundError(AppError):
     status_code = 404
     code = "NOT_FOUND"
     message = "Resource not found"
+
+
+class WorkspaceNotFoundError(AppError):
+    status_code = 404
+    code = "WORKSPACE_NOT_FOUND"
+    message = "Workspace not found"
+
+
+class WorkspaceAccessDeniedError(AppError):
+    status_code = 403
+    code = "FORBIDDEN"
+    message = "You do not have permission to perform this action"
+
+
+class SlugAlreadyExistsError(AppError):
+    status_code = 409
+    code = "SLUG_ALREADY_EXISTS"
+    message = "A workspace with this name/slug already exists"
