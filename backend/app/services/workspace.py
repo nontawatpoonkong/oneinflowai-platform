@@ -89,9 +89,7 @@ class WorkspaceService:
             raise WorkspaceNotFoundError()
         # Authorization: only the owner may update.
         if workspace.owner_id != requester_id:
-            raise WorkspaceAccessDeniedError(
-                "Only the workspace owner can update it"
-            )
+            raise WorkspaceAccessDeniedError("Only the workspace owner can update it")
 
         if name != workspace.name:
             new_slug = slugify(name)

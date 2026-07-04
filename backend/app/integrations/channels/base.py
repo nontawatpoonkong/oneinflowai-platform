@@ -10,16 +10,18 @@ regardless of the originating channel, so the conversation/AI layers stay
 channel-independent.
 """
 
-import enum
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
+from app.core.channels import ChannelType
 
-class ChannelType(enum.StrEnum):
-    WEB = "web"
-    LINE = "line"
-    FACEBOOK = "facebook"
+__all__ = [
+    "BaseChannelAdapter",
+    "ChannelType",
+    "InboundMessage",
+    "OutboundMessage",
+]
 
 
 @dataclass(slots=True)

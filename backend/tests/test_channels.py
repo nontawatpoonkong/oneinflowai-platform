@@ -36,9 +36,7 @@ def test_register_and_resolve_adapter() -> None:
         async def verify_signature(self, *, body: bytes, signature: str) -> bool:
             return True
 
-        async def parse_inbound(
-            self, payload: dict[str, Any]
-        ) -> list[InboundMessage]:
+        async def parse_inbound(self, payload: dict[str, Any]) -> list[InboundMessage]:
             return []
 
         async def send_message(

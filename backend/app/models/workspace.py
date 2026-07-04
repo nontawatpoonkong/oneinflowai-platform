@@ -11,6 +11,7 @@ from app.database.base import Base
 from app.database.mixins import TimestampMixin, UUIDMixin
 
 if TYPE_CHECKING:
+    from app.models.customer import Customer
     from app.models.user import User
     from app.models.workspace_member import WorkspaceMember
 
@@ -31,6 +32,10 @@ class Workspace(UUIDMixin, TimestampMixin, Base):
 
     owner: Mapped["User"] = relationship()
     members: Mapped[list["WorkspaceMember"]] = relationship(
+        back_populates="workspace",
+        cascade="all, delete-orphan",
+    )
+    customers: Mapped[list["Customer"]] = relationship(
         back_populates="workspace",
         cascade="all, delete-orphan",
     )

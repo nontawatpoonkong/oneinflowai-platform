@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.pool import NullPool
 
 import app.core.lifespan as lifespan_module
+import app.models  # noqa: F401  (register all tables on Base.metadata)
 from app.database.base import Base
 from app.database.session import get_db
 from app.main import app

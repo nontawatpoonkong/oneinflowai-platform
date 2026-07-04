@@ -18,9 +18,7 @@ class WorkspaceRepository(BaseRepository[Workspace]):
         )
         return result.scalar_one_or_none()
 
-    async def slug_exists(
-        self, slug: str, exclude_id: uuid.UUID | None = None
-    ) -> bool:
+    async def slug_exists(self, slug: str, exclude_id: uuid.UUID | None = None) -> bool:
         stmt = select(Workspace.id).where(Workspace.slug == slug)
         if exclude_id is not None:
             stmt = stmt.where(Workspace.id != exclude_id)

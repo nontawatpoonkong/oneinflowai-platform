@@ -1,0 +1,188 @@
+"""Conversation and message routes.
+
+Router handles HTTP + serialization only; all logic lives in the services.
+Everything is scoped to the caller's current workspace.
+"""
+
+import uuid
+
+from fastapi import APIRouter, Depends, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.channels import ChannelType
+from app.database.session import get_db
+from app.models.conversation import Conversation, ConversationStatus
+from app.models.message import Message
+from app.models.workspace import Workspace
+from app.schemas.common import SortOrder
+from app.schemas.conversation import (
+    ConversationCreate,
+    ConversationListResponse,
+    ConversationResponse,
+    ConversationSortField,
+    ConversationUpdate,
+)
+from app.schemas.message import (
+    MessageCreate,
+    MessageListResponse,
+    MessageResponse,
+)
+from app.schemas.response import success_response
+from app.services.conversation import ConversationService
+from app.services.message import MessageService
+from app.workspace.dependencies import get_current_workspace
+
+router = APIRouter()
+
+
+def _conversation_data(conversation: Conversation) -> dict:
+    return ConversationResponse.model_validate(conversation).model_dump(mode="json")
+
+
+def _message_data(message: Message) -> dict:
+    return MessageResponse(
+        id=message.id,
+        conversation_id=message.conversation_id,
+        sender_type=message.sender_type,
+        sender_id=message.sender_id,
+        content=message.content,
+        message_type=message.message_type,
+        metadata=message.extra_metadata,
+        external_message_id=message.external_message_id,
+        created_at=message.created_at,
+    ).model_dump(mode="json")
+
+
+# ------------------------------------------------------------ Conversations
+@router.post("", status_code=status.HTTP_201_CREATED, summary="Create a conversation")
+async def create_conversation(
+    payload: ConversationCreate,
+    workspace: Workspace = Depends(get_current_workspace),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    conversation = await ConversationService(session).create_conversation(
+        workspace.id, payload
+    )
+    return success_response(
+        data=_conversation_data(conversation), message="Conversation created"
+    )
+
+
+@router.get("", summary="List conversations (search, filter, sort, paginate)")
+async def list_conversations(
+    workspace: Workspace = Depends(get_current_workspace),
+    session: AsyncSession = Depends(get_db),
+    q: str | None = Query(default=None, description="Search by subject"),
+    status_filter: ConversationStatus | None = Query(default=None, alias="status"),
+    customer_id: uuid.UUID | None = Query(default=None),
+    channel: ChannelType | None = Query(default=None),
+    sort_by: ConversationSortField = Query(
+        default=ConversationSortField.LAST_MESSAGE_AT
+    ),
+    order: SortOrder = Query(default=SortOrder.DESC),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+) -> dict:
+    items, total = await ConversationService(session).list_conversations(
+        workspace.id,
+        search=q,
+        status=status_filter,
+        customer_id=customer_id,
+        channel=channel,
+        sort_by=sort_by,
+        order=order,
+        page=page,
+        page_size=page_size,
+    )
+    total_pages = (total + page_size - 1) // page_size if total else 0
+    data = ConversationListResponse(
+        items=[ConversationResponse.model_validate(c) for c in items],
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+    )
+    return success_response(data=data.model_dump(mode="json"), message="OK")
+
+
+@router.get("/{conversation_id}", summary="Get a conversation by id")
+async def get_conversation(
+    conversation_id: uuid.UUID,
+    workspace: Workspace = Depends(get_current_workspace),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    conversation = await ConversationService(session).get_conversation(
+        workspace.id, conversation_id
+    )
+    return success_response(data=_conversation_data(conversation), message="OK")
+
+
+@router.patch("/{conversation_id}", summary="Update a conversation")
+async def update_conversation(
+    conversation_id: uuid.UUID,
+    payload: ConversationUpdate,
+    workspace: Workspace = Depends(get_current_workspace),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    conversation = await ConversationService(session).update_conversation(
+        workspace.id, conversation_id, payload
+    )
+    return success_response(
+        data=_conversation_data(conversation), message="Conversation updated"
+    )
+
+
+# ----------------------------------------------------------------- Messages
+@router.post(
+    "/{conversation_id}/messages",
+    status_code=status.HTTP_201_CREATED,
+    summary="Add a message to a conversation",
+)
+async def create_message(
+    conversation_id: uuid.UUID,
+    payload: MessageCreate,
+    workspace: Workspace = Depends(get_current_workspace),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    message = await MessageService(session).create_message(
+        workspace.id, conversation_id, payload
+    )
+    return success_response(data=_message_data(message), message="Message created")
+
+
+@router.get(
+    "/{conversation_id}/messages",
+    summary="List messages (ordered by created_at ASC, paginated)",
+)
+async def list_messages(
+    conversation_id: uuid.UUID,
+    workspace: Workspace = Depends(get_current_workspace),
+    session: AsyncSession = Depends(get_db),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=100),
+) -> dict:
+    items, total = await MessageService(session).list_messages(
+        workspace.id, conversation_id, page=page, page_size=page_size
+    )
+    total_pages = (total + page_size - 1) // page_size if total else 0
+    data = MessageListResponse(
+        items=[
+            MessageResponse(
+                id=m.id,
+                conversation_id=m.conversation_id,
+                sender_type=m.sender_type,
+                sender_id=m.sender_id,
+                content=m.content,
+                message_type=m.message_type,
+                metadata=m.extra_metadata,
+                external_message_id=m.external_message_id,
+                created_at=m.created_at,
+            )
+            for m in items
+        ],
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+    )
+    return success_response(data=data.model_dump(mode="json"), message="OK")

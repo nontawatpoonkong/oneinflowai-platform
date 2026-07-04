@@ -32,9 +32,7 @@ def test_slug_from_host_ignores_root_and_reserved() -> None:
 def test_header_id_takes_precedence() -> None:
     wid = uuid.uuid4()
     resolver = TenantResolver(base_domain="oneflow.ai")
-    request = _FakeRequest(
-        {"X-Workspace-Id": str(wid), "Host": "acme.oneflow.ai"}
-    )
+    request = _FakeRequest({"X-Workspace-Id": str(wid), "Host": "acme.oneflow.ai"})
     tenant = resolver.resolve(request)
     assert tenant.workspace_id == wid
     assert tenant.source == "header"
@@ -56,9 +54,7 @@ def test_subdomain_resolution() -> None:
 
 def test_jwt_claim_resolution() -> None:
     resolver = TenantResolver(base_domain="oneflow.ai")
-    tenant = resolver.resolve(
-        _FakeRequest({}), jwt_payload={"workspace_slug": "acme"}
-    )
+    tenant = resolver.resolve(_FakeRequest({}), jwt_payload={"workspace_slug": "acme"})
     assert tenant.workspace_slug == "acme"
     assert tenant.source == "jwt"
 
