@@ -1,0 +1,483 @@
+{
+  "meta": {
+    "homeTitle": "OneFlowAI — AI that answers customer chats 24/7",
+    "homeDescription": "Manage every customer conversation from one intelligent platform. Connect LINE OA, Website, Facebook and Hotel systems with AI that answers from your knowledge base instantly.",
+    "features": "Features",
+    "pricing": "Pricing",
+    "docs": "Docs",
+    "login": "Log in",
+    "register": "Create account",
+    "forgotPassword": "Forgot password",
+    "dashboard": "Overview",
+    "inbox": "Inbox",
+    "customers": "Customers",
+    "knowledge": "Knowledge Base",
+    "analytics": "Analytics",
+    "integrations": "Integrations",
+    "workspace": "Workspace",
+    "settings": "Settings",
+    "notFound": "Page not found"
+  },
+  "common": {
+    "getStarted": "Get Started",
+    "bookDemo": "Book Demo",
+    "login": "Log in",
+    "logout": "Log out",
+    "register": "Create account",
+    "save": "Save",
+    "cancel": "Cancel",
+    "search": "Search",
+    "searchPlaceholder": "Search…",
+    "loading": "Loading…",
+    "noData": "No data yet",
+    "backToHome": "Back to home",
+    "tryAgain": "Try again",
+    "comingSoon": "Coming Soon",
+    "online": "Online",
+    "live": "live"
+  },
+  "nav": {
+    "sections": {
+      "features": "Features",
+      "dashboard": "Dashboard",
+      "roi": "ROI",
+      "pricing": "Pricing",
+      "faq": "FAQ"
+    },
+    "links": {
+      "features": "Features",
+      "pricing": "Pricing",
+      "docs": "Docs"
+    }
+  },
+  "footer": {
+    "tagline": "Bring every chat channel together and let AI answer your customers 24/7.",
+    "rights": "All rights reserved.",
+    "built": "Built for multi-channel, AI-powered conversations.",
+    "sections": {
+      "product": "Product",
+      "resources": "Resources",
+      "company": "Company"
+    },
+    "links": {
+      "features": "Features",
+      "pricing": "Pricing",
+      "dashboard": "Dashboard",
+      "docs": "Docs",
+      "changelog": "Changelog",
+      "status": "Status",
+      "about": "About",
+      "contact": "Contact",
+      "careers": "Careers"
+    }
+  },
+  "landing": {
+    "hero": {
+      "badge": "Multi-channel AI conversation platform",
+      "headline1": "The AI that answers",
+      "headline2": "every customer chat",
+      "headline3": "around the clock",
+      "subtitle": "Manage every customer conversation from one intelligent platform. Connect LINE OA, Website, Facebook and Hotel systems, with AI that searches your knowledge base instantly.",
+      "primaryCta": "Get Started",
+      "secondaryCta": "Book Demo",
+      "chat": {
+        "agentName": "OneFlowAI Agent",
+        "role": "AI-powered assistant",
+        "online": "Online",
+        "customerMessage": "Hi! Do you have rooms available this weekend?",
+        "thinking": "AI Thinking…",
+        "searching": "Searching Knowledge…",
+        "generating": "Generating Reply…",
+        "reply": "Yes! We have Deluxe rooms from Fri–Sun. Want me to hold one for you?"
+      }
+    },
+    "liveMetrics": {
+      "eyebrow": "Live",
+      "title": "Your platform, working in real time",
+      "description": "A live snapshot of activity across OneFlowAI. Numbers update continuously.",
+      "items": {
+        "workspaces": "Active Workspaces",
+        "customers": "Customers Served",
+        "conversations": "Conversations Processed",
+        "automation": "AI Automation Rate",
+        "response": "Average Response Time",
+        "saved": "Labor Cost Saved"
+      }
+    },
+    "features": {
+      "eyebrow": "Features",
+      "title": "Everything your team needs to scale support",
+      "description": "A complete toolkit for multi-channel, AI-powered customer conversations.",
+      "items": {
+        "customers": {
+          "title": "Customer Management",
+          "description": "Unify every customer profile across channels into a single, searchable CRM."
+        },
+        "knowledge": {
+          "title": "Knowledge Base",
+          "description": "Feed your docs and FAQs into a store the AI can search instantly."
+        },
+        "automation": {
+          "title": "AI Automation",
+          "description": "Let AI draft, suggest, and resolve conversations with human oversight."
+        },
+        "hotel": {
+          "title": "Hotel Integration",
+          "description": "Connect PMS and booking systems so AI can answer with live reservation data."
+        },
+        "analytics": {
+          "title": "Analytics",
+          "description": "Track automation rate, response time, and cost saved with real-time charts."
+        },
+        "workspace": {
+          "title": "Multi Workspace",
+          "description": "Run isolated workspaces for every brand or branch from one account."
+        }
+      }
+    },
+    "howItWorks": {
+      "eyebrow": "How it works",
+      "title": "From first message to full automation",
+      "description": "A few steps to turn every channel into an AI-assisted conversation engine.",
+      "step": "Step",
+      "items": {
+        "connect": {
+          "title": "Connect Channels",
+          "description": "Link LINE OA, Website, Facebook, and more in a few clicks."
+        },
+        "train": {
+          "title": "Train Knowledge",
+          "description": "Upload documents and FAQs to build your AI knowledge base."
+        },
+        "automate": {
+          "title": "Automate Replies",
+          "description": "AI answers instantly and hands off to agents when needed."
+        },
+        "measure": {
+          "title": "Measure Impact",
+          "description": "Watch automation rate climb and labor cost drop."
+        }
+      }
+    },
+    "dashboardPreview": {
+      "eyebrow": "Dashboard",
+      "title": "A control center for every conversation",
+      "description": "A live look at the OneFlowAI dashboard — realtime widgets, charts, and server health, fully themed.",
+      "widgets": {
+        "workspaces": "Workspace Count",
+        "conversations": "Conversation Count",
+        "customers": "Customer Count"
+      },
+      "charts": {
+        "conversationTrend": "Conversation Trend",
+        "workspaceCount": "Workspace Count",
+        "customerCount": "Customer Count",
+        "last7days": "Last 7 days",
+        "last4weeks": "Last 4 weeks",
+        "last6months": "Last 6 months"
+      }
+    },
+    "roi": {
+      "eyebrow": "ROI",
+      "title": "Calculate Your Business Savings",
+      "description": "Drag the sliders to estimate what OneFlowAI could save your team. Updates instantly — no signup required.",
+      "sliders": {
+        "employees": "Employees answering chats",
+        "salary": "Average monthly salary",
+        "conversations": "Daily conversations"
+      },
+      "results": {
+        "savings": "Estimated Yearly Savings",
+        "automation": "AI Automation",
+        "faster": "Faster Responses",
+        "roi": "Estimated ROI"
+      }
+    },
+    "aiFlow": {
+      "eyebrow": "AI Flow",
+      "title": "Every message flows through one intelligent pipeline",
+      "description": "From any channel to a grounded reply — data flows through the Conversation Engine, Knowledge Base, and AI in milliseconds.",
+      "nodes": {
+        "customerIn": "Customer",
+        "channel": "Channel",
+        "engine": "Conversation Engine",
+        "knowledge": "Knowledge Base",
+        "openai": "OpenAI",
+        "response": "AI Response",
+        "customerOut": "Customer"
+      }
+    },
+    "hotel": {
+      "eyebrow": "Hotel Integration",
+      "title": "Connect booking, PMS, and AI",
+      "description": "Reservation data flows from your PMS into OneFlowAI so the AI can answer guests with live, accurate booking context.",
+      "nodes": {
+        "booking": "Booking",
+        "pms": "PMS",
+        "oneflow": "OneFlowAI",
+        "customer": "Customer",
+        "ai": "AI",
+        "reply": "Reply"
+      }
+    },
+    "costSaving": {
+      "badge": "Always on",
+      "title": "AI Never Sleeps.",
+      "description": "While your team rests, OneFlowAI keeps every conversation moving — around the clock, across every channel.",
+      "items": {
+        "hours": "Hours Saved / month",
+        "employees": "Equivalent Employees",
+        "cost": "Labor Cost Saved / year",
+        "reply": "Average Reply Time",
+        "automation": "Automation Rate"
+      }
+    },
+    "trust": {
+      "eyebrow": "Use cases",
+      "title": "Designed for Every Business",
+      "description": "A channel-agnostic engine that adapts to any industry. Integrations are on the way.",
+      "comingSoon": "Coming Soon",
+      "industries": {
+        "hotels": "Hotels",
+        "restaurants": "Restaurants",
+        "clinics": "Clinics",
+        "retail": "Retail",
+        "ecommerce": "E-commerce",
+        "education": "Education"
+      }
+    },
+    "pricing": {
+      "eyebrow": "Pricing",
+      "title": "Simple pricing that scales with you",
+      "description": "Start free, upgrade when you grow. No hidden fees.",
+      "popular": "Most popular",
+      "free": "Free",
+      "periods": {
+        "forever": "forever",
+        "month": "month",
+        "year": "year"
+      },
+      "plans": {
+        "starter": {
+          "name": "Starter",
+          "description": "For small teams exploring AI-powered conversations.",
+          "cta": "Get Started",
+          "features": [
+            "1 Workspace",
+            "500 conversations / mo",
+            "Basic AI replies",
+            "Email support"
+          ]
+        },
+        "growth": {
+          "name": "Growth",
+          "description": "For growing businesses that need automation at scale.",
+          "cta": "Start Free Trial",
+          "features": [
+            "5 Workspaces",
+            "20,000 conversations / mo",
+            "Advanced AI + Knowledge Base",
+            "Hotel integration",
+            "Priority support"
+          ]
+        },
+        "enterprise": {
+          "name": "Enterprise",
+          "description": "For organizations with custom and high-volume needs.",
+          "cta": "Contact Sales",
+          "features": [
+            "Unlimited Workspaces",
+            "Unlimited conversations",
+            "Dedicated AI models",
+            "SLA & SSO",
+            "Solutions engineer"
+          ]
+        }
+      }
+    },
+    "faq": {
+      "eyebrow": "FAQ",
+      "title": "Frequently asked questions",
+      "items": [
+        {
+          "question": "Which channels does OneFlowAI support?",
+          "answer": "LINE OA, Website live chat, Facebook, Instagram, WhatsApp, Telegram, and Email — all through one channel-agnostic conversation engine."
+        },
+        {
+          "question": "Do I need to write any code?",
+          "answer": "No. Connect a channel, upload your knowledge, and the AI starts drafting replies. Developers can still use our API for deeper integrations."
+        },
+        {
+          "question": "How does the AI stay accurate?",
+          "answer": "Every reply is grounded in your knowledge base using semantic search, and agents can review or override AI suggestions at any time."
+        },
+        {
+          "question": "Can I run multiple brands or properties?",
+          "answer": "Yes. Each workspace is fully isolated, so you can manage many brands, teams, or properties from a single account."
+        },
+        {
+          "question": "Is my data secure?",
+          "answer": "Workspaces are isolated at the database level and access is scoped per user. Your conversations never train shared models."
+        }
+      ]
+    },
+    "cta": {
+      "title": "Ready to unify every conversation?",
+      "description": "Launch your AI-powered support platform in minutes.",
+      "button": "Get Started"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Log in to your OneFlowAI workspace.",
+      "email": "Email",
+      "password": "Password",
+      "remember": "Remember me",
+      "forgot": "Forgot password?",
+      "submit": "Log in",
+      "footerText": "New to OneFlowAI?",
+      "footerLink": "Create an account",
+      "error": "Unable to log in"
+    },
+    "register": {
+      "title": "Create your account",
+      "subtitle": "Start managing every conversation with AI.",
+      "fullName": "Full name",
+      "fullNamePlaceholder": "Ada Lovelace",
+      "email": "Email",
+      "password": "Password",
+      "passwordPlaceholder": "At least 8 characters",
+      "submit": "Create account",
+      "footerText": "Already have an account?",
+      "footerLink": "Log in",
+      "error": "Unable to create account"
+    },
+    "forgot": {
+      "title": "Forgot password?",
+      "subtitle": "Enter your email and we'll send you a reset link.",
+      "email": "Email",
+      "submit": "Send reset link",
+      "sent": "If an account exists for that email, we've sent password reset instructions.",
+      "footerText": "Remembered it?",
+      "footerLink": "Back to log in"
+    },
+    "emailPlaceholder": "you@company.com",
+    "passwordPlaceholder": "••••••••"
+  },
+  "validation": {
+    "emailRequired": "Please enter your email",
+    "emailInvalid": "Enter a valid email address",
+    "passwordRequired": "Password is required",
+    "passwordMin": "Password must be at least 8 characters",
+    "nameRequired": "Please enter your name",
+    "required": "This field is required"
+  },
+  "toasts": {
+    "loginSuccess": "Logged in successfully",
+    "saved": "Saved successfully",
+    "forbidden": "You don't have permission to do that.",
+    "notFound": "We couldn't find what you were looking for.",
+    "serverError": "Something went wrong on our end. Please try again.",
+    "offline": "Can't reach the server. Check your connection.",
+    "requestFailed": "Request failed"
+  },
+  "dashboard": {
+    "nav": {
+      "dashboard": "Overview",
+      "inbox": "Inbox",
+      "customers": "Customers",
+      "knowledge": "Knowledge Base",
+      "analytics": "Analytics",
+      "integrations": "Integrations",
+      "workspace": "Workspace",
+      "settings": "Settings"
+    },
+    "shell": {
+      "collapse": "Collapse",
+      "expand": "Expand sidebar",
+      "openMenu": "Open menu",
+      "closeMenu": "Close menu",
+      "search": "Search",
+      "searchPlaceholder": "Search…",
+      "notifications": "Notifications",
+      "notificationsEmptyTitle": "You're all caught up",
+      "notificationsEmptyDesc": "Notifications will appear here.",
+      "profile": "Profile",
+      "settings": "Settings",
+      "logout": "Log out",
+      "member": "Member",
+      "workspaceComingSoon": "Multi-workspace switching is coming soon."
+    },
+    "overview": {
+      "welcome": "Welcome back",
+      "welcomeNamed": "Welcome back, {name}",
+      "workspaceFallback": "Your workspace",
+      "signedInAs": "Signed in as {email}",
+      "customerCount": "Customer Count",
+      "conversationCount": "Conversation Count",
+      "latestCustomers": "Latest Customers",
+      "latestConversations": "Latest Conversations",
+      "noContact": "No contact info",
+      "untitledConversation": "Untitled conversation",
+      "addCustomer": "Add customer"
+    },
+    "empty": {
+      "customersTitle": "No customers yet",
+      "customersDesc": "Start by creating your first customer.",
+      "conversationsTitle": "No conversations yet.",
+      "conversationsDesc": "New conversations across your channels will appear here."
+    },
+    "status": {
+      "open": "Open",
+      "pending": "Pending",
+      "resolved": "Resolved",
+      "closed": "Closed"
+    },
+    "placeholders": {
+      "comingSoonTitle": "{title} is coming soon",
+      "inbox": "A unified inbox for every channel is on the way.",
+      "customers": "Full customer management arrives in an upcoming sprint.",
+      "knowledge": "Upload documents to power AI answers — coming soon.",
+      "analytics": "Automation and performance analytics are on the roadmap.",
+      "integrations": "Connect LINE, Facebook, and more — coming soon.",
+      "workspace": "Workspace members and settings are coming soon.",
+      "settings": "Account and preference settings are coming soon."
+    }
+  },
+  "errors": {
+    "notFoundTitle": "Page not found",
+    "notFoundDesc": "The page you're looking for doesn't exist or has moved.",
+    "serverTitle": "Something went wrong",
+    "serverDesc": "An unexpected error occurred. Please try again."
+  },
+  "docs": {
+    "title": "Documentation",
+    "description": "Everything you need to build on OneFlowAI (mock content in this build).",
+    "topics": {
+      "gettingStarted": {
+        "title": "Getting Started",
+        "description": "Set up your first workspace."
+      },
+      "conversations": {
+        "title": "Conversations",
+        "description": "The channel-agnostic engine."
+      },
+      "customers": {
+        "title": "Customers",
+        "description": "Unify customer profiles."
+      },
+      "workspaces": {
+        "title": "Workspaces",
+        "description": "Isolation and multi-tenancy."
+      },
+      "api": {
+        "title": "API Reference",
+        "description": "REST endpoints and auth."
+      }
+    }
+  },
+  "units": {
+    "seconds": "sec"
+  }
+}

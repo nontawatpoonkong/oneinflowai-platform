@@ -1,0 +1,190 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 230 30% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 230 30% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 230 30% 10%;
+
+    --brand: 190 100% 50%;
+    --brand-foreground: 230 45% 8%;
+    --brand-soft: 190 95% 96%;
+
+    --primary: 190 100% 40%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 230 30% 10%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 190 95% 95%;
+    --accent-foreground: 230 30% 10%;
+
+    --positive: 152 62% 40%;
+    --warning: 38 92% 50%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 190 100% 45%;
+
+    --radius: 0.9rem;
+  }
+
+  .dark {
+    --background: 228 62% 4%;
+    --foreground: 210 40% 98%;
+
+    --card: 228 40% 7%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 228 44% 6%;
+    --popover-foreground: 210 40% 98%;
+
+    --brand: 190 100% 52%;
+    --brand-foreground: 228 62% 5%;
+    --brand-soft: 190 80% 12%;
+
+    --primary: 190 100% 52%;
+    --primary-foreground: 228 62% 5%;
+
+    --secondary: 228 30% 13%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 228 28% 13%;
+    --muted-foreground: 215 22% 66%;
+
+    --accent: 228 32% 15%;
+    --accent-foreground: 210 40% 98%;
+
+    --positive: 152 60% 45%;
+    --warning: 38 92% 55%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 228 28% 15%;
+    --input: 228 28% 17%;
+    --ring: 190 100% 52%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    color-scheme: light;
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    transition:
+      background-color 0.4s ease,
+      color 0.4s ease,
+      border-color 0.4s ease;
+  }
+
+  ::selection {
+    @apply bg-brand/25;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-muted-foreground/25;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/40;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply border border-white/10 bg-white/60 backdrop-blur-xl dark:border-white/[0.08] dark:bg-white/[0.03];
+  }
+
+  .glass-strong {
+    @apply border border-white/20 bg-white/70 backdrop-blur-2xl dark:border-white/[0.08] dark:bg-white/[0.05];
+  }
+
+  .text-gradient {
+    @apply bg-brand-gradient bg-clip-text text-transparent;
+  }
+
+  .brand-glow {
+    box-shadow: 0 0 60px -15px hsl(var(--brand) / 0.6);
+  }
+
+  .range-slider {
+    @apply h-2 w-full cursor-pointer appearance-none rounded-full bg-muted;
+    background-image: linear-gradient(
+      to right,
+      hsl(var(--brand)) var(--pct, 0%),
+      hsl(var(--muted)) var(--pct, 0%)
+    );
+  }
+  .range-slider::-webkit-slider-thumb {
+    @apply size-5 appearance-none rounded-full bg-brand;
+    box-shadow: 0 0 0 4px hsl(var(--brand) / 0.2);
+    transition: box-shadow 0.2s ease;
+  }
+  .range-slider::-webkit-slider-thumb:hover {
+    box-shadow: 0 0 0 6px hsl(var(--brand) / 0.25);
+  }
+  .range-slider::-moz-range-thumb {
+    @apply size-5 rounded-full border-0 bg-brand;
+    box-shadow: 0 0 0 4px hsl(var(--brand) / 0.2);
+  }
+}
+
+@layer utilities {
+  .container-wide {
+    @apply mx-auto w-full max-w-7xl px-6;
+  }
+
+  .bg-dotgrid {
+    background-image: radial-gradient(
+      hsl(var(--foreground) / 0.05) 1px,
+      transparent 1px
+    );
+    background-size: 22px 22px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
