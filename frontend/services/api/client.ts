@@ -4,8 +4,17 @@ import { clearToken, getToken } from "@/services/auth/token";
 import { normalizeError } from "@/services/api/errors";
 import type { ApiEnvelope } from "@/types/api";
 
+// The backend serves every endpoint under /api/v1. Guarantee that prefix is
+// present so requests become http://localhost:8000/api/v1/... and never hit
+// http://localhost:8000/auth/... directly. Defaults to the same-origin proxy.
+const configuredBaseUrl = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
+const normalizedBaseUrl = configuredBaseUrl.replace(/\/+$/, "");
+const baseURL = normalizedBaseUrl.endsWith("/api/v1")
+  ? normalizedBaseUrl
+  : `${normalizedBaseUrl}/api/v1`;
+
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "/api/v1",
+  baseURL,
   timeout: 15000,
   headers: { "Content-Type": "application/json" },
 });

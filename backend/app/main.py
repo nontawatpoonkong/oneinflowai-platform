@@ -3,6 +3,7 @@
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.health import router as health_router
@@ -25,6 +26,15 @@ def create_app() -> FastAPI:
         version="0.1.0",
         debug=settings.DEBUG,
         lifespan=lifespan,
+    )
+
+    # CORS for local frontend development. Registered before RequestIDMiddleware.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:3000"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     # Correlation ID for every request (also feeds the logging context).
