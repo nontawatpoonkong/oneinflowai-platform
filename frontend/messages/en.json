@@ -443,6 +443,65 @@
       "integrations": "Connect LINE, Facebook, and more — coming soon.",
       "workspace": "Workspace members and settings are coming soon.",
       "settings": "Account and preference settings are coming soon."
+    },
+    "owner": {
+      "greeting": {
+        "morning": "Good morning, {name} 👋",
+        "afternoon": "Good afternoon, {name} 👋",
+        "evening": "Good evening, {name} 👋",
+        "fallbackName": "there"
+      },
+      "welcomeBack": "Welcome back to OneFlowAI.",
+      "hero": {
+        "badge": "AI at work",
+        "title": "Your AI team is working.",
+        "subtitle": "Monitor conversations, customer growth and AI performance."
+      },
+      "kpi": {
+        "conversations": "Today's Conversations",
+        "replyRate": "AI Reply Rate",
+        "newCustomers": "New Customers",
+        "avgResponse": "Average Response",
+        "vsYesterday": "vs yesterday"
+      },
+      "trend": {
+        "title": "Conversation Trend",
+        "comingSoon": "Chart coming soon"
+      },
+      "activity": {
+        "title": "Recent Activity",
+        "customer": "Customer",
+        "emptyTitle": "No activity yet",
+        "emptyDesc": "Customer activity will appear here.",
+        "actions": {
+          "aiReplied": "AI replied",
+          "assigned": "Assigned to agent",
+          "resolved": "Resolved"
+        },
+        "time": {
+          "min2": "2 min ago",
+          "min10": "10 min ago",
+          "min30": "30 min ago"
+        }
+      },
+      "quickActions": {
+        "title": "Quick Actions",
+        "subtitle": "Jump into your most common tasks",
+        "addCustomer": "Add Customer",
+        "connectLine": "Connect LINE OA",
+        "uploadKnowledge": "Upload Knowledge",
+        "inviteTeam": "Invite Team"
+      },
+      "insight": {
+        "title": "Business Insight",
+        "subtitle": "Performance summary and AI recommendations",
+        "aiReplyRate": "AI Reply Rate",
+        "savingHours": "Saving Hours",
+        "savingCost": "Saving Cost",
+        "peakHour": "Peak Hour",
+        "recommendation": "Recommendation",
+        "hoursUnit": "hrs"
+      }
     }
   },
   "errors": {
@@ -479,5 +538,38 @@
   },
   "units": {
     "seconds": "sec"
+  },
+  "inbox": {
+    "search": "Search conversations",
+    "channels": {
+      "line": "LINE",
+      "facebook": "Facebook",
+      "web": "Website",
+      "instagram": "Instagram"
+    },
+    "empty": {
+      "title": "Select a conversation to start chatting",
+      "desc": "Pick a conversation from the list on the left and messages will appear here."
+    },
+    "composer": {
+      "placeholder": "Type a message...",
+      "hint": "Sending will be enabled in a later version"
+    },
+    "customer": {
+      "title": "Customer",
+      "selectPrompt": "Select a conversation to view customer details",
+      "tags": "Tags",
+      "leadStatus": "Lead status",
+      "aiSummary": "AI Summary",
+      "aiSummaryPlaceholder": "An AI-generated conversation summary will appear here",
+      "recentOrders": "Recent orders",
+      "noOrders": "No orders yet"
+    },
+    "leadStatuses": {
+      "new": "New",
+      "hot": "Hot lead",
+      "warm": "Warm",
+      "cold": "Cold"
+    }
   }
 }

@@ -1,75 +1,72 @@
 "use client";
 
-import { Boxes, MessageSquare, Users } from "lucide-react";
+import { AlertTriangle, Inbox, RefreshCw } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import { LatestConversations } from "@/components/dashboard/overview/latest-conversations";
-import { LatestCustomers } from "@/components/dashboard/overview/latest-customers";
-import { OverviewKpi } from "@/components/dashboard/overview/overview-kpi";
-import { Card } from "@/components/ui/card";
+import { ConversationTrend } from "@/components/dashboard/overview/conversation-trend";
+import { DashboardHero } from "@/components/dashboard/overview/dashboard-hero";
+import { Greeting } from "@/components/dashboard/overview/greeting";
+import { KpiCards } from "@/components/dashboard/overview/kpi-cards";
+import { QuickActions } from "@/components/dashboard/overview/quick-actions";
+import { RecentActivity } from "@/components/dashboard/overview/recent-activity";
+import { EmptyState } from "@/components/shared/empty-state";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useConversations } from "@/hooks/api/use-conversations";
-import { useCustomers } from "@/hooks/api/use-customers";
-import { useMyWorkspace } from "@/hooks/api/use-workspace";
-import { useAuth } from "@/hooks/use-auth";
+import { useDashboard } from "@/hooks/use-dashboard";
 
-const LATEST = { page: 1, page_size: 5, sort_by: "created_at", order: "desc" } as const;
-
+/** Owner dashboard — greeting, hero, KPIs (live), trend + activity, quick actions. */
 export function DashboardOverview() {
-  const t = useTranslations("dashboard.overview");
-  const { user } = useAuth();
-  const workspace = useMyWorkspace();
-  const customers = useCustomers(LATEST);
-  const conversations = useConversations(LATEST);
+  const t = useTranslations();
+  const { data, loading, error, refetch } = useDashboard();
 
   return (
-    <div className="flex flex-col gap-6">
-      {workspace.isLoading ? (
-        <Skeleton className="h-24 w-full" />
-      ) : (
-        <Card className="flex flex-col gap-1 p-6">
-          <p className="text-sm text-muted-foreground">
-            {user?.full_name
-              ? t("welcomeNamed", { name: user.full_name })
-              : t("welcome")}
-          </p>
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-semibold tracking-tight">
-              {workspace.data?.name ?? t("workspaceFallback")}
-            </h1>
-            {workspace.data ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 px-2.5 py-0.5 text-xs font-medium text-brand">
-                <Boxes className="size-3" />/{workspace.data.slug}
-              </span>
-            ) : null}
-          </div>
-          {user ? (
+    <div className="flex flex-col gap-6 sm:gap-8">
+      <Greeting />
+      <DashboardHero />
+
+      {loading ? (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-[132px] w-full rounded-2xl" />
+          ))}
+        </div>
+      ) : error ? (
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-10 text-center">
+          <span className="grid size-12 place-items-center rounded-2xl bg-destructive/10 text-destructive">
+            <AlertTriangle className="size-6" />
+          </span>
+          <div>
+            <p className="font-semibold">{t("errors.serverTitle")}</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              {t("signedInAs", { email: user.email })}
+              {t("errors.serverDesc")}
             </p>
-          ) : null}
-        </Card>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            <RefreshCw className="size-4" />
+            {t("common.tryAgain")}
+          </Button>
+        </div>
+      ) : !data ? (
+        <EmptyState icon={Inbox} title={t("common.noData")} />
+      ) : (
+        <KpiCards
+          values={{
+            conversations: data.today_conversations,
+            replyRate: data.ai_reply_rate,
+            newCustomers: data.new_customers,
+            avgResponse: data.avg_response_time,
+          }}
+        />
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <OverviewKpi
-          label={t("customerCount")}
-          value={customers.data?.total}
-          icon={Users}
-          isLoading={customers.isLoading}
-        />
-        <OverviewKpi
-          label={t("conversationCount")}
-          value={conversations.data?.total}
-          icon={MessageSquare}
-          isLoading={conversations.isLoading}
-        />
+      <div className="grid gap-5 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <ConversationTrend />
+        </div>
+        <RecentActivity />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <LatestCustomers />
-        <LatestConversations />
-      </div>
+      <QuickActions />
     </div>
   );
 }

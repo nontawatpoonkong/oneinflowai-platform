@@ -49,7 +49,7 @@ export function Hero() {
 
           <motion.h1
             variants={fadeUp}
-            className="text-balance text-4xl font-semibold leading-[1.1] tracking-tight sm:text-6xl md:text-7xl"
+            className="text-balance text-6xl font-semibold leading-[1.1] tracking-tight sm:text-6xl md:text-6xl"
           >
             {t("headline1")}
             <br />
