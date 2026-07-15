@@ -9,6 +9,7 @@ from app.models.customer import Customer, CustomerStatus
 from app.models.customer_identity import CustomerIdentity
 from app.models.message import Message, MessageType, SenderType
 from app.models.user import User
+from app.models.webchat_session import WebChatSession
 from app.models.workspace import Workspace
 from app.models.workspace_member import WorkspaceMember, WorkspaceRole
 
@@ -25,4 +26,5 @@ __all__ = [
     "Workspace",
     "WorkspaceMember",
     "WorkspaceRole",
+    "WebChatSession",
 ]

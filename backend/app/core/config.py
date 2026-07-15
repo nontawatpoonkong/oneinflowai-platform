@@ -58,6 +58,11 @@ class Settings(BaseSettings):
     # Root domain used to resolve workspace subdomains (acme.oneflow.ai).
     BASE_DOMAIN: str = "oneflow.ai"
 
+    # ------------------------------------------------------------ WebChat
+    WEBCHAT_SESSION_TTL_DAYS: int = 90
+    WEBCHAT_METADATA_HASH_SECRET: str = "change-me-webchat-metadata-secret"
+    WEBCHAT_CUSTOMER_MERGE_ENABLED: bool = False
+
     # -------------------------------------------------- Derived / computed
     @computed_field  # type: ignore[prop-decorator]
     @property
