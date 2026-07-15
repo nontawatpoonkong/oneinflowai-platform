@@ -13,17 +13,24 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { toast, Toaster } from "sonner";
 
 import { EmptyState } from "@/components/shared/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useConversations } from "@/hooks/api/use-conversations";
+import { useMessages } from "@/hooks/api/use-messages";
+import { useSendMessage } from "@/hooks/api/use-send-message";
+import { useUpdateConversation } from "@/hooks/api/use-update-conversation";
 import { cn } from "@/lib/utils";
+import type { ConversationAiModeDTO, ConversationDTO } from "@/types/api";
+import type { MessageDTO } from "@/types/message";
 import { formatCurrencyTHB, initialsFrom } from "@/utils/format";
 
-/* ------------------------------- mock data ------------------------------- */
+/* ------------------------------- view data ------------------------------- */
 
 type Channel = "line" | "facebook" | "web" | "instagram";
 type LeadStatus = "new" | "hot" | "warm" | "cold";
@@ -47,78 +54,38 @@ interface Conversation {
   tags: string[];
   leadStatus: LeadStatus;
   orders: Order[];
+  aiMode: ConversationAiModeDTO;
 }
 
-const CONVERSATIONS: Conversation[] = [
-  {
-    id: "c1",
-    name: "คุณสมชาย ใจดี",
-    channel: "line",
-    lastMessage: "สนใจห้อง Deluxe สุดสัปดาห์นี้ครับ",
-    time: "2 นาที",
-    unread: 3,
-    email: "somchai@example.com",
-    phone: "081-234-5678",
-    tags: ["VIP", "สนใจห้องพัก"],
-    leadStatus: "hot",
-    orders: [
-      { id: "#1042", item: "ห้อง Deluxe 2 คืน", amount: 4800, date: "10 ก.ค." },
-      { id: "#0988", item: "อาหารเช้า x2", amount: 560, date: "2 มิ.ย." },
-    ],
-  },
-  {
-    id: "c2",
-    name: "Sarah Johnson",
-    channel: "facebook",
-    lastMessage: "Is breakfast included in the price?",
-    time: "15 นาที",
+function toConversation(dto: ConversationDTO): Conversation {
+  const activityAt = dto.last_message_at ?? dto.updated_at;
+
+  return {
+    id: dto.id,
+    name: dto.subject || dto.customer_id,
+    channel:
+      dto.channel === "line" ||
+      dto.channel === "facebook" ||
+      dto.channel === "instagram"
+        ? dto.channel
+        : "web",
+    lastMessage: dto.subject || "—",
+    time: new Date(activityAt).toLocaleString(),
     unread: 0,
-    email: "sarah.j@example.com",
-    phone: "090-111-2222",
-    tags: ["ลูกค้าใหม่"],
-    leadStatus: "warm",
-    orders: [],
-  },
-  {
-    id: "c3",
-    name: "คุณมานี รักดี",
-    channel: "web",
-    lastMessage: "ขอบคุณสำหรับข้อมูลค่ะ",
-    time: "1 ชม.",
-    unread: 1,
-    email: "manee@example.com",
-    phone: "089-777-6543",
-    tags: ["ลูกค้าประจำ"],
+    email: "—",
+    phone: "—",
+    tags: [],
     leadStatus: "new",
     orders: [],
-  },
-  {
-    id: "c4",
-    name: "Nattapong K.",
-    channel: "instagram",
-    lastMessage: "ราคาสุทธิรวมทุกอย่างเท่าไหร่",
-    time: "3 ชม.",
-    unread: 0,
-    email: "nattapong@example.com",
-    phone: "086-543-2100",
-    tags: ["สอบถามราคา"],
-    leadStatus: "cold",
-    orders: [],
-  },
-  {
-    id: "c5",
-    name: "คุณอรุณี แสงทอง",
-    channel: "line",
-    lastMessage: "ขอจองวันที่ 12 นะคะ",
-    time: "เมื่อวาน",
-    unread: 0,
-    email: "arunee@example.com",
-    phone: "082-909-0909",
-    tags: ["VIP"],
-    leadStatus: "hot",
-    orders: [{ id: "#1030", item: "ห้อง Superior 1 คืน", amount: 1900, date: "8 ก.ค." }],
-  },
-];
+    aiMode: dto.ai_mode,
+  };
+}
+
+const AI_MODE_LABEL: Record<ConversationAiModeDTO, string> = {
+  AUTO: "AI อัตโนมัติ",
+  COPILOT: "ผู้ช่วย AI",
+  HUMAN: "เจ้าหน้าที่ตอบ",
+};
 
 const CHANNEL_ICON: Record<Channel, LucideIcon> = {
   line: MessageCircle,
@@ -147,61 +114,150 @@ function ChannelBadge({ channel }: { channel: Channel }) {
   );
 }
 
+function MessageBubble({ message }: { message: MessageDTO }) {
+  const createdAt = new Intl.DateTimeFormat("th-TH", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(new Date(message.created_at));
+
+  if (message.sender_type === "system") {
+    return (
+      <div className="flex justify-center">
+        <div className="max-w-[75%] text-center text-xs text-muted-foreground">
+          <p className="font-medium">System</p>
+          <p>{message.content}</p>
+          <p className="mt-1 text-[10px]">{createdAt}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const isCustomer = message.sender_type === "customer";
+  const isAi = message.sender_type === "ai";
+
+  return (
+    <div className={cn("flex", isCustomer ? "justify-start" : "justify-end")}>
+      <div
+        className={cn(
+          "max-w-[75%] rounded-2xl px-4 py-2.5 text-sm shadow-soft",
+          isCustomer && "rounded-bl-sm bg-card",
+          message.sender_type === "agent" &&
+            "rounded-br-sm bg-brand text-brand-foreground",
+          isAi && "rounded-br-sm bg-brand/10 text-foreground",
+        )}
+      >
+        {isAi ? (
+          <p className="mb-1 text-[10px] font-medium text-brand">AI</p>
+        ) : null}
+        <p>{message.content}</p>
+        <p
+          className={cn(
+            "mt-1 text-[10px]",
+            message.sender_type === "agent"
+              ? "text-brand-foreground/70"
+              : "text-muted-foreground",
+          )}
+        >
+          {createdAt}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function ConversationList({
+  conversations,
+  isLoading,
+  isError,
+  onRetry,
   selectedId,
   onSelect,
 }: {
+  conversations: Conversation[];
+  isLoading: boolean;
+  isError: boolean;
+  onRetry: () => void;
   selectedId: string | null;
   onSelect: (id: string) => void;
 }) {
   const t = useTranslations("inbox");
+  const tCommon = useTranslations("common");
+  const tErrors = useTranslations("errors");
   return (
     <div className="flex h-full flex-col border-b border-border lg:border-b-0 lg:border-r">
       <div className="border-b border-border p-3">
         <Input placeholder={t("search")} aria-label={t("search")} />
       </div>
       <ul className="flex-1 overflow-y-auto">
-        {CONVERSATIONS.map((conversation) => {
-          const active = selectedId === conversation.id;
-          return (
-            <li key={conversation.id}>
-              <button
-                type="button"
-                onClick={() => onSelect(conversation.id)}
-                aria-current={active ? "true" : undefined}
-                className={cn(
-                  "flex w-full items-start gap-3 border-l-2 px-4 py-3 text-left transition-colors",
-                  active
-                    ? "border-brand bg-brand/5"
-                    : "border-transparent hover:bg-accent",
-                )}
+        {isLoading ? (
+          <li className="grid h-full place-items-center p-6 text-sm text-muted-foreground">
+            {tCommon("loading")}
+          </li>
+        ) : isError ? (
+          <li className="grid h-full place-items-center p-6 text-center">
+            <div>
+              <p className="text-sm text-muted-foreground">
+                {tErrors("serverDesc")}
+              </p>
+              <Button
+                className="mt-3"
+                size="sm"
+                variant="outline"
+                onClick={onRetry}
               >
-                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-brand/10 text-xs font-semibold text-brand">
-                  {initialsFrom(conversation.name, conversation.name)}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="truncate text-sm font-medium">{conversation.name}</p>
-                    <span className="shrink-0 text-xs text-muted-foreground">
-                      {conversation.time}
-                    </span>
-                  </div>
-                  <p className="mt-0.5 truncate text-sm text-muted-foreground">
-                    {conversation.lastMessage}
-                  </p>
-                  <div className="mt-1.5 flex items-center justify-between gap-2">
-                    <ChannelBadge channel={conversation.channel} />
-                    {conversation.unread > 0 ? (
-                      <span className="grid min-w-5 place-items-center rounded-full bg-brand px-1.5 text-xs font-semibold text-brand-foreground">
-                        {conversation.unread}
+                {tCommon("tryAgain")}
+              </Button>
+            </div>
+          </li>
+        ) : conversations.length === 0 ? (
+          <li className="grid h-full place-items-center p-6 text-center text-sm text-muted-foreground">
+            {tCommon("noData")}
+          </li>
+        ) : (
+          conversations.map((conversation) => {
+            const active = selectedId === conversation.id;
+            return (
+              <li key={conversation.id}>
+                <button
+                  type="button"
+                  onClick={() => onSelect(conversation.id)}
+                  aria-current={active ? "true" : undefined}
+                  className={cn(
+                    "flex w-full items-start gap-3 border-l-2 px-4 py-3 text-left transition-colors",
+                    active
+                      ? "border-brand bg-brand/5"
+                      : "border-transparent hover:bg-accent",
+                  )}
+                >
+                  <span className="grid size-10 shrink-0 place-items-center rounded-full bg-brand/10 text-xs font-semibold text-brand">
+                    {initialsFrom(conversation.name, conversation.name)}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-sm font-medium">
+                        {conversation.name}
+                      </p>
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {conversation.time}
                       </span>
-                    ) : null}
+                    </div>
+                    <p className="mt-0.5 truncate text-sm text-muted-foreground">
+                      {conversation.lastMessage}
+                    </p>
+                    <div className="mt-1.5 flex items-center justify-between gap-2">
+                      <ChannelBadge channel={conversation.channel} />
+                      {conversation.unread > 0 ? (
+                        <span className="grid min-w-5 place-items-center rounded-full bg-brand px-1.5 text-xs font-semibold text-brand-foreground">
+                          {conversation.unread}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-              </button>
-            </li>
-          );
-        })}
+                </button>
+              </li>
+            );
+          })
+        )}
       </ul>
     </div>
   );
@@ -209,6 +265,29 @@ function ConversationList({
 
 function ChatWindow({ conversation }: { conversation: Conversation | null }) {
   const t = useTranslations("inbox");
+  const tCommon = useTranslations("common");
+  const tErrors = useTranslations("errors");
+  const [draft, setDraft] = useState("");
+  const { data, isLoading, isError, refetch } = useMessages(
+    conversation?.id ?? null,
+    { page: 1, page_size: 100 },
+  );
+  const sendMessage = useSendMessage(conversation?.id ?? null);
+  const updateConversation = useUpdateConversation(conversation?.id ?? null);
+
+  function handleSubmit() {
+    const content = draft.trim();
+    if (!content || sendMessage.isPending || !conversation) return;
+
+    sendMessage.mutate(content, {
+      onSuccess: () => setDraft(""),
+      onError: (error) => {
+        toast.error(
+          error instanceof Error ? error.message : tErrors("serverDesc"),
+        );
+      },
+    });
+  }
 
   if (!conversation) {
     return (
@@ -233,22 +312,99 @@ function ChatWindow({ conversation }: { conversation: Conversation | null }) {
           <p className="truncate text-sm font-medium">{conversation.name}</p>
           <ChannelBadge channel={conversation.channel} />
         </div>
+        <select
+          value={conversation.aiMode}
+          onChange={(event) => {
+            updateConversation.mutate(
+              event.target.value as ConversationAiModeDTO,
+              {
+                onError: (error) => {
+                  toast.error(
+                    error instanceof Error
+                      ? error.message
+                      : tErrors("serverDesc"),
+                  );
+                },
+              },
+            );
+          }}
+          disabled={updateConversation.isPending}
+          aria-label="โหมดการตอบสนทนา"
+          className="ml-auto h-9 rounded-md border border-input bg-background px-2 text-xs font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {(Object.keys(AI_MODE_LABEL) as ConversationAiModeDTO[]).map(
+            (mode) => (
+              <option key={mode} value={mode}>
+                {AI_MODE_LABEL[mode]}
+              </option>
+            ),
+          )}
+        </select>
       </div>
 
       <div className="flex-1 space-y-3 overflow-y-auto bg-muted/10 p-4">
-        <div className="flex justify-start">
-          <div className="max-w-[75%] rounded-2xl rounded-bl-sm bg-card px-4 py-2.5 text-sm shadow-soft">
-            {conversation.lastMessage}
+        {isLoading ? (
+          <div className="grid h-full place-items-center text-sm text-muted-foreground">
+            {tCommon("loading")}
           </div>
-        </div>
+        ) : isError ? (
+          <div className="grid h-full place-items-center text-center">
+            <div>
+              <p className="text-sm text-muted-foreground">
+                {tErrors("serverDesc")}
+              </p>
+              <Button
+                className="mt-3"
+                size="sm"
+                variant="outline"
+                onClick={() => void refetch()}
+              >
+                {tCommon("tryAgain")}
+              </Button>
+            </div>
+          </div>
+        ) : data?.items.length === 0 ? (
+          <div className="grid h-full place-items-center text-sm text-muted-foreground">
+            {tCommon("noData")}
+          </div>
+        ) : (
+          data?.items.map((message) => (
+            <MessageBubble key={message.id} message={message} />
+          ))
+        )}
       </div>
 
-      <div className="flex items-center gap-2 border-t border-border p-3">
-        <Input placeholder={t("composer.placeholder")} disabled aria-label={t("composer.placeholder")} />
-        <Button size="icon" disabled aria-label="send">
+      <form
+        className="flex items-center gap-2 border-t border-border p-3"
+        onSubmit={(event) => {
+          event.preventDefault();
+          handleSubmit();
+        }}
+      >
+        <textarea
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
+              event.preventDefault();
+              handleSubmit();
+            }
+          }}
+          rows={1}
+          disabled={sendMessage.isPending}
+          placeholder={t("composer.placeholder")}
+          aria-label={t("composer.placeholder")}
+          className="flex min-h-10 max-h-32 w-full resize-none overflow-y-auto rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        />
+        <Button
+          type="submit"
+          size="icon"
+          disabled={!draft.trim() || sendMessage.isPending}
+          aria-label="send"
+        >
           <Send className="size-4" />
         </Button>
-      </div>
+      </form>
       <p className="px-3 pb-2 text-xs text-muted-foreground">{t("composer.hint")}</p>
     </div>
   );
@@ -344,12 +500,30 @@ function CustomerSidebar({ conversation }: { conversation: Conversation | null }
 
 export function InboxView() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const selected = CONVERSATIONS.find((c) => c.id === selectedId) ?? null;
+  const { data, isLoading, isError, refetch } = useConversations({
+    page: 1,
+    page_size: 100,
+    sort_by: "last_message_at",
+    order: "desc",
+  });
+  const conversations = useMemo(
+    () => (data?.items ?? []).map(toConversation),
+    [data?.items],
+  );
+  const selected = conversations.find((c) => c.id === selectedId) ?? null;
 
   return (
     <div className="h-[calc(100dvh-7rem)] min-h-[560px] overflow-hidden rounded-2xl border border-border bg-card">
+      <Toaster richColors position="top-right" />
       <div className="grid h-full grid-cols-1 lg:grid-cols-[320px_1fr_340px]">
-        <ConversationList selectedId={selectedId} onSelect={setSelectedId} />
+        <ConversationList
+          conversations={conversations}
+          isLoading={isLoading}
+          isError={isError}
+          onRetry={() => void refetch()}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+        />
         <ChatWindow conversation={selected} />
         <CustomerSidebar conversation={selected} />
       </div>

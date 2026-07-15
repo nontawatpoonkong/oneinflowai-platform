@@ -62,6 +62,7 @@ export interface CustomerDTO {
 }
 
 export type ConversationStatusDTO = "open" | "pending" | "resolved" | "closed";
+export type ConversationAiModeDTO = "AUTO" | "COPILOT" | "HUMAN";
 export type ChannelDTO =
   | "web"
   | "line"
@@ -81,6 +82,7 @@ export interface ConversationDTO {
   assigned_user_id: string | null;
   external_conversation_id: string | null;
   last_message_at: string | null;
+  ai_mode: ConversationAiModeDTO;
   created_at: string;
   updated_at: string;
 }
