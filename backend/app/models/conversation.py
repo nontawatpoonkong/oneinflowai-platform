@@ -17,6 +17,7 @@ from app.database.mixins import TimestampMixin, UUIDMixin
 if TYPE_CHECKING:
     from app.models.customer import Customer
     from app.models.message import Message
+    from app.models.user import User
     from app.models.workspace import Workspace
 
 
@@ -25,6 +26,12 @@ class ConversationStatus(enum.StrEnum):
     PENDING = "pending"
     RESOLVED = "resolved"
     CLOSED = "closed"
+
+
+class ConversationMode(enum.StrEnum):
+    AUTO = "AUTO"
+    COPILOT = "COPILOT"
+    HUMAN = "HUMAN"
 
 
 class Conversation(UUIDMixin, TimestampMixin, Base):
@@ -65,11 +72,33 @@ class Conversation(UUIDMixin, TimestampMixin, Base):
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
     )
+    assigned_user: Mapped["User | None"] = relationship(foreign_keys=[assigned_user_id])
     external_conversation_id: Mapped[str | None] = mapped_column(
         String(255), nullable=True
     )
     last_message_at: Mapped[datetime | None] = mapped_column(
         TIMESTAMP(timezone=True), nullable=True, index=True
+    )
+
+    # AI takeover control (foundation only; no AI behavior yet).
+    ai_mode: Mapped[ConversationMode] = mapped_column(
+        SAEnum(
+            ConversationMode,
+            name="conversation_mode",
+            values_callable=lambda enum_cls: [m.value for m in enum_cls],
+        ),
+        nullable=False,
+        default=ConversationMode.AUTO,
+        server_default=ConversationMode.AUTO.value,
+    )
+    taken_over_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    taken_over_user: Mapped["User | None"] = relationship(foreign_keys=[taken_over_by])
+    taken_over_at: Mapped[datetime | None] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=True
     )
 
     # One-directional navigation (existing models are not modified).

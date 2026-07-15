@@ -26,7 +26,7 @@ from app.main import app
 
 TEST_DATABASE_URL = os.getenv(
     "TEST_DATABASE_URL",
-    "postgresql+asyncpg://oneflowai:oneflowai@127.0.0.1:5432/oneflowai_test",
+    "postgresql+asyncpg://oneflowai:oneflowai@postgres:5432/oneflowai_test",
 )
 
 # NullPool => every connection is opened/closed within the current event loop,

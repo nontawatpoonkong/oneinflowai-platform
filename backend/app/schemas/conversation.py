@@ -7,7 +7,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.core.channels import ChannelType
-from app.models.conversation import ConversationStatus
+from app.models.conversation import ConversationMode, ConversationStatus
 
 
 def _trim_optional(value: object) -> object:
@@ -40,6 +40,7 @@ class ConversationUpdate(BaseModel):
     status: ConversationStatus | None = None
     subject: str | None = Field(default=None, max_length=255)
     assigned_user_id: uuid.UUID | None = None
+    ai_mode: ConversationMode | None = None
 
     @field_validator("subject", mode="before")
     @classmethod
@@ -59,6 +60,9 @@ class ConversationResponse(BaseModel):
     assigned_user_id: uuid.UUID | None
     external_conversation_id: str | None
     last_message_at: datetime | None
+    ai_mode: ConversationMode
+    taken_over_by: uuid.UUID | None
+    taken_over_at: datetime | None
     created_at: datetime
     updated_at: datetime
 

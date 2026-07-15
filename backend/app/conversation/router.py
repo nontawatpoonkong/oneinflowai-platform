@@ -9,10 +9,12 @@ import uuid
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.dependencies import get_current_user
 from app.core.channels import ChannelType
 from app.database.session import get_db
 from app.models.conversation import Conversation, ConversationStatus
 from app.models.message import Message
+from app.models.user import User
 from app.models.workspace import Workspace
 from app.schemas.common import SortOrder
 from app.schemas.conversation import (
@@ -112,7 +114,8 @@ async def get_conversation(
     session: AsyncSession = Depends(get_db),
 ) -> dict:
     conversation = await ConversationService(session).get_conversation(
-        workspace.id, conversation_id
+        workspace.id,
+        conversation_id,
     )
     return success_response(data=_conversation_data(conversation), message="OK")
 
@@ -122,13 +125,18 @@ async def update_conversation(
     conversation_id: uuid.UUID,
     payload: ConversationUpdate,
     workspace: Workspace = Depends(get_current_workspace),
+    current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ) -> dict:
     conversation = await ConversationService(session).update_conversation(
-        workspace.id, conversation_id, payload
+        workspace.id,
+        conversation_id,
+        payload,
+        current_user.id,
     )
     return success_response(
-        data=_conversation_data(conversation), message="Conversation updated"
+        data=_conversation_data(conversation),
+        message="Conversation updated",
     )
 
 

@@ -6,12 +6,13 @@ in the same workspace.
 """
 
 import uuid
+from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.channels import ChannelType
 from app.core.exceptions import NotFoundError
-from app.models.conversation import Conversation
+from app.models.conversation import Conversation, ConversationMode
 from app.repositories.conversation import ConversationRepository
 from app.repositories.customer import CustomerRepository
 from app.schemas.common import SortOrder
@@ -92,10 +93,29 @@ class ConversationService:
         workspace_id: uuid.UUID,
         conversation_id: uuid.UUID,
         data: ConversationUpdate,
+        current_user_id: uuid.UUID,
     ) -> Conversation:
         conversation = await self.get_conversation(workspace_id, conversation_id)
         for field, value in data.model_dump(exclude_unset=True).items():
-            setattr(conversation, field, value)
+            if field == "ai_mode":
+                self._apply_ai_mode(conversation, value, current_user_id)
+            else:
+                setattr(conversation, field, value)
         await self.session.commit()
         await self.session.refresh(conversation)
         return conversation
+
+    @staticmethod
+    def _apply_ai_mode(
+        conversation: Conversation,
+        mode: ConversationMode,
+        current_user_id: uuid.UUID,
+    ) -> None:
+        conversation.ai_mode = mode
+        if mode == ConversationMode.AUTO:
+            conversation.taken_over_by = None
+            conversation.taken_over_at = None
+            return
+
+        conversation.taken_over_by = current_user_id
+        conversation.taken_over_at = datetime.now(UTC)
