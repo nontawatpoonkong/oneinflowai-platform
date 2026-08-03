@@ -11,16 +11,17 @@ import uuid
 from fastapi.testclient import TestClient
 
 from app.models.workspace_member import WorkspaceMember, WorkspaceRole
-from tests.conftest import TestSessionLocal
+from tests.conftest import TestSessionLocal, register_verify_and_login
 
 
 def _register(client: TestClient, email: str, full_name: str = "User") -> dict:
-    response = client.post(
-        "/api/v1/auth/register",
-        json={"email": email, "password": "supersecret123", "full_name": full_name},
+    data, token = register_verify_and_login(
+        client,
+        email=email,
+        full_name=full_name,
     )
-    assert response.status_code == 201
-    return response.json()["data"]
+    data["token"] = {"access_token": token}
+    return data
 
 
 def _auth(token: str) -> dict[str, str]:

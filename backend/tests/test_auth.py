@@ -17,7 +17,7 @@ def _register(client: TestClient, **overrides) -> dict:
     return client.post(REGISTER_URL, json=payload)
 
 
-def test_register_creates_user_workspace_and_returns_token(
+def test_register_creates_user_workspace_and_requires_verification(
     client_db: TestClient,
 ) -> None:
     response = _register(client_db)
@@ -35,10 +35,11 @@ def test_register_creates_user_workspace_and_returns_token(
     assert data["workspace"]["owner_id"] == data["user"]["id"]
     assert data["workspace"]["slug"]
 
-    # Access token issued (30 min => 1800s).
-    assert data["token"]["token_type"] == "bearer"
-    assert data["token"]["expires_in"] == 1800
-    assert data["token"]["access_token"]
+    assert data["verification_required"] is True
+    assert data["verification_type"] == "EMAIL_OTP"
+    assert data["verification_expires_in"] == 300
+    assert data["resend_after"] == 60
+    assert "token" not in data
 
 
 def test_register_rejects_duplicate_email(client_db: TestClient) -> None:
@@ -57,8 +58,14 @@ def test_register_validates_password_length(client_db: TestClient) -> None:
     assert response.json()["error"]["code"] == "VALIDATION_ERROR"
 
 
-def test_login_succeeds_with_valid_credentials(client_db: TestClient) -> None:
+def test_login_succeeds_with_valid_credentials(
+    client_db: TestClient, fake_email_provider
+) -> None:
     _register(client_db)
+    client_db.post(
+        "/api/v1/auth/verify-email",
+        json={"email": "alice@example.com", "otp": fake_email_provider.latest_otp},
+    )
 
     response = client_db.post(
         LOGIN_URL,
@@ -70,8 +77,14 @@ def test_login_succeeds_with_valid_credentials(client_db: TestClient) -> None:
     assert data["expires_in"] == 1800
 
 
-def test_login_is_case_insensitive_on_email(client_db: TestClient) -> None:
+def test_login_is_case_insensitive_on_email(
+    client_db: TestClient, fake_email_provider
+) -> None:
     _register(client_db)
+    client_db.post(
+        "/api/v1/auth/verify-email",
+        json={"email": "alice@example.com", "otp": fake_email_provider.latest_otp},
+    )
     response = client_db.post(
         LOGIN_URL,
         json={"email": "ALICE@example.com", "password": "supersecret123"},
@@ -90,7 +103,16 @@ def test_login_fails_with_wrong_password(client_db: TestClient) -> None:
 
 
 def test_me_returns_current_user_with_token(client_db: TestClient) -> None:
-    token = _register(client_db).json()["data"]["token"]["access_token"]
+    _register(client_db)
+    provider = client_db.app.state.fake_email_provider
+    client_db.post(
+        "/api/v1/auth/verify-email",
+        json={"email": "alice@example.com", "otp": provider.latest_otp},
+    )
+    token = client_db.post(
+        LOGIN_URL,
+        json={"email": "alice@example.com", "password": "supersecret123"},
+    ).json()["data"]["access_token"]
 
     response = client_db.get(ME_URL, headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 200

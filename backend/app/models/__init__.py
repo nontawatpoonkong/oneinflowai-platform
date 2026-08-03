@@ -9,6 +9,10 @@ from app.models.customer import Customer, CustomerStatus
 from app.models.customer_identity import CustomerIdentity
 from app.models.message import Message, MessageType, SenderType
 from app.models.user import User
+from app.models.verification_challenge import (
+    VerificationChallenge,
+    VerificationPurpose,
+)
 from app.models.webchat_session import WebChatSession
 from app.models.workspace import Workspace
 from app.models.workspace_member import WorkspaceMember, WorkspaceRole
@@ -23,6 +27,8 @@ __all__ = [
     "MessageType",
     "SenderType",
     "User",
+    "VerificationChallenge",
+    "VerificationPurpose",
     "Workspace",
     "WorkspaceMember",
     "WorkspaceRole",

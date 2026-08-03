@@ -18,6 +18,15 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    # --------------------------------------------------------------- Email
+    EMAIL_PROVIDER: str = "development"
+    EMAIL_FROM_ADDRESS: str = "no-reply@oneflow.ai"
+    EMAIL_FROM_NAME: str = "OneFlowAI"
+    EMAIL_VERIFICATION_OTP_TTL_SECONDS: int = 300
+    EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS: int = 60
+    EMAIL_VERIFICATION_MAX_ATTEMPTS: int = 5
+    OTP_HASH_SECRET: str | None = None
+
     # ------------------------------------------------------------------ App
     APP_NAME: str = "OneFlowAI Platform"
     APP_ENV: str = "development"  # development | staging | production

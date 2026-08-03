@@ -12,29 +12,45 @@ from app.core.config import get_settings
 from app.core.exceptions import (
     AuthenticationError,
     EmailAlreadyExistsError,
+    EmailNotVerifiedError,
     InactiveUserError,
     InvalidCredentialsError,
 )
+from app.core.logging import get_logger
 from app.core.security import (
     create_access_token,
     hash_password,
     verify_password,
 )
+from app.integrations.email import (
+    EmailDeliveryError,
+    EmailProvider,
+    create_email_provider,
+)
 from app.models.user import User
 from app.models.workspace import Workspace
 from app.repositories.user import UserRepository
 from app.schemas.auth import TokenResponse
+from app.services.email_verification import EmailVerificationService
 from app.services.workspace import WorkspaceService
 from app.services.workspace_naming import derive_workspace_naming
 
 settings = get_settings()
+logger = get_logger(__name__)
 
 
 class AuthService:
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(
+        self,
+        session: AsyncSession,
+        *,
+        email_provider: EmailProvider | None = None,
+    ) -> None:
         self.session = session
         self.users = UserRepository(session)
         self.workspaces = WorkspaceService(session)
+        self.email_provider = email_provider or create_email_provider()
+        self.verification = EmailVerificationService(session)
 
     def issue_token(self, user: User) -> TokenResponse:
         token = create_access_token(user_id=user.id, email=user.email)
@@ -45,7 +61,7 @@ class AuthService:
 
     async def register(
         self, *, email: str, password: str, full_name: str | None
-    ) -> tuple[User, Workspace, TokenResponse]:
+    ) -> tuple[User, Workspace]:
         email = email.lower()
         if await self.users.email_exists(email):
             raise EmailAlreadyExistsError()
@@ -64,11 +80,24 @@ class AuthService:
             slug_source=naming.slug_base,
         )
 
+        pending_email = await self.verification.create_challenge(user)
+
         await self.session.commit()
         await self.session.refresh(user)
         await self.session.refresh(workspace)
 
-        return user, workspace, self.issue_token(user)
+        try:
+            await self.verification.deliver(self.email_provider, pending_email)
+        except EmailDeliveryError:
+            logger.warning(
+                "verification_email_delivery_failed",
+                extra={
+                    "event": "verification_email_delivery_failed",
+                    "user_id": user.id,
+                },
+            )
+
+        return user, workspace
 
     async def login(self, *, email: str, password: str) -> tuple[User, TokenResponse]:
         user = await self.users.get_by_email(email.lower())
@@ -76,6 +105,8 @@ class AuthService:
             raise InvalidCredentialsError()
         if not user.is_active:
             raise InactiveUserError()
+        if not user.email_verified:
+            raise EmailNotVerifiedError()
         return user, self.issue_token(user)
 
     async def get_user_by_id(self, user_id: uuid.UUID) -> User:

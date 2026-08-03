@@ -45,6 +45,27 @@ class InactiveUserError(AppError):
     message = "User account is inactive"
 
 
+class EmailNotVerifiedError(AppError):
+    status_code = 403
+    code = "EMAIL_NOT_VERIFIED"
+    message = "Email verification is required"
+
+    def __init__(self) -> None:
+        super().__init__(details={"next_action": "VERIFY_EMAIL"})
+
+
+class InvalidVerificationCodeError(AppError):
+    status_code = 400
+    code = "INVALID_VERIFICATION_CODE"
+    message = "Verification code is invalid or unavailable"
+
+
+class VerificationConfigurationError(AppError):
+    status_code = 500
+    code = "VERIFICATION_CONFIGURATION_ERROR"
+    message = "Email verification is temporarily unavailable"
+
+
 class NotFoundError(AppError):
     status_code = 404
     code = "NOT_FOUND"

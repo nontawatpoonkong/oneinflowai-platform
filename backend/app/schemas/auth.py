@@ -1,5 +1,7 @@
 """Authentication schemas."""
 
+from typing import Literal
+
 from pydantic import BaseModel, EmailStr, Field
 
 from app.schemas.user import UserResponse
@@ -17,6 +19,15 @@ class LoginRequest(BaseModel):
     password: str = Field(min_length=1, max_length=128)
 
 
+class VerifyEmailRequest(BaseModel):
+    email: EmailStr
+    otp: str = Field(pattern=r"^[0-9]{6}$")
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
@@ -26,4 +37,7 @@ class TokenResponse(BaseModel):
 class RegisterResponse(BaseModel):
     user: UserResponse
     workspace: WorkspaceResponse
-    token: TokenResponse
+    verification_required: bool = True
+    verification_type: Literal["EMAIL_OTP"] = "EMAIL_OTP"
+    verification_expires_in: int
+    resend_after: int

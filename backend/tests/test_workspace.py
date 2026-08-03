@@ -2,17 +2,16 @@
 
 from fastapi.testclient import TestClient
 
+from tests.conftest import register_verify_and_login
+
 
 def _register_and_token(client: TestClient) -> str:
-    response = client.post(
-        "/api/v1/auth/register",
-        json={
-            "email": "bob@example.com",
-            "password": "supersecret123",
-            "full_name": "Bob Example",
-        },
+    _, token = register_verify_and_login(
+        client,
+        email="bob@example.com",
+        full_name="Bob Example",
     )
-    return response.json()["data"]["token"]["access_token"]
+    return token
 
 
 def test_create_workspace_requires_auth(client_db: TestClient) -> None:
