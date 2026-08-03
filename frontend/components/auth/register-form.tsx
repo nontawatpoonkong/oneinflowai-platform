@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
 import { ApiError } from "@/services/api/errors";
+import { saveRegistrationVerification } from "@/services/auth/verification-session";
 
 export function RegisterForm() {
   const t = useTranslations("auth.register");
@@ -39,8 +40,9 @@ export function RegisterForm() {
 
   async function onSubmit(values: Values) {
     try {
-      await registerUser(values);
-      router.replace("/dashboard");
+      const result = await registerUser(values);
+      saveRegistrationVerification(result.user.email, result);
+      router.replace("/verify-email");
     } catch (error) {
       setError("root", {
         message: error instanceof ApiError ? error.message : t("error"),

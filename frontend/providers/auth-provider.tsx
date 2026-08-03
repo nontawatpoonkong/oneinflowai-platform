@@ -17,6 +17,7 @@ import { clearToken, getToken, setToken } from "@/services/auth/token";
 import type {
   LoginPayload,
   RegisterPayload,
+  RegisterResultDTO,
   UserDTO,
 } from "@/types/api";
 
@@ -26,7 +27,7 @@ interface AuthContextValue {
   user: UserDTO | null;
   status: AuthStatus;
   login: (payload: LoginPayload) => Promise<void>;
-  register: (payload: RegisterPayload) => Promise<void>;
+  register: (payload: RegisterPayload) => Promise<RegisterResultDTO>;
   logout: () => void;
 }
 
@@ -63,10 +64,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registerMutation = useMutation({
     mutationFn: (payload: RegisterPayload) => authService.register(payload),
-    onSuccess: (result) => {
-      setToken(result.token.access_token, true);
-      setHasToken(true);
-    },
   });
 
   const login = useCallback(
@@ -79,10 +76,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = useCallback(
     async (payload: RegisterPayload) => {
-      await registerMutation.mutateAsync(payload);
-      await queryClient.invalidateQueries({ queryKey: queryKeys.me });
+      return registerMutation.mutateAsync(payload);
     },
-    [registerMutation, queryClient],
+    [registerMutation],
   );
 
   const logout = useCallback(() => {

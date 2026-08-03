@@ -15,7 +15,10 @@ export function middleware(request: NextRequest) {
   const hasToken = Boolean(request.cookies.get(TOKEN_COOKIE)?.value);
 
   const isDashboard = pathname.startsWith("/dashboard");
-  const isAuthPage = pathname === "/login" || pathname === "/register";
+  const isAuthPage =
+    pathname === "/login" ||
+    pathname === "/register" ||
+    pathname === "/verify-email";
 
   if (isDashboard && !hasToken) {
     const url = request.nextUrl.clone();
@@ -35,5 +38,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login", "/register"],
+  matcher: ["/dashboard/:path*", "/login", "/register", "/verify-email"],
 };

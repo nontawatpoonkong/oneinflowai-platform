@@ -4,8 +4,10 @@ import type {
   LoginPayload,
   RegisterPayload,
   RegisterResultDTO,
+  ResendVerificationResultDTO,
   TokenDTO,
   UserDTO,
+  VerifyEmailPayload,
 } from "@/types/api";
 
 export const authService = {
@@ -21,6 +23,20 @@ export const authService = {
     const res = await api.post<ApiEnvelope<RegisterResultDTO>>(
       "/auth/register",
       payload,
+    );
+    return unwrap(res);
+  },
+
+  async verifyEmail(payload: VerifyEmailPayload): Promise<void> {
+    await api.post<ApiEnvelope<null>>("/auth/verify-email", payload);
+  },
+
+  async resendVerification(
+    email: string,
+  ): Promise<ResendVerificationResultDTO> {
+    const res = await api.post<ApiEnvelope<ResendVerificationResultDTO>>(
+      "/auth/resend-verification",
+      { email },
     );
     return unwrap(res);
   },

@@ -7,6 +7,7 @@
     "docs": "Docs",
     "login": "Log in",
     "register": "Create account",
+    "verifyEmail": "Verify email",
     "forgotPassword": "Forgot password",
     "dashboard": "Overview",
     "inbox": "Inbox",
@@ -338,6 +339,8 @@
       "submit": "Log in",
       "footerText": "New to OneFlowAI?",
       "footerLink": "Create an account",
+      "emailNotVerified": "Verify your email before logging in.",
+      "verifyEmail": "Verify email",
       "error": "Unable to log in"
     },
     "register": {
@@ -352,6 +355,25 @@
       "footerText": "Already have an account?",
       "footerLink": "Log in",
       "error": "Unable to create account"
+    },
+    "verifyEmail": {
+      "title": "Verify your email",
+      "subtitle": "Enter the six-digit code sent for your OneFlowAI account.",
+      "codeLabel": "Verification code",
+      "codeHint": "Enter all six digits. You can paste the complete code.",
+      "codeLength": "Enter the complete six-digit code.",
+      "submit": "Verify email",
+      "invalidCode": "The verification code is invalid or unavailable.",
+      "verifyError": "Unable to verify the code. Please try again.",
+      "verified": "Email verified. You can now log in.",
+      "resend": "Resend code",
+      "resendCountdown": "You can resend a code in {seconds} seconds.",
+      "resendSuccess": "If an account exists for this email, a verification code has been sent.",
+      "resendError": "Unable to resend the code. Please try again.",
+      "missingEmail": "Start from registration or login so we know which email to verify.",
+      "loading": "Loading verification form",
+      "footerText": "Already verified?",
+      "backToLogin": "Back to log in"
     },
     "forgot": {
       "title": "Forgot password?",

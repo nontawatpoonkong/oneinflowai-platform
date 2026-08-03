@@ -20,6 +20,8 @@ export interface UserDTO {
   email: string;
   full_name: string | null;
   is_active: boolean;
+  email_verified: boolean;
+  email_verified_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -42,7 +44,19 @@ export interface TokenDTO {
 export interface RegisterResultDTO {
   user: UserDTO;
   workspace: WorkspaceDTO;
-  token: TokenDTO;
+  verification_required: true;
+  verification_type: "EMAIL_OTP";
+  verification_expires_in: number;
+  resend_after: number;
+}
+
+export interface VerifyEmailPayload {
+  email: string;
+  otp: string;
+}
+
+export interface ResendVerificationResultDTO {
+  resend_after: number;
 }
 
 export type CustomerStatusDTO = "active" | "inactive";
