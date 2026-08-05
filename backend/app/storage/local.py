@@ -8,10 +8,13 @@ from app.storage.base import StorageProvider
 
 class LocalStorageProvider(StorageProvider):
     def __init__(self, root: str | Path) -> None:
-        self.root = Path(root)
+        self.root = Path(root).resolve()
 
     def _path(self, key: str) -> Path:
-        return self.root / key
+        target = (self.root / key).resolve()
+        if self.root not in target.parents:
+            raise ValueError("Invalid storage key")
+        return target
 
     async def save(self, *, key: str, data: bytes) -> None:
         target = self._path(key)

@@ -1,7 +1,10 @@
 """Knowledge document metadata and storage orchestration."""
 
 import uuid
+from contextlib import suppress
+from io import BytesIO
 from pathlib import Path
+from zipfile import BadZipFile, ZipFile
 
 from fastapi import UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,6 +31,8 @@ _ALLOWED_TYPES: dict[str, set[str]] = {
     ".txt": {"text/plain"},
     ".md": {"text/markdown", "text/plain", "text/x-markdown"},
 }
+_READ_CHUNK_SIZE = 64 * 1024
+_DOCX_REQUIRED_MEMBERS = {"[Content_Types].xml", "word/document.xml"}
 
 
 class KnowledgeDocumentService:
@@ -60,12 +65,10 @@ class KnowledgeDocumentService:
         if content_type not in _ALLOWED_TYPES[extension]:
             raise InvalidKnowledgeFileError()
 
-        maximum = self.settings.KNOWLEDGE_MAX_FILE_SIZE_BYTES
-        data = await file.read(maximum + 1)
-        if len(data) > maximum:
-            raise KnowledgeFileTooLargeError()
+        data = await self._read_limited(file)
         if not data:
             raise InvalidKnowledgeFileError()
+        self._validate_signature(extension, data)
 
         document_id = uuid.uuid4()
         storage_key = f"{workspace_id}/{document_id}{extension}"
@@ -91,8 +94,46 @@ class KnowledgeDocumentService:
             return document
         except Exception:
             await self.session.rollback()
-            await self.storage.delete(key=storage_key)
+            with suppress(Exception):
+                await self.storage.delete(key=storage_key)
             raise
+
+    async def _read_limited(self, file: UploadFile) -> bytes:
+        maximum = self.settings.KNOWLEDGE_MAX_FILE_SIZE_BYTES
+        data = bytearray()
+        while True:
+            chunk = await file.read(min(_READ_CHUNK_SIZE, maximum + 1 - len(data)))
+            if not chunk:
+                return bytes(data)
+            data.extend(chunk)
+            if len(data) > maximum:
+                raise KnowledgeFileTooLargeError()
+
+    @staticmethod
+    def _validate_signature(extension: str, data: bytes) -> None:
+        if extension == ".pdf":
+            if not data.startswith(b"%PDF-"):
+                raise InvalidKnowledgeFileError()
+            return
+        if extension == ".docx":
+            try:
+                with ZipFile(BytesIO(data)) as archive:
+                    if not _DOCX_REQUIRED_MEMBERS.issubset(archive.namelist()):
+                        raise InvalidKnowledgeFileError()
+            except BadZipFile:
+                raise InvalidKnowledgeFileError() from None
+            return
+        try:
+            text = data.decode("utf-8-sig")
+        except UnicodeDecodeError:
+            raise InvalidKnowledgeFileError() from None
+        if "\x00" in text:
+            raise InvalidKnowledgeFileError()
+        controls = sum(
+            1 for character in text if ord(character) < 32 and character not in "\n\r\t"
+        )
+        if controls > max(1, len(text) // 100):
+            raise InvalidKnowledgeFileError()
 
     async def list(
         self, workspace_id: uuid.UUID, *, page: int, page_size: int
