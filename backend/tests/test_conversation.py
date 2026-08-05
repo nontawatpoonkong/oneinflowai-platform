@@ -4,16 +4,14 @@ import uuid
 
 from fastapi.testclient import TestClient
 
+from tests.conftest import register_verify_and_login
+
 CONV_URL = "/api/v1/conversations"
 
 
 def _token(client: TestClient, email: str) -> str:
-    response = client.post(
-        "/api/v1/auth/register",
-        json={"email": email, "password": "supersecret123", "full_name": "Owner"},
-    )
-    assert response.status_code == 201
-    return response.json()["data"]["token"]["access_token"]
+    _, token = register_verify_and_login(client, email=email)
+    return token
 
 
 def _auth(token: str) -> dict[str, str]:
