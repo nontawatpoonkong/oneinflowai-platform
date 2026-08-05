@@ -79,6 +79,30 @@ export interface ResetPasswordPayload {
   confirm_password: string;
 }
 
+export type KnowledgeDocumentStatus =
+  | "UPLOADING"
+  | "PROCESSING"
+  | "READY"
+  | "FAILED"
+  | "DELETED";
+
+export type KnowledgeSourceType = "UPLOAD" | "TEXT" | "URL" | "FAQ";
+
+export interface KnowledgeDocumentDTO {
+  id: string;
+  workspace_id: string;
+  title: string;
+  original_filename: string;
+  mime_type: string;
+  file_size: number;
+  source_type: KnowledgeSourceType;
+  status: KnowledgeDocumentStatus;
+  language: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export type CustomerStatusDTO = "active" | "inactive";
 
 export interface CustomerDTO {

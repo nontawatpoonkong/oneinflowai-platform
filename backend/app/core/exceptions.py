@@ -100,3 +100,21 @@ class SlugAlreadyExistsError(AppError):
     status_code = 409
     code = "SLUG_ALREADY_EXISTS"
     message = "A workspace with this name/slug already exists"
+
+
+class KnowledgeDocumentNotFoundError(AppError):
+    status_code = 404
+    code = "KNOWLEDGE_DOCUMENT_NOT_FOUND"
+    message = "Knowledge document not found"
+
+
+class InvalidKnowledgeFileError(AppError):
+    status_code = 400
+    code = "INVALID_KNOWLEDGE_FILE"
+    message = "Unsupported or invalid knowledge file"
+
+
+class KnowledgeFileTooLargeError(AppError):
+    status_code = 413
+    code = "KNOWLEDGE_FILE_TOO_LARGE"
+    message = "Knowledge file exceeds the configured size limit"

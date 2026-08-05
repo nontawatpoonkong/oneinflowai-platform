@@ -7,6 +7,11 @@ Alembic autogenerate and by test schema creation).
 from app.models.conversation import Conversation, ConversationStatus
 from app.models.customer import Customer, CustomerStatus
 from app.models.customer_identity import CustomerIdentity
+from app.models.knowledge_document import (
+    KnowledgeDocument,
+    KnowledgeDocumentStatus,
+    KnowledgeSourceType,
+)
 from app.models.message import Message, MessageType, SenderType
 from app.models.password_reset_session import PasswordResetSession
 from app.models.user import User
@@ -25,6 +30,9 @@ __all__ = [
     "CustomerIdentity",
     "CustomerStatus",
     "Message",
+    "KnowledgeDocument",
+    "KnowledgeDocumentStatus",
+    "KnowledgeSourceType",
     "MessageType",
     "PasswordResetSession",
     "SenderType",

@@ -29,6 +29,11 @@ class Settings(BaseSettings):
     PASSWORD_RESET_TOKEN_TTL_SECONDS: int = 600
     OTP_HASH_SECRET: str | None = None
 
+    # ------------------------------------------------------------- Storage
+    STORAGE_PROVIDER: str = "local"
+    STORAGE_LOCAL_PATH: str = "storage"
+    KNOWLEDGE_MAX_FILE_SIZE_BYTES: int = 10 * 1024 * 1024
+
     # ------------------------------------------------------------------ App
     APP_NAME: str = "OneFlowAI Platform"
     APP_ENV: str = "development"  # development | staging | production
