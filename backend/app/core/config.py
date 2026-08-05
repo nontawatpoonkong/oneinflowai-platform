@@ -20,6 +20,7 @@ class Settings(BaseSettings):
 
     # --------------------------------------------------------------- Email
     EMAIL_PROVIDER: str = "development"
+    RESEND_API_KEY: str | None = None
     EMAIL_FROM_ADDRESS: str = "no-reply@oneflow.ai"
     EMAIL_FROM_NAME: str = "OneFlowAI"
     EMAIL_VERIFICATION_OTP_TTL_SECONDS: int = 300

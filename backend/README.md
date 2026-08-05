@@ -54,6 +54,36 @@ uv run pytest                  # tests
 uv run pre-commit install      # enable git hooks
 ```
 
+## Email OTP delivery with Resend
+
+Development and automated tests use the non-delivering `development` provider.
+To perform a manual end-to-end test with a real recipient, configure these
+environment-only values in the local `.env` file:
+
+```dotenv
+EMAIL_PROVIDER=resend
+RESEND_API_KEY=<secret>
+EMAIL_FROM_ADDRESS=<verified sender>
+EMAIL_FROM_NAME=OneFlowAI
+OTP_HASH_SECRET=<secret>
+```
+
+In the Resend dashboard, create an API key and verify the sending domain. Add
+the DNS records provided by Resend, wait for the domain to become verified, and
+use an address on that domain for `EMAIL_FROM_ADDRESS`. Never commit `.env`.
+
+Manual verification procedure:
+
+1. Start PostgreSQL and apply the latest Alembic migration.
+2. Start the backend and frontend with the environment above.
+3. Register with an email inbox you control and confirm the OTP email arrives.
+4. Enter the six-digit OTP, then log in successfully.
+5. Register another address and confirm login is blocked before verification.
+6. Exercise resend after the cooldown and confirm the new OTP works.
+7. Enter an incorrect OTP and confirm verification is rejected.
+
+Automated tests always inject fake SDK clients and never send real email.
+
 ## Observability
 Every request gets an `X-Request-ID` (generated or echoed from the inbound
 header). It is stored in a contextvar and injected into every log line, along

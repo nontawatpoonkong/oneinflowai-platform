@@ -17,6 +17,7 @@ dependencies = [
     "bcrypt>=4.2.1",
     "pyjwt>=2.10.1",
     "email-validator>=2.2.0",
+    "resend[async]>=2.35.0",
 ]
 
 [dependency-groups]
