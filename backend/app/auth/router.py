@@ -9,18 +9,23 @@ from app.database.session import get_db
 from app.integrations.email import EmailDeliveryError, create_email_provider
 from app.models.user import User
 from app.schemas.auth import (
+    ForgotPasswordRequest,
     LoginRequest,
     RegisterRequest,
     RegisterResponse,
     ResendVerificationRequest,
+    ResetPasswordRequest,
     TokenResponse,
     VerifyEmailRequest,
+    VerifyPasswordResetRequest,
+    VerifyPasswordResetResponse,
 )
 from app.schemas.response import success_response
 from app.schemas.user import UserResponse
 from app.schemas.workspace import WorkspaceResponse
 from app.services.auth import AuthService
 from app.services.email_verification import EmailVerificationService
+from app.services.password_reset import PasswordResetService
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -98,6 +103,64 @@ async def resend_verification(
             "If an account exists for this email, a verification code has been sent."
         )
     )
+
+
+@router.post("/forgot-password")
+async def forgot_password(
+    payload: ForgotPasswordRequest,
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    service = PasswordResetService(session)
+    pending = await service.request(payload.email)
+    try:
+        await service.deliver(create_email_provider(), pending)
+    except EmailDeliveryError:
+        logger.warning(
+            "password_reset_email_delivery_failed",
+            extra={"event": "password_reset_email_delivery_failed"},
+        )
+    return success_response(
+        data={
+            "resend_after": (
+                service.settings.EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS
+            )
+        },
+        message=(
+            "If an eligible account exists for this email, "
+            "a password reset code has been sent."
+        ),
+    )
+
+
+@router.post("/verify-password-reset")
+async def verify_password_reset(
+    payload: VerifyPasswordResetRequest,
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    authorization = await PasswordResetService(session).verify(
+        email=payload.email,
+        otp=payload.otp,
+    )
+    data = VerifyPasswordResetResponse(
+        reset_token=authorization.token,
+        expires_in=authorization.expires_in_seconds,
+    )
+    return success_response(
+        data=data.model_dump(mode="json"),
+        message="Password reset code verified",
+    )
+
+
+@router.post("/reset-password")
+async def reset_password(
+    payload: ResetPasswordRequest,
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    await PasswordResetService(session).reset(
+        reset_token=payload.reset_token,
+        new_password=payload.new_password,
+    )
+    return success_response(message="Password reset successfully")
 
 
 @router.get("/me")

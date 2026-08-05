@@ -59,6 +59,26 @@ export interface ResendVerificationResultDTO {
   resend_after: number;
 }
 
+export interface ForgotPasswordResultDTO {
+  resend_after: number;
+}
+
+export interface VerifyPasswordResetPayload {
+  email: string;
+  otp: string;
+}
+
+export interface VerifyPasswordResetResultDTO {
+  reset_token: string;
+  expires_in: number;
+}
+
+export interface ResetPasswordPayload {
+  reset_token: string;
+  new_password: string;
+  confirm_password: string;
+}
+
 export type CustomerStatusDTO = "active" | "inactive";
 
 export interface CustomerDTO {

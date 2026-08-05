@@ -60,6 +60,18 @@ class InvalidVerificationCodeError(AppError):
     message = "Verification code is invalid or unavailable"
 
 
+class InvalidPasswordResetCodeError(AppError):
+    status_code = 400
+    code = "INVALID_PASSWORD_RESET_CODE"
+    message = "Password reset code is invalid or unavailable"
+
+
+class InvalidPasswordResetTokenError(AppError):
+    status_code = 400
+    code = "INVALID_PASSWORD_RESET_TOKEN"
+    message = "Password reset authorization is invalid or expired"
+
+
 class VerificationConfigurationError(AppError):
     status_code = 500
     code = "VERIFICATION_CONFIGURATION_ERROR"

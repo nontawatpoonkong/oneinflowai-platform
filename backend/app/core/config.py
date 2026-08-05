@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     EMAIL_VERIFICATION_OTP_TTL_SECONDS: int = 300
     EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS: int = 60
     EMAIL_VERIFICATION_MAX_ATTEMPTS: int = 5
+    PASSWORD_RESET_TOKEN_TTL_SECONDS: int = 600
     OTP_HASH_SECRET: str | None = None
 
     # ------------------------------------------------------------------ App

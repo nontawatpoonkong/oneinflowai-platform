@@ -8,6 +8,7 @@ from app.models.conversation import Conversation, ConversationStatus
 from app.models.customer import Customer, CustomerStatus
 from app.models.customer_identity import CustomerIdentity
 from app.models.message import Message, MessageType, SenderType
+from app.models.password_reset_session import PasswordResetSession
 from app.models.user import User
 from app.models.verification_challenge import (
     VerificationChallenge,
@@ -25,6 +26,7 @@ __all__ = [
     "CustomerStatus",
     "Message",
     "MessageType",
+    "PasswordResetSession",
     "SenderType",
     "User",
     "VerificationChallenge",

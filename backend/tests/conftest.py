@@ -82,6 +82,22 @@ class FakeEmailProvider(EmailProvider):
             }
         )
 
+    async def send_password_reset_otp(
+        self,
+        *,
+        recipient: str,
+        otp: str,
+        expires_in_seconds: int,
+    ) -> None:
+        self.deliveries.append(
+            {
+                "recipient": recipient,
+                "otp": otp,
+                "expires_in_seconds": expires_in_seconds,
+                "purpose": "password_reset",
+            }
+        )
+
 
 @pytest.fixture
 def fake_email_provider(monkeypatch: pytest.MonkeyPatch) -> FakeEmailProvider:
