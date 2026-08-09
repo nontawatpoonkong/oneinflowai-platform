@@ -25,6 +25,10 @@ class LocalStorageProvider(StorageProvider):
 
         await asyncio.to_thread(_write)
 
+    async def read(self, *, key: str) -> bytes:
+        target = self._path(key)
+        return await asyncio.to_thread(target.read_bytes)
+
     async def delete(self, *, key: str) -> None:
         target = self._path(key)
 

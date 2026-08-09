@@ -6,7 +6,10 @@ from pathlib import Path
 from zipfile import ZipFile
 
 import pytest
+from docx import Document
 from fastapi.testclient import TestClient
+from pypdf import PdfWriter
+from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import UploadFile
 
@@ -41,6 +44,12 @@ def _upload(
 
 
 def _docx(*, valid: bool) -> bytes:
+    if valid:
+        output = BytesIO()
+        document = Document()
+        document.add_paragraph("Valid document")
+        document.save(output)
+        return output.getvalue()
     output = BytesIO()
     with ZipFile(output, "w") as archive:
         archive.writestr("[Content_Types].xml", "<Types />")
@@ -51,10 +60,35 @@ def _docx(*, valid: bool) -> bytes:
     return output.getvalue()
 
 
+def _pdf() -> bytes:
+    output = BytesIO()
+    writer = PdfWriter()
+    page = writer.add_blank_page(width=612, height=792)
+    font = DictionaryObject(
+        {
+            NameObject("/Type"): NameObject("/Font"),
+            NameObject("/Subtype"): NameObject("/Type1"),
+            NameObject("/BaseFont"): NameObject("/Helvetica"),
+        }
+    )
+    page[NameObject("/Resources")] = DictionaryObject(
+        {
+            NameObject("/Font"): DictionaryObject(
+                {NameObject("/F1"): writer._add_object(font)}
+            )
+        }
+    )
+    stream = DecodedStreamObject()
+    stream.set_data(b"BT /F1 12 Tf 72 720 Td (Valid PDF) Tj ET")
+    page[NameObject("/Contents")] = writer._add_object(stream)
+    writer.write(output)
+    return output.getvalue()
+
+
 @pytest.mark.parametrize(
     ("filename", "content", "content_type"),
     [
-        ("valid.pdf", b"%PDF-1.7\ncontent", "application/pdf"),
+        ("valid.pdf", _pdf(), "application/pdf"),
         (
             "valid.docx",
             _docx(valid=True),
@@ -64,6 +98,7 @@ def _docx(*, valid: bool) -> bytes:
         ("valid.md", b"# Knowledge\n\nContent", "text/markdown"),
         ("bom.txt", b"\xef\xbb\xbfUTF-8 content", "text/plain"),
     ],
+    ids=["pdf", "docx", "txt", "markdown", "utf8-bom"],
 )
 def test_valid_signatures_are_accepted(
     client_db: TestClient,
@@ -100,6 +135,7 @@ def test_valid_signatures_are_accepted(
         ),
         ("binary.txt", b"hello\x00world\x01", "text/plain"),
     ],
+    ids=["fake-pdf", "fake-docx", "binary-txt"],
 )
 def test_mismatched_or_binary_files_are_rejected(
     client_db: TestClient,
@@ -165,6 +201,9 @@ def test_storage_failure_leaves_no_successful_metadata(
 
     class FailingStorage(StorageProvider):
         async def save(self, *, key: str, data: bytes) -> None:
+            raise OSError("storage unavailable")
+
+        async def read(self, *, key: str) -> bytes:
             raise OSError("storage unavailable")
 
         async def delete(self, *, key: str) -> None:

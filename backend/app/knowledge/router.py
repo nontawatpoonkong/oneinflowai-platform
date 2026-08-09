@@ -11,6 +11,7 @@ from app.models.knowledge_document import KnowledgeDocument
 from app.models.user import User
 from app.models.workspace import Workspace
 from app.schemas.knowledge import (
+    KnowledgeDocumentContentResponse,
     KnowledgeDocumentListResponse,
     KnowledgeDocumentResponse,
 )
@@ -74,6 +75,21 @@ async def get_document(
         workspace.id, document_id
     )
     return success_response(data=_document_data(document), message="OK")
+
+
+@router.get("/{document_id}/content")
+async def get_document_content(
+    document_id: uuid.UUID,
+    workspace: Workspace = Depends(get_current_workspace),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    content = await KnowledgeDocumentService(session).get_content(
+        workspace.id, document_id
+    )
+    data = KnowledgeDocumentContentResponse.model_validate(content).model_dump(
+        mode="json"
+    )
+    return success_response(data=data, message="OK")
 
 
 @router.delete("/{document_id}")

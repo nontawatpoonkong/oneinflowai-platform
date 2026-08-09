@@ -12,6 +12,7 @@ from app.models.knowledge_document import (
     KnowledgeDocumentStatus,
     KnowledgeSourceType,
 )
+from app.models.knowledge_document_content import KnowledgeDocumentContent
 from app.models.message import Message, MessageType, SenderType
 from app.models.password_reset_session import PasswordResetSession
 from app.models.user import User
@@ -32,6 +33,7 @@ __all__ = [
     "Message",
     "KnowledgeDocument",
     "KnowledgeDocumentStatus",
+    "KnowledgeDocumentContent",
     "KnowledgeSourceType",
     "MessageType",
     "PasswordResetSession",

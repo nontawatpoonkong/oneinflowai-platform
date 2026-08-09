@@ -118,3 +118,21 @@ class KnowledgeFileTooLargeError(AppError):
     status_code = 413
     code = "KNOWLEDGE_FILE_TOO_LARGE"
     message = "Knowledge file exceeds the configured size limit"
+
+
+class KnowledgeExtractionFailedError(AppError):
+    status_code = 422
+    code = "KNOWLEDGE_EXTRACTION_FAILED"
+    message = "Document text could not be extracted"
+
+
+class KnowledgeStorageReadError(AppError):
+    status_code = 500
+    code = "KNOWLEDGE_STORAGE_READ_FAILED"
+    message = "Stored document could not be read"
+
+
+class KnowledgeContentPersistenceError(AppError):
+    status_code = 500
+    code = "KNOWLEDGE_CONTENT_PERSISTENCE_FAILED"
+    message = "Extracted document content could not be saved"

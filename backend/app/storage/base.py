@@ -9,5 +9,9 @@ class StorageProvider(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    async def read(self, *, key: str) -> bytes:
+        raise NotImplementedError
+
+    @abstractmethod
     async def delete(self, *, key: str) -> None:
         raise NotImplementedError

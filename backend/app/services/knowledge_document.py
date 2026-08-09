@@ -1,5 +1,6 @@
 """Knowledge document metadata and storage orchestration."""
 
+import asyncio
 import uuid
 from contextlib import suppress
 from io import BytesIO
@@ -7,20 +8,31 @@ from pathlib import Path
 from zipfile import BadZipFile, ZipFile
 
 from fastapi import UploadFile
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings, get_settings
 from app.core.exceptions import (
     InvalidKnowledgeFileError,
+    KnowledgeContentPersistenceError,
     KnowledgeDocumentNotFoundError,
+    KnowledgeExtractionFailedError,
     KnowledgeFileTooLargeError,
+    KnowledgeStorageReadError,
 )
+from app.core.logging import get_logger
+from app.document_parsers import DocumentParserRegistry
+from app.document_parsers.exceptions import DocumentExtractionError
 from app.models.knowledge_document import (
     KnowledgeDocument,
     KnowledgeDocumentStatus,
     KnowledgeSourceType,
 )
+from app.models.knowledge_document_content import KnowledgeDocumentContent
 from app.repositories.knowledge_document import KnowledgeDocumentRepository
+from app.repositories.knowledge_document_content import (
+    KnowledgeDocumentContentRepository,
+)
 from app.storage import StorageProvider, create_storage_provider
 
 _ALLOWED_TYPES: dict[str, set[str]] = {
@@ -33,6 +45,7 @@ _ALLOWED_TYPES: dict[str, set[str]] = {
 }
 _READ_CHUNK_SIZE = 64 * 1024
 _DOCX_REQUIRED_MEMBERS = {"[Content_Types].xml", "word/document.xml"}
+logger = get_logger(__name__)
 
 
 class KnowledgeDocumentService:
@@ -42,11 +55,14 @@ class KnowledgeDocumentService:
         *,
         storage: StorageProvider | None = None,
         settings: Settings | None = None,
+        parsers: DocumentParserRegistry | None = None,
     ) -> None:
         self.session = session
         self.settings = settings or get_settings()
         self.storage = storage or create_storage_provider(self.settings)
+        self.parsers = parsers or DocumentParserRegistry()
         self.documents = KnowledgeDocumentRepository(session)
+        self.contents = KnowledgeDocumentContentRepository(session)
 
     async def upload(
         self,
@@ -88,15 +104,58 @@ class KnowledgeDocumentService:
         await self.documents.add(document)
         try:
             await self.storage.save(key=storage_key, data=data)
-            document.status = KnowledgeDocumentStatus.READY
+            document.status = KnowledgeDocumentStatus.PROCESSING
             await self.session.commit()
             await self.session.refresh(document)
-            return document
         except Exception:
             await self.session.rollback()
             with suppress(Exception):
                 await self.storage.delete(key=storage_key)
             raise
+
+        await self.extract(document)
+        await self.session.refresh(document)
+        return document
+
+    async def extract(self, document: KnowledgeDocument) -> None:
+        """Retry-safe synchronous extraction after upload metadata is committed."""
+        document.status = KnowledgeDocumentStatus.PROCESSING
+        await self.session.commit()
+        try:
+            try:
+                data = await self.storage.read(key=document.storage_key)
+            except (OSError, ValueError):
+                raise KnowledgeStorageReadError() from None
+            output = await asyncio.to_thread(
+                self.parsers.extract,
+                mime_type=document.mime_type,
+                data=data,
+                maximum_characters=self.settings.KNOWLEDGE_MAX_EXTRACTED_CHARACTERS,
+            )
+            await self.contents.upsert(document.id, output)
+            document.status = KnowledgeDocumentStatus.READY
+            await self.session.commit()
+        except DocumentExtractionError:
+            await self._mark_failed(document)
+            logger.warning(
+                "knowledge_extraction_failed",
+                extra={
+                    "event": "knowledge_extraction_failed",
+                    "document_id": str(document.id),
+                },
+            )
+            raise KnowledgeExtractionFailedError() from None
+        except KnowledgeStorageReadError:
+            await self._mark_failed(document)
+            raise
+        except SQLAlchemyError:
+            await self._mark_failed(document)
+            raise KnowledgeContentPersistenceError() from None
+
+    async def _mark_failed(self, document: KnowledgeDocument) -> None:
+        await self.session.rollback()
+        document.status = KnowledgeDocumentStatus.FAILED
+        await self.session.commit()
 
     async def _read_limited(self, file: UploadFile) -> bytes:
         maximum = self.settings.KNOWLEDGE_MAX_FILE_SIZE_BYTES
@@ -149,6 +208,15 @@ class KnowledgeDocumentService:
         if document is None:
             raise KnowledgeDocumentNotFoundError()
         return document
+
+    async def get_content(
+        self, workspace_id: uuid.UUID, document_id: uuid.UUID
+    ) -> KnowledgeDocumentContent:
+        document = await self.get(workspace_id, document_id)
+        content = await self.contents.get_by_document_id(document.id)
+        if content is None:
+            raise KnowledgeDocumentNotFoundError()
+        return content
 
     async def delete(self, workspace_id: uuid.UUID, document_id: uuid.UUID) -> None:
         document = await self.get(workspace_id, document_id)

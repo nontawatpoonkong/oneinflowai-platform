@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     STORAGE_PROVIDER: str = "local"
     STORAGE_LOCAL_PATH: str = "storage"
     KNOWLEDGE_MAX_FILE_SIZE_BYTES: int = 10 * 1024 * 1024
+    KNOWLEDGE_MAX_EXTRACTED_CHARACTERS: int = 2_000_000
 
     # ------------------------------------------------------------------ App
     APP_NAME: str = "OneFlowAI Platform"

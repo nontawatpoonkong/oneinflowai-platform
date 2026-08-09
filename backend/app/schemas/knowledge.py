@@ -34,3 +34,16 @@ class KnowledgeDocumentListResponse(BaseModel):
     page: int
     page_size: int
     total_pages: int
+
+
+class KnowledgeDocumentContentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    document_id: uuid.UUID
+    extracted_text: str
+    character_count: int
+    word_count: int
+    extraction_method: str
+    extraction_version: str
+    created_at: datetime
+    updated_at: datetime
