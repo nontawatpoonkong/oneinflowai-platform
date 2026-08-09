@@ -33,6 +33,7 @@ from app.repositories.knowledge_document import KnowledgeDocumentRepository
 from app.repositories.knowledge_document_content import (
     KnowledgeDocumentContentRepository,
 )
+from app.services.chunking import ChunkingService
 from app.storage import StorageProvider, create_storage_provider
 
 _ALLOWED_TYPES: dict[str, set[str]] = {
@@ -133,8 +134,11 @@ class KnowledgeDocumentService:
                 maximum_characters=self.settings.KNOWLEDGE_MAX_EXTRACTED_CHARACTERS,
             )
             await self.contents.upsert(document.id, output)
-            document.status = KnowledgeDocumentStatus.READY
+            # Persist extraction while READY remains false until chunking succeeds.
             await self.session.commit()
+            await ChunkingService(self.session, settings=self.settings).chunk_document(
+                document.id, document.workspace_id
+            )
         except DocumentExtractionError:
             await self._mark_failed(document)
             logger.warning(
@@ -151,6 +155,9 @@ class KnowledgeDocumentService:
         except SQLAlchemyError:
             await self._mark_failed(document)
             raise KnowledgeContentPersistenceError() from None
+        except Exception:
+            await self._mark_failed(document)
+            raise
 
     async def _mark_failed(self, document: KnowledgeDocument) -> None:
         await self.session.rollback()

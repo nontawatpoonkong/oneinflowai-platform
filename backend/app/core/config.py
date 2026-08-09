@@ -6,7 +6,7 @@ using pydantic-settings v2. Access the singleton via `get_settings()`.
 
 from functools import lru_cache
 
-from pydantic import computed_field
+from pydantic import computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -34,6 +34,25 @@ class Settings(BaseSettings):
     STORAGE_LOCAL_PATH: str = "storage"
     KNOWLEDGE_MAX_FILE_SIZE_BYTES: int = 10 * 1024 * 1024
     KNOWLEDGE_MAX_EXTRACTED_CHARACTERS: int = 2_000_000
+    KNOWLEDGE_CHUNK_SIZE: int = 1200
+    KNOWLEDGE_CHUNK_OVERLAP: int = 200
+    KNOWLEDGE_MAX_CHUNKS_PER_DOCUMENT: int = 10_000
+
+    @model_validator(mode="after")
+    def validate_knowledge_chunking(self) -> "Settings":
+        if self.KNOWLEDGE_CHUNK_SIZE <= 0:
+            raise ValueError("KNOWLEDGE_CHUNK_SIZE must be greater than zero")
+        if self.KNOWLEDGE_CHUNK_OVERLAP < 0:
+            raise ValueError("KNOWLEDGE_CHUNK_OVERLAP must be non-negative")
+        if self.KNOWLEDGE_CHUNK_OVERLAP >= self.KNOWLEDGE_CHUNK_SIZE:
+            raise ValueError(
+                "KNOWLEDGE_CHUNK_OVERLAP must be less than KNOWLEDGE_CHUNK_SIZE"
+            )
+        if self.KNOWLEDGE_MAX_CHUNKS_PER_DOCUMENT <= 0:
+            raise ValueError(
+                "KNOWLEDGE_MAX_CHUNKS_PER_DOCUMENT must be greater than zero"
+            )
+        return self
 
     # ------------------------------------------------------------------ App
     APP_NAME: str = "OneInFlow Platform"

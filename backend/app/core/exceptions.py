@@ -136,3 +136,9 @@ class KnowledgeContentPersistenceError(AppError):
     status_code = 500
     code = "KNOWLEDGE_CONTENT_PERSISTENCE_FAILED"
     message = "Extracted document content could not be saved"
+
+
+class KnowledgeChunkingFailedError(AppError):
+    status_code = 422
+    code = "KNOWLEDGE_CHUNKING_FAILED"
+    message = "Document content could not be chunked"

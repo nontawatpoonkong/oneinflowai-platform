@@ -11,11 +11,14 @@ from app.models.knowledge_document import KnowledgeDocument
 from app.models.user import User
 from app.models.workspace import Workspace
 from app.schemas.knowledge import (
+    KnowledgeChunkResponse,
     KnowledgeDocumentContentResponse,
     KnowledgeDocumentListResponse,
     KnowledgeDocumentResponse,
+    KnowledgeRechunkResponse,
 )
 from app.schemas.response import success_response
+from app.services.chunking import ChunkingService
 from app.services.knowledge_document import KnowledgeDocumentService
 from app.workspace.dependencies import get_current_workspace
 
@@ -90,6 +93,36 @@ async def get_document_content(
         mode="json"
     )
     return success_response(data=data, message="OK")
+
+
+@router.get("/{document_id}/chunks")
+async def get_document_chunks(
+    document_id: uuid.UUID,
+    workspace: Workspace = Depends(get_current_workspace),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    chunks = await ChunkingService(session).list_chunks(document_id, workspace.id)
+    data = [
+        KnowledgeChunkResponse.model_validate(chunk).model_dump(mode="json")
+        for chunk in chunks
+    ]
+    return success_response(data=data, message="OK")
+
+
+@router.post("/{document_id}/rechunk")
+async def rechunk_document(
+    document_id: uuid.UUID,
+    workspace: Workspace = Depends(get_current_workspace),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    result = await ChunkingService(session).chunk_document(document_id, workspace.id)
+    data = KnowledgeRechunkResponse(
+        chunk_count=result.chunk_count,
+        chunking_version=result.chunking_version,
+    )
+    return success_response(
+        data=data.model_dump(mode="json"), message="Document rechunked"
+    )
 
 
 @router.delete("/{document_id}")

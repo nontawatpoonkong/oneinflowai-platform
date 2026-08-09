@@ -47,3 +47,22 @@ class KnowledgeDocumentContentResponse(BaseModel):
     extraction_version: str
     created_at: datetime
     updated_at: datetime
+
+
+class KnowledgeChunkResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    chunk_index: int
+    text: str
+    character_count: int
+    token_count: int | None
+    start_offset: int
+    end_offset: int
+    chunking_version: str
+    content_hash: str
+
+
+class KnowledgeRechunkResponse(BaseModel):
+    chunk_count: int
+    chunking_version: str
