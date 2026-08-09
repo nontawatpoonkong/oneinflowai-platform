@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict
 
 from app.models.knowledge_document import (
     KnowledgeDocumentStatus,
+    KnowledgeIndexStatus,
     KnowledgeSourceType,
 )
 
@@ -22,6 +23,9 @@ class KnowledgeDocumentResponse(BaseModel):
     file_size: int
     source_type: KnowledgeSourceType
     status: KnowledgeDocumentStatus
+    index_status: KnowledgeIndexStatus
+    indexed_at: datetime | None
+    index_error_code: str | None
     language: str | None
     created_by: uuid.UUID
     created_at: datetime
@@ -66,3 +70,12 @@ class KnowledgeChunkResponse(BaseModel):
 class KnowledgeRechunkResponse(BaseModel):
     chunk_count: int
     chunking_version: str
+
+
+class KnowledgeIndexResponse(BaseModel):
+    document_id: uuid.UUID
+    index_status: KnowledgeIndexStatus
+    chunk_count: int
+    embedding_model: str
+    indexed_at: datetime
+    embedding_request_count: int

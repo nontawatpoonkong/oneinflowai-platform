@@ -11,6 +11,7 @@ from app.models.knowledge_chunk import KnowledgeChunk
 from app.models.knowledge_document import (
     KnowledgeDocument,
     KnowledgeDocumentStatus,
+    KnowledgeIndexStatus,
     KnowledgeSourceType,
 )
 from app.models.knowledge_document_content import KnowledgeDocumentContent
@@ -33,6 +34,7 @@ __all__ = [
     "CustomerStatus",
     "Message",
     "KnowledgeDocument",
+    "KnowledgeIndexStatus",
     "KnowledgeDocumentStatus",
     "KnowledgeDocumentContent",
     "KnowledgeChunk",

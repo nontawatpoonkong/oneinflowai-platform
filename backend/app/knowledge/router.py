@@ -2,11 +2,14 @@
 
 import uuid
 
-from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
+from app.core.config import get_settings
 from app.database.session import get_db
+from app.integrations.embedding import create_embedding_provider
+from app.integrations.qdrant_knowledge import QdrantKnowledgeVectorStore
 from app.models.knowledge_document import KnowledgeDocument
 from app.models.user import User
 from app.models.workspace import Workspace
@@ -15,11 +18,13 @@ from app.schemas.knowledge import (
     KnowledgeDocumentContentResponse,
     KnowledgeDocumentListResponse,
     KnowledgeDocumentResponse,
+    KnowledgeIndexResponse,
     KnowledgeRechunkResponse,
 )
 from app.schemas.response import success_response
 from app.services.chunking import ChunkingService
 from app.services.knowledge_document import KnowledgeDocumentService
+from app.services.knowledge_indexing import KnowledgeIndexingService
 from app.workspace.dependencies import get_current_workspace
 
 router = APIRouter()
@@ -122,6 +127,37 @@ async def rechunk_document(
     )
     return success_response(
         data=data.model_dump(mode="json"), message="Document rechunked"
+    )
+
+
+@router.post("/{document_id}/index")
+async def index_document(
+    document_id: uuid.UUID,
+    request: Request,
+    workspace: Workspace = Depends(get_current_workspace),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    settings = get_settings()
+    service = KnowledgeIndexingService(
+        session,
+        settings=settings,
+        provider=create_embedding_provider(settings),
+        vector_store=QdrantKnowledgeVectorStore(
+            request.app.state.qdrant,
+            collection_name=settings.QDRANT_KNOWLEDGE_COLLECTION,
+        ),
+    )
+    result = await service.index_document(document_id, workspace.id)
+    data = KnowledgeIndexResponse(
+        document_id=result.document_id,
+        index_status="INDEXED",
+        chunk_count=result.chunk_count,
+        embedding_model=result.embedding_model,
+        indexed_at=result.indexed_at,
+        embedding_request_count=result.embedding_request_count,
+    )
+    return success_response(
+        data=data.model_dump(mode="json"), message="Document indexed"
     )
 
 

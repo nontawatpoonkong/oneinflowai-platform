@@ -2,8 +2,9 @@
 
 import enum
 import uuid
+from datetime import datetime
 
-from sqlalchemy import BigInteger, Enum, ForeignKey, String
+from sqlalchemy import TIMESTAMP, BigInteger, Enum, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -24,6 +25,13 @@ class KnowledgeSourceType(enum.StrEnum):
     TEXT = "TEXT"
     URL = "URL"
     FAQ = "FAQ"
+
+
+class KnowledgeIndexStatus(enum.StrEnum):
+    PENDING = "PENDING"
+    INDEXING = "INDEXING"
+    INDEXED = "INDEXED"
+    FAILED = "FAILED"
 
 
 class KnowledgeDocument(UUIDMixin, TimestampMixin, Base):
@@ -48,6 +56,17 @@ class KnowledgeDocument(UUIDMixin, TimestampMixin, Base):
         nullable=False,
         index=True,
     )
+    index_status: Mapped[KnowledgeIndexStatus] = mapped_column(
+        Enum(KnowledgeIndexStatus, name="knowledge_index_status"),
+        nullable=False,
+        default=KnowledgeIndexStatus.PENDING,
+        server_default=KnowledgeIndexStatus.PENDING.value,
+        index=True,
+    )
+    indexed_at: Mapped[datetime | None] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=True
+    )
+    index_error_code: Mapped[str | None] = mapped_column(String(64), nullable=True)
     language: Mapped[str | None] = mapped_column(String(16), nullable=True)
     created_by: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),

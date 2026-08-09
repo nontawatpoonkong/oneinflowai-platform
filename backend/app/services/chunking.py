@@ -15,7 +15,7 @@ from app.core.exceptions import (
 )
 from app.core.logging import get_logger
 from app.models.knowledge_chunk import KnowledgeChunk
-from app.models.knowledge_document import KnowledgeDocumentStatus
+from app.models.knowledge_document import KnowledgeDocumentStatus, KnowledgeIndexStatus
 from app.repositories.knowledge_chunk import KnowledgeChunkRepository
 from app.repositories.knowledge_document import KnowledgeDocumentRepository
 from app.repositories.knowledge_document_content import (
@@ -80,6 +80,9 @@ class ChunkingService:
         try:
             await self.chunks.replace(content.id, rows)
             document.status = KnowledgeDocumentStatus.READY
+            document.index_status = KnowledgeIndexStatus.PENDING
+            document.indexed_at = None
+            document.index_error_code = None
             await self.session.commit()
         except Exception:
             await self.session.rollback()

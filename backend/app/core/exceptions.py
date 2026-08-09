@@ -142,3 +142,33 @@ class KnowledgeChunkingFailedError(AppError):
     status_code = 422
     code = "KNOWLEDGE_CHUNKING_FAILED"
     message = "Document content could not be chunked"
+
+
+class EmbeddingConfigurationError(AppError):
+    status_code = 500
+    code = "EMBEDDING_CONFIGURATION_ERROR"
+    message = "Embedding provider is not configured"
+
+
+class EmbeddingProviderError(AppError):
+    status_code = 502
+    code = "EMBEDDING_PROVIDER_ERROR"
+    message = "Embedding provider request failed"
+
+
+class KnowledgeIndexingError(AppError):
+    status_code = 502
+    code = "KNOWLEDGE_INDEXING_FAILED"
+    message = "Knowledge document could not be indexed"
+
+
+class KnowledgeIndexingNotEligibleError(AppError):
+    status_code = 409
+    code = "KNOWLEDGE_INDEXING_NOT_ELIGIBLE"
+    message = "Knowledge document is not ready for indexing"
+
+
+class VectorCollectionConfigurationError(AppError):
+    status_code = 500
+    code = "VECTOR_COLLECTION_CONFIGURATION_ERROR"
+    message = "Knowledge vector collection is incompatible"

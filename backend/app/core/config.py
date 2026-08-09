@@ -18,6 +18,13 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    # ------------------------------------------------------------- AI
+    OPENAI_API_KEY: str | None = None
+    EMBEDDING_PROVIDER: str = "openai"
+    OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
+    EMBEDDING_BATCH_SIZE: int = 64
+    EMBEDDING_REQUEST_TIMEOUT_SECONDS: float = 30
+
     # --------------------------------------------------------------- Email
     EMAIL_PROVIDER: str = "development"
     RESEND_API_KEY: str | None = None
@@ -52,6 +59,18 @@ class Settings(BaseSettings):
             raise ValueError(
                 "KNOWLEDGE_MAX_CHUNKS_PER_DOCUMENT must be greater than zero"
             )
+        if not self.EMBEDDING_PROVIDER.strip():
+            raise ValueError("EMBEDDING_PROVIDER must not be empty")
+        if not self.OPENAI_EMBEDDING_MODEL.strip():
+            raise ValueError("OPENAI_EMBEDDING_MODEL must not be empty")
+        if self.EMBEDDING_BATCH_SIZE <= 0:
+            raise ValueError("EMBEDDING_BATCH_SIZE must be greater than zero")
+        if self.EMBEDDING_REQUEST_TIMEOUT_SECONDS <= 0:
+            raise ValueError(
+                "EMBEDDING_REQUEST_TIMEOUT_SECONDS must be greater than zero"
+            )
+        if not self.QDRANT_KNOWLEDGE_COLLECTION.strip():
+            raise ValueError("QDRANT_KNOWLEDGE_COLLECTION must not be empty")
         return self
 
     # ------------------------------------------------------------------ App
@@ -84,6 +103,7 @@ class Settings(BaseSettings):
     QDRANT_HOST: str = "qdrant"
     QDRANT_PORT: int = 6333
     QDRANT_API_KEY: str | None = None
+    QDRANT_KNOWLEDGE_COLLECTION: str = "knowledge_chunks"
 
     # ----------------------------------------------------------------- JWT
     JWT_SECRET_KEY: str = "change-me-in-production"
