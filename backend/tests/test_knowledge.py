@@ -39,7 +39,7 @@ def _upload(
     headers: dict[str, str],
     *,
     filename: str = "guide.txt",
-    content: bytes = b"OneFlowAI knowledge",
+    content: bytes = b"OneInFlow knowledge",
     content_type: str = "text/plain",
 ):
     return client.post(
@@ -59,7 +59,7 @@ def test_upload_success_stores_file_and_hides_storage_key(
     data = response.json()["data"]
     assert data["title"] == "guide"
     assert data["status"] == "READY"
-    assert data["file_size"] == len(b"OneFlowAI knowledge")
+    assert data["file_size"] == len(b"OneInFlow knowledge")
     assert "storage_key" not in data
     assert len([path for path in knowledge_storage.rglob("*") if path.is_file()]) == 1
 

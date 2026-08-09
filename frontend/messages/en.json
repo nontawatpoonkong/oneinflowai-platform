@@ -1,6 +1,6 @@
 {
   "meta": {
-    "homeTitle": "OneFlowAI — AI that answers customer chats 24/7",
+    "homeTitle": "OneInFlow — AI that answers customer chats 24/7",
     "homeDescription": "Manage every customer conversation from one intelligent platform. Connect LINE OA, Website, Facebook and Hotel systems with AI that answers from your knowledge base instantly.",
     "features": "Features",
     "pricing": "Pricing",
@@ -82,7 +82,7 @@
       "primaryCta": "Get Started",
       "secondaryCta": "Book Demo",
       "chat": {
-        "agentName": "OneFlowAI Agent",
+        "agentName": "OneInFlow Agent",
         "role": "AI-powered assistant",
         "online": "Online",
         "customerMessage": "Hi! Do you have rooms available this weekend?",
@@ -95,7 +95,7 @@
     "liveMetrics": {
       "eyebrow": "Live",
       "title": "Your platform, working in real time",
-      "description": "A live snapshot of activity across OneFlowAI. Numbers update continuously.",
+      "description": "A live snapshot of activity across OneInFlow. Numbers update continuously.",
       "items": {
         "workspaces": "Active Workspaces",
         "customers": "Customers Served",
@@ -163,7 +163,7 @@
     "dashboardPreview": {
       "eyebrow": "Dashboard",
       "title": "A control center for every conversation",
-      "description": "A live look at the OneFlowAI dashboard — realtime widgets, charts, and server health, fully themed.",
+      "description": "A live look at the OneInFlow dashboard — realtime widgets, charts, and server health, fully themed.",
       "widgets": {
         "workspaces": "Workspace Count",
         "conversations": "Conversation Count",
@@ -181,7 +181,7 @@
     "roi": {
       "eyebrow": "ROI",
       "title": "Calculate Your Business Savings",
-      "description": "Drag the sliders to estimate what OneFlowAI could save your team. Updates instantly — no signup required.",
+      "description": "Drag the sliders to estimate what OneInFlow could save your team. Updates instantly — no signup required.",
       "sliders": {
         "employees": "Employees answering chats",
         "salary": "Average monthly salary",
@@ -211,11 +211,11 @@
     "hotel": {
       "eyebrow": "Hotel Integration",
       "title": "Connect booking, PMS, and AI",
-      "description": "Reservation data flows from your PMS into OneFlowAI so the AI can answer guests with live, accurate booking context.",
+      "description": "Reservation data flows from your PMS into OneInFlow so the AI can answer guests with live, accurate booking context.",
       "nodes": {
         "booking": "Booking",
         "pms": "PMS",
-        "oneflow": "OneFlowAI",
+        "oneflow": "OneInFlow",
         "customer": "Customer",
         "ai": "AI",
         "reply": "Reply"
@@ -224,7 +224,7 @@
     "costSaving": {
       "badge": "Always on",
       "title": "AI Never Sleeps.",
-      "description": "While your team rests, OneFlowAI keeps every conversation moving — around the clock, across every channel.",
+      "description": "While your team rests, OneInFlow keeps every conversation moving — around the clock, across every channel.",
       "items": {
         "hours": "Hours Saved / month",
         "employees": "Equivalent Employees",
@@ -301,7 +301,7 @@
       "title": "Frequently asked questions",
       "items": [
         {
-          "question": "Which channels does OneFlowAI support?",
+          "question": "Which channels does OneInFlow support?",
           "answer": "LINE OA, Website live chat, Facebook, Instagram, WhatsApp, Telegram, and Email — all through one channel-agnostic conversation engine."
         },
         {
@@ -331,13 +331,13 @@
   "auth": {
     "login": {
       "title": "Welcome back",
-      "subtitle": "Log in to your OneFlowAI workspace.",
+      "subtitle": "Log in to your OneInFlow workspace.",
       "email": "Email",
       "password": "Password",
       "remember": "Remember me",
       "forgot": "Forgot password?",
       "submit": "Log in",
-      "footerText": "New to OneFlowAI?",
+      "footerText": "New to OneInFlow?",
       "footerLink": "Create an account",
       "emailNotVerified": "Verify your email before logging in.",
       "verifyEmail": "Verify email",
@@ -358,7 +358,7 @@
     },
     "verifyEmail": {
       "title": "Verify your email",
-      "subtitle": "Enter the six-digit code sent for your OneFlowAI account.",
+      "subtitle": "Enter the six-digit code sent for your OneInFlow account.",
       "codeLabel": "Verification code",
       "codeHint": "Enter all six digits. You can paste the complete code.",
       "codeLength": "Enter the complete six-digit code.",
@@ -492,7 +492,7 @@
         "evening": "Good evening, {name} 👋",
         "fallbackName": "there"
       },
-      "welcomeBack": "Welcome back to OneFlowAI.",
+      "welcomeBack": "Welcome back to OneInFlow.",
       "hero": {
         "badge": "AI at work",
         "title": "Your AI team is working.",
@@ -553,7 +553,7 @@
   },
   "docs": {
     "title": "Documentation",
-    "description": "Everything you need to build on OneFlowAI (mock content in this build).",
+    "description": "Everything you need to build on OneInFlow (mock content in this build).",
     "topics": {
       "gettingStarted": {
         "title": "Getting Started",

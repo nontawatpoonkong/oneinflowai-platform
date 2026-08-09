@@ -1,7 +1,7 @@
 [project]
 name = "oneflowai-platform"
 version = "0.1.0"
-description = "OneFlowAI Platform backend (Modular Monolith)"
+description = "OneInFlow Platform backend (Modular Monolith)"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [

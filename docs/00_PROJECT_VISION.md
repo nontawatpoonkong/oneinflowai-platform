@@ -1,4 +1,4 @@
-OneFlowAI is an AI Customer Communication Platform.
+OneInFlow is an AI Customer Communication Platform.
 
 Mission
 
@@ -7,7 +7,7 @@ Mission
 เพิ่ม Conversion
 รวมทุกช่องทางไว้ในระบบเดียว
 
-OneFlowAI is NOT
+OneInFlow is NOT
 
 ❌ CRM
 

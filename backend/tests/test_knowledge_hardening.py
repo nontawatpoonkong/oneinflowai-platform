@@ -94,7 +94,7 @@ def _pdf() -> bytes:
             _docx(valid=True),
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         ),
-        ("valid.txt", "สวัสดี OneFlowAI".encode(), "text/plain"),
+        ("valid.txt", "สวัสดี OneInFlow".encode(), "text/plain"),
         ("valid.md", b"# Knowledge\n\nContent", "text/markdown"),
         ("bom.txt", b"\xef\xbb\xbfUTF-8 content", "text/plain"),
     ],

@@ -30,7 +30,7 @@ def _settings(**overrides: object) -> Settings:
         "EMAIL_PROVIDER": "development",
         "RESEND_API_KEY": None,
         "EMAIL_FROM_ADDRESS": "sender@example.com",
-        "EMAIL_FROM_NAME": "OneFlowAI",
+        "EMAIL_FROM_NAME": "OneInFlow",
     }
     values.update(overrides)
     return Settings(_env_file=None, **values)
@@ -91,7 +91,7 @@ def test_resend_payload_contains_sender_recipient_and_both_bodies(
     provider = ResendEmailProvider(
         api_key="test-api-key",
         from_address="sender@example.com",
-        from_name="OneFlowAI",
+        from_name="OneInFlow",
         send_async=send_async,
     )
     with caplog.at_level(logging.INFO):
@@ -105,13 +105,13 @@ def test_resend_payload_contains_sender_recipient_and_both_bodies(
 
     assert len(captured) == 1
     payload = captured[0]
-    assert payload["from"] == "OneFlowAI <sender@example.com>"
+    assert payload["from"] == "OneInFlow <sender@example.com>"
     assert payload["to"] == [RECIPIENT]
-    assert payload["subject"] == "รหัสยืนยันอีเมล OneFlowAI"
+    assert payload["subject"] == "รหัสยืนยันอีเมล OneInFlow"
     assert OTP in payload["text"]
     assert OTP in payload["html"]
     assert "5" in payload["text"]
-    assert "OneFlowAI" in payload["html"]
+    assert "OneInFlow" in payload["html"]
     assert OTP not in caplog.text
     assert RECIPIENT not in caplog.text
     assert "test-api-key" not in caplog.text
@@ -127,7 +127,7 @@ def test_resend_password_reset_payload_uses_reset_template() -> None:
     provider = ResendEmailProvider(
         api_key="test-api-key",
         from_address="sender@example.com",
-        from_name="OneFlowAI",
+        from_name="OneInFlow",
         send_async=send_async,
     )
     asyncio.run(
@@ -140,7 +140,7 @@ def test_resend_password_reset_payload_uses_reset_template() -> None:
 
     payload = captured[0]
     assert payload["to"] == [RECIPIENT]
-    assert payload["subject"] == "รหัสรีเซ็ตรหัสผ่าน OneFlowAI"
+    assert payload["subject"] == "รหัสรีเซ็ตรหัสผ่าน OneInFlow"
     assert OTP in payload["text"]
     assert OTP in payload["html"]
     assert "ทีมสนับสนุน" in payload["text"]
@@ -167,7 +167,7 @@ def test_resend_provider_maps_sdk_errors(
     provider = ResendEmailProvider(
         api_key="test-api-key",
         from_address="sender@example.com",
-        from_name="OneFlowAI",
+        from_name="OneInFlow",
         send_async=send_async,
     )
     with pytest.raises(expected_exception) as caught:
@@ -200,7 +200,7 @@ def test_resend_provider_maps_timeout_and_network_errors(
     provider = ResendEmailProvider(
         api_key="test-api-key",
         from_address="sender@example.com",
-        from_name="OneFlowAI",
+        from_name="OneInFlow",
         send_async=send_async,
     )
     with pytest.raises(EmailNetworkError):
@@ -224,7 +224,7 @@ def test_unknown_provider_error_is_sanitized_and_not_logged(
     provider = ResendEmailProvider(
         api_key=secret,
         from_address="sender@example.com",
-        from_name="OneFlowAI",
+        from_name="OneInFlow",
         send_async=send_async,
     )
     with caplog.at_level(logging.INFO), pytest.raises(EmailDeliveryError) as caught:

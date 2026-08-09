@@ -301,7 +301,7 @@ def test_development_provider_and_template_do_not_log_otp(
 ) -> None:
     otp = "123456"
     content = build_verification_email(otp=otp, expires_in_seconds=300)
-    assert "OneFlowAI" in content.subject
+    assert "OneInFlow" in content.subject
     assert otp in content.text
     assert "5" in content.text
 

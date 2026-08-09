@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     EMAIL_PROVIDER: str = "development"
     RESEND_API_KEY: str | None = None
     EMAIL_FROM_ADDRESS: str = "no-reply@oneflow.ai"
-    EMAIL_FROM_NAME: str = "OneFlowAI"
+    EMAIL_FROM_NAME: str = "OneInFlow"
     EMAIL_VERIFICATION_OTP_TTL_SECONDS: int = 300
     EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS: int = 60
     EMAIL_VERIFICATION_MAX_ATTEMPTS: int = 5
@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     KNOWLEDGE_MAX_EXTRACTED_CHARACTERS: int = 2_000_000
 
     # ------------------------------------------------------------------ App
-    APP_NAME: str = "OneFlowAI Platform"
+    APP_NAME: str = "OneInFlow Platform"
     APP_ENV: str = "development"  # development | staging | production
     DEBUG: bool = False
     API_V1_PREFIX: str = "/api/v1"

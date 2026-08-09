@@ -1,6 +1,6 @@
-# OneFlowAI — Frontend
+# OneInFlow — Frontend
 
-Production-grade frontend foundation for the OneFlowAI multi-channel, AI-powered
+Production-grade frontend foundation for the OneInFlow multi-channel, AI-powered
 conversation platform. This is the real architecture the SaaS app expands into —
 **not** a throwaway prototype.
 
@@ -140,7 +140,7 @@ RootLayout (AppProviders: ThemeProvider + QueryProvider)
 
 # Frontend Sprint 2 — Application (Auth + Dashboard)
 
-The real OneFlowAI application: authentication, protected routing, a reusable
+The real OneInFlow application: authentication, protected routing, a reusable
 dashboard shell, and live backend integration. **No mock authentication.**
 
 ## Backend Integration

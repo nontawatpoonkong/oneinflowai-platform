@@ -14,9 +14,9 @@ def build_verification_email(
     *, otp: str, expires_in_seconds: int
 ) -> VerificationEmailContent:
     minutes = max(1, expires_in_seconds // 60)
-    subject = "รหัสยืนยันอีเมล OneFlowAI"
+    subject = "รหัสยืนยันอีเมล OneInFlow"
     text = (
-        "OneFlowAI\n\n"
+        "OneInFlow\n\n"
         f"รหัสยืนยันอีเมลของคุณคือ {otp}\n"
         f"รหัสนี้จะหมดอายุภายใน {minutes} นาที\n\n"
         "โปรดอย่าเปิดเผยรหัสนี้แก่บุคคลอื่น\n"
@@ -36,7 +36,7 @@ def build_verification_email(
                style="max-width:560px;background:#ffffff;border-radius:16px">
           <tr><td style="padding:32px">
             <p style="margin:0 0 24px;font-size:20px;font-weight:700;color:#2563eb">
-              OneFlowAI
+              OneInFlow
             </p>
             <h1 style="margin:0 0 16px;font-size:24px">รหัสยืนยันอีเมล</h1>
             <p style="margin:0 0 20px;line-height:1.6">ใช้รหัสด้านล่างเพื่อยืนยันอีเมลของคุณ</p>
@@ -63,9 +63,9 @@ def build_password_reset_email(
     *, otp: str, expires_in_seconds: int
 ) -> VerificationEmailContent:
     minutes = max(1, expires_in_seconds // 60)
-    subject = "รหัสรีเซ็ตรหัสผ่าน OneFlowAI"
+    subject = "รหัสรีเซ็ตรหัสผ่าน OneInFlow"
     text = (
-        "OneFlowAI\n\n"
+        "OneInFlow\n\n"
         f"รหัสรีเซ็ตรหัสผ่านของคุณคือ {otp}\n"
         f"รหัสนี้จะหมดอายุภายใน {minutes} นาที\n\n"
         "โปรดอย่าเปิดเผยรหัสนี้แก่บุคคลอื่น ทีมสนับสนุนจะไม่ขอรหัสนี้จากคุณ\n"
@@ -84,7 +84,7 @@ def build_password_reset_email(
                style="max-width:560px;background:#fff;border-radius:16px">
           <tr><td style="padding:32px">
             <p style="margin:0 0 24px;font-size:20px;font-weight:700;color:#2563eb">
-              OneFlowAI
+              OneInFlow
             </p>
             <h1 style="margin:0 0 16px;font-size:24px">รีเซ็ตรหัสผ่าน</h1>
             <p>ใช้รหัส 6 หลักด้านล่างเพื่อดำเนินการต่อ</p>

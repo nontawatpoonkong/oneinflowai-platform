@@ -1,6 +1,6 @@
 """Reusable ORM mixins enforcing platform-wide table conventions.
 
-Every table in OneFlowAI must have:
+Every table in OneInFlow must have:
   - a UUID primary key (`id`)
   - `created_at` / `updated_at` timezone-aware timestamps
 

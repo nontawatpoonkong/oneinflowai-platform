@@ -1,4 +1,4 @@
-"""OneFlowAI Platform - FastAPI application entrypoint."""
+"""OneInFlow Platform - FastAPI application entrypoint."""
 
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder

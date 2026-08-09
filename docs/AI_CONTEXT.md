@@ -1,6 +1,6 @@
 Project Name
 
-OneFlowAI
+OneInFlow
 
 Product Type
 

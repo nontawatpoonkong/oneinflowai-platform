@@ -88,7 +88,7 @@ def _docx() -> bytes:
 
 
 def test_text_markdown_bom_and_thai_extraction() -> None:
-    text = TextDocumentParser().extract("สวัสดี\r\nOneFlowAI".encode())
+    text = TextDocumentParser().extract("สวัสดี\r\nOneInFlow".encode())
     bom = TextDocumentParser().extract(b"\xef\xbb\xbfBOM text")
     markdown = MarkdownDocumentParser().extract(b"# Heading\n\n- item")
     assert "สวัสดี" in text

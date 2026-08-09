@@ -1,4 +1,4 @@
-# OneFlowAI Platform — Backend
+# OneInFlow Platform — Backend
 
 Modular Monolith backend. **Sprint 1 · Step 1** — infrastructure foundation only.
 
@@ -64,7 +64,7 @@ environment-only values in the local `.env` file:
 EMAIL_PROVIDER=resend
 RESEND_API_KEY=<secret>
 EMAIL_FROM_ADDRESS=<verified sender>
-EMAIL_FROM_NAME=OneFlowAI
+EMAIL_FROM_NAME=OneInFlow
 OTP_HASH_SECRET=<secret>
 ```
 
