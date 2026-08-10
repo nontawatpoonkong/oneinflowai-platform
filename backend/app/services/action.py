@@ -92,7 +92,12 @@ class ActionService:
         return definition
 
     async def create(
-        self, workspace_id: uuid.UUID, user_id: uuid.UUID, data: ActionCreate
+        self,
+        workspace_id: uuid.UUID,
+        user_id: uuid.UUID,
+        data: ActionCreate,
+        *,
+        commit: bool = True,
     ):
         definition = await self.get_definition(workspace_id, data.action_definition_id)
         if not definition.is_active:
@@ -118,6 +123,8 @@ class ActionService:
         )
         await self.actions.add(action)
         await self._event(action, ActionEventType.CREATED, user_id)
+        if not commit:
+            return action
         try:
             await self.session.commit()
         except IntegrityError as exc:

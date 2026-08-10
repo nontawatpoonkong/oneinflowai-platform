@@ -14,6 +14,10 @@ from app.models.action import (
     ActionRequest,
     ActionRequestStatus,
 )
+from app.models.action_collection import (
+    ActionCollectionSession,
+    ActionCollectionStatus,
+)
 from app.models.conversation import Conversation, ConversationStatus
 from app.models.customer import Customer, CustomerStatus
 from app.models.customer_identity import CustomerIdentity
@@ -47,6 +51,8 @@ from app.models.workspace_member import WorkspaceMember, WorkspaceRole
 
 __all__ = [
     "ActionActorType",
+    "ActionCollectionSession",
+    "ActionCollectionStatus",
     "ActionDefinition",
     "ActionEvent",
     "ActionEventType",

@@ -57,6 +57,8 @@ class Settings(BaseSettings):
     RAG_MAX_SOURCES: int = 8
     PAYMENT_EVIDENCE_MAX_FILE_SIZE_BYTES: int = 5 * 1024 * 1024
     SLIP_VERIFICATION_PROVIDER: str = "development"
+    ACTION_COLLECTION_PROVIDER: str = "development"
+    ACTION_COLLECTION_SESSION_TTL_MINUTES: int = 30
 
     @model_validator(mode="after")
     def validate_knowledge_chunking(self) -> "Settings":
@@ -105,6 +107,10 @@ class Settings(BaseSettings):
             raise ValueError("PAYMENT_EVIDENCE_MAX_FILE_SIZE_BYTES must be positive")
         if not self.SLIP_VERIFICATION_PROVIDER.strip():
             raise ValueError("SLIP_VERIFICATION_PROVIDER must not be empty")
+        if not self.ACTION_COLLECTION_PROVIDER.strip():
+            raise ValueError("ACTION_COLLECTION_PROVIDER must not be empty")
+        if self.ACTION_COLLECTION_SESSION_TTL_MINUTES <= 0:
+            raise ValueError("ACTION_COLLECTION_SESSION_TTL_MINUTES must be positive")
         if not self.GENERATION_PROVIDER.strip():
             raise ValueError("GENERATION_PROVIDER must not be empty")
         if not self.OPENAI_MODEL.strip():

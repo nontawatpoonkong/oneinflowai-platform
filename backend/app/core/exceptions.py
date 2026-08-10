@@ -299,3 +299,33 @@ class PaymentVerificationProviderError(AppError):
     status_code = 502
     code = "PAYMENT_VERIFICATION_PROVIDER_ERROR"
     message = "Payment verification is temporarily unavailable"
+
+
+class ActionCollectionNotFoundError(AppError):
+    status_code = 404
+    code = "ACTION_COLLECTION_NOT_FOUND"
+    message = "Action collection session not found"
+
+
+class ActionCollectionStateError(AppError):
+    status_code = 409
+    code = "ACTION_COLLECTION_STATE_INVALID"
+    message = "Action collection session state does not allow this operation"
+
+
+class ActionCollectionValidationError(AppError):
+    status_code = 422
+    code = "ACTION_COLLECTION_INPUT_INVALID"
+    message = "Action collection input is invalid"
+
+
+class ActionCollectionConfirmationError(AppError):
+    status_code = 401
+    code = "ACTION_COLLECTION_CONFIRMATION_INVALID"
+    message = "Action confirmation is invalid or expired"
+
+
+class ActionCollectionProviderError(AppError):
+    status_code = 502
+    code = "ACTION_COLLECTION_PROVIDER_ERROR"
+    message = "Action field extraction is temporarily unavailable"

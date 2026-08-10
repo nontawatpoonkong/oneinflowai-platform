@@ -64,7 +64,7 @@ The repository includes workspace, customer, conversation, message, AI-mode, and
 
 The authenticated Action API supports reusable workspace-owned action definitions, strict structured payload validation, idempotent action creation, staff assignment, controlled status transitions, queue filtering, and atomic audit events. The implemented flow is structured business data → confirmed ActionRequest → fulfillment queue → human fulfillment.
 
-Sprint 8.7 remains manual-first. Grounded generation is not connected directly to database action creation, conversational AI field collection and confirmation remain future work, and `AUTOMATED` is metadata only. External API execution remains future work.
+The Action queue remains manual-first and `AUTOMATED` is metadata only. AI-assisted collection is isolated from grounded answering and may create a queue item only through explicit validated confirmation. External API execution remains future work.
 
 ## Customer payment and slip verification
 
@@ -73,6 +73,12 @@ Customer Payment records money a customer pays directly to a workspace business;
 Evidence is limited to signature-validated JPEG/PNG files in opaque storage. Amounts use exact decimal NUMERIC values, receiver and amount matches are mandatory, and reused evidence or transaction references cannot verify multiple workspace payments. AI has no route that can mark a payment verified. The deterministic provider is development/test-only; no authoritative bank provider or OCR-only verification is claimed. SaaS subscription billing remains separate and planned.
 
 Slip Verification is not included in Plan 1. Plan 2 and higher include a monthly verification quota. The SaaS Billing/Entitlement system planned for Sprint 9.2 owns quota definitions and subscription-policy behavior when a quota is exceeded. Sprint 8.8 intentionally contains no plan, subscription, or entitlement checks: the Customer Payment domain records and verifies business transactions independently of OneInFlow SaaS billing.
+
+## AI-assisted action collection and confirmation
+
+Action collection follows a guarded flow: customer intent → a trusted workspace `ActionDefinition` → provider-assisted structured field proposals → deterministic `ActionPayloadValidator` validation → explicit missing/invalid-field collection → a deterministic confirmation summary → explicit confirmation → `ActionRequestService`. Collection state survives multiple turns without storing raw model prompts or responses, and confirmation tokens are random, stored only as payload-bound hashes, short-lived, and idempotent on retry.
+
+Provider/LLM output is always untrusted and cannot directly create an ActionRequest, Payment, or PaymentVerification or perform a status transition. Action creation occurs only after the exact collected payload passes deterministic validation and an authenticated caller supplies its current confirmation token. Payment verification remains exclusively controlled by `PaymentVerificationService`. End-to-end WebChat orchestration is planned for Sprint 8.10, and external API execution remains future work.
 
 ## Project structure
 
@@ -189,6 +195,7 @@ Implemented:
 - Provider-neutral grounded generation, zero-knowledge short-circuiting, normalized token usage, and strict citation validation.
 - Generic manual Action/Fulfillment Queue with definitions, validation, assignment, lifecycle control, idempotency, and audit history.
 - Customer-to-workspace Payment records, protected destinations, hardened slip evidence, duplicate controls, and provider-neutral verification.
+- Persisted multi-turn AI-assisted Action Collection with strict field validation, payload-bound confirmation, and atomic ActionRequest creation.
 
 In development:
 
@@ -198,7 +205,7 @@ In development:
 Planned:
 
 - Automatic WebChat and conversation AI replies.
-- AI conversational action collection and confirmation.
+- End-to-end WebChat action-intent orchestration (Sprint 8.10).
 - Authoritative production slip-verification provider integration.
 - OneInFlow SaaS subscription billing, separate from Customer Payment.
 - Automatic external action execution.

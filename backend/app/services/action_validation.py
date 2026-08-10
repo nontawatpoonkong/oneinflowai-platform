@@ -18,34 +18,52 @@ class ActionPayloadValidator:
     def validate(
         self, definition: ActionDefinition, payload: dict[str, Any]
     ) -> dict[str, Any]:
+        normalized, missing, invalid = self.validate_partial(definition, payload)
+        if missing or invalid:
+            details = {"missing_fields": missing}
+            if invalid:
+                details["invalid_fields"] = sorted(invalid)
+            raise ActionPayloadValidationError(details=details)
+        return normalized
+
+    def validate_partial(
+        self, definition: ActionDefinition, payload: dict[str, Any]
+    ) -> tuple[dict[str, Any], list[str], dict[str, str]]:
         fields = [*definition.required_fields, *definition.optional_fields]
         specifications = {field["key"]: field for field in fields}
-        missing = [
-            field["key"]
-            for field in definition.required_fields
-            if field["key"] not in payload
-        ]
         unknown = sorted(set(payload) - set(specifications))
-        if missing or unknown or self._SYSTEM_FIELDS.intersection(payload):
+        system = sorted(self._SYSTEM_FIELDS.intersection(payload))
+        if unknown or system:
+            missing = [
+                field["key"]
+                for field in definition.required_fields
+                if field["key"] not in payload
+            ]
             raise ActionPayloadValidationError(
-                details={"missing_fields": missing, "unknown_fields": unknown}
+                details={
+                    "missing_fields": missing,
+                    "unknown_fields": sorted(set(unknown + system)),
+                }
             )
-        normalized = {}
-        errors = []
+        normalized: dict[str, Any] = {}
+        invalid: dict[str, str] = {}
         for key, value in payload.items():
             specification = specifications[key]
             if not self._valid_type(specification["type"], value):
-                errors.append(key)
+                invalid[key] = "invalid type or empty value"
                 continue
             if specification["type"] == "enum" and value not in specification.get(
                 "values", []
             ):
-                errors.append(key)
+                invalid[key] = "unsupported enum value"
                 continue
             normalized[key] = value.strip() if isinstance(value, str) else value
-        if errors:
-            raise ActionPayloadValidationError(details={"invalid_fields": errors})
-        return normalized
+        missing = [
+            field["key"]
+            for field in definition.required_fields
+            if field["key"] not in normalized and field["key"] not in invalid
+        ]
+        return normalized, missing, invalid
 
     @staticmethod
     def _valid_type(field_type: str, value: Any) -> bool:
