@@ -21,6 +21,8 @@ flowchart LR
     LLM --> Validation["Citation validation and grounded answer"]
     API --> Queue["Action and fulfillment queue"]
     Queue --> Staff["Human fulfillment"]
+    API --> Payment["Customer payment and slip verification"]
+    Payment --> Queue
     Channels["Additional customer channels"] -. "planned" .-> API
 ```
 
@@ -62,7 +64,15 @@ The repository includes workspace, customer, conversation, message, AI-mode, and
 
 The authenticated Action API supports reusable workspace-owned action definitions, strict structured payload validation, idempotent action creation, staff assignment, controlled status transitions, queue filtering, and atomic audit events. The implemented flow is structured business data → confirmed ActionRequest → fulfillment queue → human fulfillment.
 
-Sprint 8.7 is manual-first. Grounded generation is not connected directly to database action creation, conversational AI field collection and confirmation remain future work, and `AUTOMATED` is metadata only. External API execution and Payment/Slip Verification are not implemented; payment is planned for Sprint 8.8 as a separate domain linked to an action request.
+Sprint 8.7 remains manual-first. Grounded generation is not connected directly to database action creation, conversational AI field collection and confirmation remain future work, and `AUTOMATED` is metadata only. External API execution remains future work.
+
+## Customer payment and slip verification
+
+Customer Payment records money a customer pays directly to a workspace business; it is separate from money a workspace may later pay OneInFlow for SaaS Billing. The implemented flow is Customer → workspace payment destination → evidence upload → provider-neutral SlipVerificationProvider → PaymentVerificationService → verified or safely rejected/duplicate/expired state → linked Action remains available for human fulfillment.
+
+Evidence is limited to signature-validated JPEG/PNG files in opaque storage. Amounts use exact decimal NUMERIC values, receiver and amount matches are mandatory, and reused evidence or transaction references cannot verify multiple workspace payments. AI has no route that can mark a payment verified. The deterministic provider is development/test-only; no authoritative bank provider or OCR-only verification is claimed. SaaS subscription billing remains separate and planned.
+
+Slip Verification is not included in Plan 1. Plan 2 and higher include a monthly verification quota. The SaaS Billing/Entitlement system planned for Sprint 9.2 owns quota definitions and subscription-policy behavior when a quota is exceeded. Sprint 8.8 intentionally contains no plan, subscription, or entitlement checks: the Customer Payment domain records and verifies business transactions independently of OneInFlow SaaS billing.
 
 ## Project structure
 
@@ -178,6 +188,7 @@ Implemented:
 - Provider-neutral embeddings, Qdrant indexing, workspace-safe semantic retrieval, bounded context assembly, and deterministic prompt packaging.
 - Provider-neutral grounded generation, zero-knowledge short-circuiting, normalized token usage, and strict citation validation.
 - Generic manual Action/Fulfillment Queue with definitions, validation, assignment, lifecycle control, idempotency, and audit history.
+- Customer-to-workspace Payment records, protected destinations, hardened slip evidence, duplicate controls, and provider-neutral verification.
 
 In development:
 
@@ -188,7 +199,8 @@ Planned:
 
 - Automatic WebChat and conversation AI replies.
 - AI conversational action collection and confirmation.
-- Payment and slip-verification workflows (Sprint 8.8).
+- Authoritative production slip-verification provider integration.
+- OneInFlow SaaS subscription billing, separate from Customer Payment.
 - Automatic external action execution.
 - Additional customer messaging channels, asynchronous processing, expanded observability, and production deployment guidance.
 

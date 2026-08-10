@@ -263,3 +263,39 @@ class ActionAssignmentError(AppError):
     status_code = 422
     code = "ACTION_ASSIGNMENT_INVALID"
     message = "Assigned user is not a member of this workspace"
+
+
+class PaymentNotFoundError(AppError):
+    status_code = 404
+    code = "PAYMENT_NOT_FOUND"
+    message = "Payment resource not found"
+
+
+class PaymentValidationError(AppError):
+    status_code = 422
+    code = "PAYMENT_VALIDATION_ERROR"
+    message = "Payment request is invalid"
+
+
+class PaymentEvidenceError(AppError):
+    status_code = 422
+    code = "PAYMENT_EVIDENCE_INVALID"
+    message = "Payment evidence is invalid"
+
+
+class PaymentEvidenceTooLargeError(AppError):
+    status_code = 413
+    code = "PAYMENT_EVIDENCE_TOO_LARGE"
+    message = "Payment evidence exceeds the configured size limit"
+
+
+class PaymentDuplicateError(AppError):
+    status_code = 409
+    code = "PAYMENT_DUPLICATE"
+    message = "Payment evidence or transaction was already used"
+
+
+class PaymentVerificationProviderError(AppError):
+    status_code = 502
+    code = "PAYMENT_VERIFICATION_PROVIDER_ERROR"
+    message = "Payment verification is temporarily unavailable"

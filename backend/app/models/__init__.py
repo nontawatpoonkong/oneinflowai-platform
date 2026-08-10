@@ -27,6 +27,15 @@ from app.models.knowledge_document import (
 from app.models.knowledge_document_content import KnowledgeDocumentContent
 from app.models.message import Message, MessageType, SenderType
 from app.models.password_reset_session import PasswordResetSession
+from app.models.payment import (
+    DestinationType,
+    Payment,
+    PaymentDestination,
+    PaymentEvidence,
+    PaymentStatus,
+    PaymentVerification,
+    VerificationStatus,
+)
 from app.models.user import User
 from app.models.verification_challenge import (
     VerificationChallenge,
@@ -59,6 +68,13 @@ __all__ = [
     "KnowledgeSourceType",
     "MessageType",
     "PasswordResetSession",
+    "DestinationType",
+    "Payment",
+    "PaymentDestination",
+    "PaymentEvidence",
+    "PaymentStatus",
+    "PaymentVerification",
+    "VerificationStatus",
     "SenderType",
     "User",
     "VerificationChallenge",
