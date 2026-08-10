@@ -14,6 +14,8 @@ from app.models.knowledge_document import KnowledgeDocument
 from app.models.user import User
 from app.models.workspace import Workspace
 from app.schemas.knowledge import (
+    GroundedAnswerResponse,
+    KnowledgeAnswerRequest,
     KnowledgeChunkResponse,
     KnowledgeDocumentContentResponse,
     KnowledgeDocumentListResponse,
@@ -26,6 +28,7 @@ from app.schemas.knowledge import (
 )
 from app.schemas.response import success_response
 from app.services.chunking import ChunkingService
+from app.services.grounded_generation import GroundedGenerationService
 from app.services.knowledge_document import KnowledgeDocumentService
 from app.services.knowledge_indexing import KnowledgeIndexingService
 from app.services.knowledge_retrieval import KnowledgeRetrievalService
@@ -141,6 +144,37 @@ async def preview_rag(
         user_prompt=package.user_prompt,
         prompt_version=package.version,
     )
+    return success_response(data=data.model_dump(mode="json"), message="OK")
+
+
+@router.post("/answer")
+async def answer_from_knowledge(
+    payload: KnowledgeAnswerRequest,
+    request: Request,
+    workspace: Workspace = Depends(get_current_workspace),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    settings = get_settings()
+    retrieval = KnowledgeRetrievalService(
+        session,
+        settings=settings,
+        provider=create_embedding_provider(settings),
+        vector_store=QdrantKnowledgeVectorStore(
+            request.app.state.qdrant,
+            collection_name=settings.QDRANT_KNOWLEDGE_COLLECTION,
+        ),
+    )
+    preparation = RAGPreparationService(retrieval, settings=settings)
+    answer = await GroundedGenerationService(
+        preparation,
+        settings=settings,
+    ).answer(
+        workspace_id=workspace.id,
+        query=payload.query,
+        limit=payload.limit,
+        document_id=payload.document_id,
+    )
+    data = GroundedAnswerResponse.model_validate(answer, from_attributes=True)
     return success_response(data=data.model_dump(mode="json"), message="OK")
 
 

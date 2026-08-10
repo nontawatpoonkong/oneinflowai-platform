@@ -129,3 +129,37 @@ class RAGPreviewResponse(BaseModel):
     context_version: str
     user_prompt: str
     prompt_version: str
+
+
+class KnowledgeAnswerRequest(BaseModel):
+    query: str
+    limit: int | None = None
+    document_id: uuid.UUID | None = None
+
+
+class GroundedCitationResponse(BaseModel):
+    label: str
+    document_id: uuid.UUID
+    chunk_id: uuid.UUID
+    chunk_index: int
+    score: float
+    document_name: str
+
+
+class GenerationUsageResponse(BaseModel):
+    input_tokens: int | None
+    output_tokens: int | None
+    total_tokens: int | None
+
+
+class GroundedAnswerResponse(BaseModel):
+    query: str
+    answer: str
+    grounding_status: str
+    citations: list[GroundedCitationResponse]
+    generation_skipped: bool
+    model: str | None
+    provider: str | None
+    usage: GenerationUsageResponse | None
+    prompt_version: str
+    context_version: str

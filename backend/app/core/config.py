@@ -20,6 +20,11 @@ class Settings(BaseSettings):
 
     # ------------------------------------------------------------- AI
     OPENAI_API_KEY: str | None = None
+    OPENAI_MODEL: str = "gpt-5.5"
+    GENERATION_PROVIDER: str = "openai"
+    GENERATION_TEMPERATURE: float = 0.2
+    GENERATION_MAX_OUTPUT_TOKENS: int = 800
+    GENERATION_REQUEST_TIMEOUT_SECONDS: float = 45
     EMBEDDING_PROVIDER: str = "openai"
     OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
     EMBEDDING_BATCH_SIZE: int = 64
@@ -94,6 +99,16 @@ class Settings(BaseSettings):
             raise ValueError("RAG_MAX_CONTEXT_CHARACTERS must be positive")
         if self.RAG_MAX_SOURCES <= 0:
             raise ValueError("RAG_MAX_SOURCES must be positive")
+        if not self.GENERATION_PROVIDER.strip():
+            raise ValueError("GENERATION_PROVIDER must not be empty")
+        if not self.OPENAI_MODEL.strip():
+            raise ValueError("OPENAI_MODEL must not be empty")
+        if not 0 <= self.GENERATION_TEMPERATURE <= 2:
+            raise ValueError("GENERATION_TEMPERATURE must be between 0 and 2")
+        if self.GENERATION_MAX_OUTPUT_TOKENS <= 0:
+            raise ValueError("GENERATION_MAX_OUTPUT_TOKENS must be positive")
+        if self.GENERATION_REQUEST_TIMEOUT_SECONDS <= 0:
+            raise ValueError("GENERATION_REQUEST_TIMEOUT_SECONDS must be positive")
         return self
 
     # ------------------------------------------------------------------ App

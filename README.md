@@ -2,7 +2,7 @@
 
 **Everything in one flow.**
 
-OneInFlow is a multi-tenant customer-conversation platform that brings workspace administration, customer channels, conversations, and company knowledge into one product. The current codebase provides the secure platform foundation and a deterministic retrieval-augmented generation (RAG) preparation pipeline. Generation by an LLM is intentionally not implemented yet.
+OneInFlow is a multi-tenant customer-conversation platform that brings workspace administration, customer channels, conversations, and company knowledge into one product. The current codebase provides the secure platform foundation and grounded, citation-validated answer generation from workspace knowledge. It is not yet production-ready.
 
 ## Current architecture
 
@@ -17,7 +17,8 @@ flowchart LR
     API --> RAG["Retrieval and RAG prompt package"]
     RAG --> Qdrant
     RAG --> PG
-    RAG -. "planned" .-> LLM["LLM generation providers"]
+    RAG --> LLM["Generation provider"]
+    LLM --> Validation["Citation validation and grounded answer"]
     Channels["Additional customer channels"] -. "planned" .-> API
 ```
 
@@ -34,8 +35,10 @@ The implemented pipeline is:
 5. Retrieve workspace-filtered candidates and validate them against PostgreSQL.
 6. Assemble a bounded, deterministic context with stable source labels.
 7. Build a provider-neutral prompt package that treats queries and sources as untrusted data.
+8. Generate a bounded response through the configured provider.
+9. Validate every citation against trusted RAG sources before returning a grounded answer.
 
-The RAG preview API exposes the prepared context and user prompt for development and inspection. It does not call an LLM, generate an answer, expose the system prompt, or introduce queues and external channel behavior.
+The RAG preview API exposes the prepared context and user prompt for development and inspection. The answer API adds provider-neutral OpenAI or deterministic development generation, skips generation when no knowledge is available, and rejects missing or invented citations. Neither endpoint exposes the system prompt, vectors, storage paths, provider responses, or secrets.
 
 ## Multi-tenant security
 
@@ -51,7 +54,7 @@ The backend includes registration, email OTP verification, login, token-based pr
 
 ## Conversation platform
 
-The repository includes workspace, customer, conversation, message, AI-mode, and WebChat foundations. These establish the domain and API surface for human and future AI-assisted conversations. Broader channel integrations and production LLM answer generation remain planned work.
+The repository includes workspace, customer, conversation, message, AI-mode, and WebChat foundations. Grounded knowledge answers are available through the authenticated Knowledge API, but automatic WebChat or conversation replies are not implemented. Broader channel integrations remain future work.
 
 ## Project structure
 
@@ -155,7 +158,7 @@ npm run build
 
 ## API overview
 
-All application routes use the configured API prefix (normally `/api/v1`). Major route groups include authentication, workspaces, customers, conversations, messages, WebChat, AI mode, and knowledge management. Knowledge endpoints cover upload, content, chunks, indexing, semantic search, and authenticated RAG preview. Consult `/docs` for the exact request and response contracts of the running revision.
+All application routes use the configured API prefix (normally `/api/v1`). Major route groups include authentication, workspaces, customers, conversations, messages, WebChat, AI mode, and knowledge management. Knowledge endpoints cover upload, content, chunks, indexing, semantic search, authenticated RAG preview, and grounded answers. Consult `/docs` for the exact request and response contracts of the running revision.
 
 ## Development status
 
@@ -165,6 +168,7 @@ Implemented:
 - Email-verification and password-reset authentication flows.
 - Knowledge upload, extraction, deterministic chunking, hashing, and transaction-safe rechunking.
 - Provider-neutral embeddings, Qdrant indexing, workspace-safe semantic retrieval, bounded context assembly, and deterministic prompt packaging.
+- Provider-neutral grounded generation, zero-knowledge short-circuiting, normalized token usage, and strict citation validation.
 
 In development:
 
@@ -173,8 +177,9 @@ In development:
 
 Planned:
 
-- LLM answer generation and provider orchestration using the prepared prompt package.
-- Additional customer messaging channels, asynchronous processing, observability, and production deployment guidance.
+- Automatic WebChat and conversation AI replies.
+- Action/Fulfillment Queue and payment or slip-verification workflows.
+- Additional customer messaging channels, asynchronous processing, expanded observability, and production deployment guidance.
 
 ## Design principles
 

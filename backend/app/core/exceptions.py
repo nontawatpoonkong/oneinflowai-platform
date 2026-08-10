@@ -190,3 +190,46 @@ class KnowledgeRetrievalError(AppError):
     status_code = 502
     code = "KNOWLEDGE_RETRIEVAL_FAILED"
     message = "Knowledge search is temporarily unavailable"
+
+
+class GenerationConfigurationError(AppError):
+    status_code = 500
+    code = "GENERATION_CONFIGURATION_ERROR"
+    message = "Generation provider is not configured"
+
+
+class GenerationProviderError(AppError):
+    status_code = 502
+    code = "GENERATION_PROVIDER_ERROR"
+    message = "Answer generation is temporarily unavailable"
+
+
+class GenerationAuthenticationError(GenerationProviderError):
+    code = "GENERATION_AUTHENTICATION_ERROR"
+
+
+class GenerationRateLimitError(GenerationProviderError):
+    code = "GENERATION_RATE_LIMIT_ERROR"
+
+
+class GenerationTimeoutError(GenerationProviderError):
+    status_code = 504
+    code = "GENERATION_TIMEOUT"
+
+
+class GenerationNetworkError(GenerationProviderError):
+    code = "GENERATION_NETWORK_ERROR"
+
+
+class GenerationServerError(GenerationProviderError):
+    code = "GENERATION_SERVER_ERROR"
+
+
+class GenerationMalformedResponseError(GenerationProviderError):
+    code = "GENERATION_MALFORMED_RESPONSE"
+
+
+class GroundingValidationError(AppError):
+    status_code = 502
+    code = "GROUNDING_VALIDATION_FAILED"
+    message = "Generated answer could not be verified against knowledge sources"

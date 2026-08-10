@@ -1,0 +1,145 @@
+"""Provider contract, OpenAI normalization, and safe error mapping tests."""
+
+from types import SimpleNamespace
+
+import httpx
+import pytest
+from openai import (
+    APIConnectionError,
+    APIStatusError,
+    APITimeoutError,
+    AuthenticationError,
+    RateLimitError,
+)
+
+from app.core.config import Settings
+from app.core.exceptions import (
+    GenerationAuthenticationError,
+    GenerationConfigurationError,
+    GenerationMalformedResponseError,
+    GenerationNetworkError,
+    GenerationRateLimitError,
+    GenerationServerError,
+    GenerationTimeoutError,
+)
+from app.integrations.generation import (
+    DevelopmentGenerationProvider,
+    GenerationRequest,
+    OpenAIGenerationProvider,
+    create_generation_provider,
+)
+
+PROMPT = GenerationRequest("system", "user", 0.2, 800)
+
+
+class FakeResponses:
+    def __init__(self, response=None, failure=None):
+        self.response = response
+        self.failure = failure
+        self.calls = []
+
+    async def create(self, **kwargs):
+        self.calls.append(kwargs)
+        if self.failure:
+            raise self.failure
+        return self.response
+
+
+def _provider(api: FakeResponses) -> OpenAIGenerationProvider:
+    return OpenAIGenerationProvider(
+        api_key="test",
+        model="gpt-5.5",
+        timeout_seconds=45,
+        client=SimpleNamespace(responses=api),
+    )
+
+
+@pytest.mark.asyncio
+async def test_development_provider_is_deterministic_without_network() -> None:
+    provider = DevelopmentGenerationProvider()
+    assert await provider.generate(PROMPT) == await provider.generate(PROMPT)
+    assert (await provider.generate(PROMPT)).text.endswith("[S1]")
+
+
+@pytest.mark.asyncio
+async def test_openai_provider_maps_request_and_normalizes_result_and_usage() -> None:
+    response = SimpleNamespace(
+        output_text=" grounded [S1] ",
+        model="gpt-5.5",
+        status="completed",
+        usage=SimpleNamespace(input_tokens=10, output_tokens=4, total_tokens=14),
+    )
+    api = FakeResponses(response)
+    result = await _provider(api).generate(PROMPT)
+    assert api.calls == [
+        {
+            "model": "gpt-5.5",
+            "instructions": "system",
+            "input": "user",
+            "temperature": 0.2,
+            "max_output_tokens": 800,
+            "timeout": 45,
+        }
+    ]
+    assert result.text == "grounded [S1]"
+    assert (result.input_tokens, result.output_tokens, result.total_tokens) == (
+        10,
+        4,
+        14,
+    )
+    assert result.provider == "openai"
+
+
+def _request() -> httpx.Request:
+    return httpx.Request("POST", "https://api.openai.test/responses")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("failure", "expected"),
+    [
+        (
+            AuthenticationError(
+                "auth", response=httpx.Response(401, request=_request()), body=None
+            ),
+            GenerationAuthenticationError,
+        ),
+        (
+            RateLimitError(
+                "rate", response=httpx.Response(429, request=_request()), body=None
+            ),
+            GenerationRateLimitError,
+        ),
+        (APITimeoutError(request=_request()), GenerationTimeoutError),
+        (APIConnectionError(request=_request()), GenerationNetworkError),
+        (
+            APIStatusError(
+                "server", response=httpx.Response(500, request=_request()), body=None
+            ),
+            GenerationServerError,
+        ),
+    ],
+)
+async def test_openai_provider_maps_operational_errors(failure, expected) -> None:
+    with pytest.raises(expected) as captured:
+        await _provider(FakeResponses(failure=failure)).generate(PROMPT)
+    assert "api" not in str(captured.value).lower()
+
+
+@pytest.mark.asyncio
+async def test_openai_provider_rejects_malformed_response() -> None:
+    with pytest.raises(GenerationMalformedResponseError):
+        await _provider(
+            FakeResponses(SimpleNamespace(output_text="", model="gpt-5.5"))
+        ).generate(PROMPT)
+
+
+def test_generation_factory_selects_development_and_rejects_unknown() -> None:
+    settings = Settings(_env_file=None, GENERATION_PROVIDER="development")
+    assert isinstance(
+        create_generation_provider(settings), DevelopmentGenerationProvider
+    )
+    with pytest.raises(GenerationConfigurationError):
+        create_generation_provider(
+            Settings(_env_file=None, GENERATION_PROVIDER="unknown")
+        )
