@@ -4,6 +4,16 @@ Importing this package registers all tables on ``Base.metadata`` (used by
 Alembic autogenerate and by test schema creation).
 """
 
+from app.models.action import (
+    ActionActorType,
+    ActionDefinition,
+    ActionEvent,
+    ActionEventType,
+    ActionExecutionMode,
+    ActionPriority,
+    ActionRequest,
+    ActionRequestStatus,
+)
 from app.models.conversation import Conversation, ConversationStatus
 from app.models.customer import Customer, CustomerStatus
 from app.models.customer_identity import CustomerIdentity
@@ -27,6 +37,14 @@ from app.models.workspace import Workspace
 from app.models.workspace_member import WorkspaceMember, WorkspaceRole
 
 __all__ = [
+    "ActionActorType",
+    "ActionDefinition",
+    "ActionEvent",
+    "ActionEventType",
+    "ActionExecutionMode",
+    "ActionPriority",
+    "ActionRequest",
+    "ActionRequestStatus",
     "Conversation",
     "ConversationStatus",
     "Customer",

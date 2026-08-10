@@ -19,6 +19,8 @@ flowchart LR
     RAG --> PG
     RAG --> LLM["Generation provider"]
     LLM --> Validation["Citation validation and grounded answer"]
+    API --> Queue["Action and fulfillment queue"]
+    Queue --> Staff["Human fulfillment"]
     Channels["Additional customer channels"] -. "planned" .-> API
 ```
 
@@ -55,6 +57,12 @@ The backend includes registration, email OTP verification, login, token-based pr
 ## Conversation platform
 
 The repository includes workspace, customer, conversation, message, AI-mode, and WebChat foundations. Grounded knowledge answers are available through the authenticated Knowledge API, but automatic WebChat or conversation replies are not implemented. Broader channel integrations remain future work.
+
+## Action and fulfillment queue
+
+The authenticated Action API supports reusable workspace-owned action definitions, strict structured payload validation, idempotent action creation, staff assignment, controlled status transitions, queue filtering, and atomic audit events. The implemented flow is structured business data → confirmed ActionRequest → fulfillment queue → human fulfillment.
+
+Sprint 8.7 is manual-first. Grounded generation is not connected directly to database action creation, conversational AI field collection and confirmation remain future work, and `AUTOMATED` is metadata only. External API execution and Payment/Slip Verification are not implemented; payment is planned for Sprint 8.8 as a separate domain linked to an action request.
 
 ## Project structure
 
@@ -169,6 +177,7 @@ Implemented:
 - Knowledge upload, extraction, deterministic chunking, hashing, and transaction-safe rechunking.
 - Provider-neutral embeddings, Qdrant indexing, workspace-safe semantic retrieval, bounded context assembly, and deterministic prompt packaging.
 - Provider-neutral grounded generation, zero-knowledge short-circuiting, normalized token usage, and strict citation validation.
+- Generic manual Action/Fulfillment Queue with definitions, validation, assignment, lifecycle control, idempotency, and audit history.
 
 In development:
 
@@ -178,7 +187,9 @@ In development:
 Planned:
 
 - Automatic WebChat and conversation AI replies.
-- Action/Fulfillment Queue and payment or slip-verification workflows.
+- AI conversational action collection and confirmation.
+- Payment and slip-verification workflows (Sprint 8.8).
+- Automatic external action execution.
 - Additional customer messaging channels, asynchronous processing, expanded observability, and production deployment guidance.
 
 ## Design principles

@@ -233,3 +233,33 @@ class GroundingValidationError(AppError):
     status_code = 502
     code = "GROUNDING_VALIDATION_FAILED"
     message = "Generated answer could not be verified against knowledge sources"
+
+
+class ActionNotFoundError(AppError):
+    status_code = 404
+    code = "ACTION_NOT_FOUND"
+    message = "Action resource not found"
+
+
+class ActionDefinitionConflictError(AppError):
+    status_code = 409
+    code = "ACTION_DEFINITION_CONFLICT"
+    message = "Action definition key already exists"
+
+
+class ActionPayloadValidationError(AppError):
+    status_code = 422
+    code = "ACTION_PAYLOAD_INVALID"
+    message = "Action payload is invalid"
+
+
+class ActionTransitionError(AppError):
+    status_code = 409
+    code = "ACTION_TRANSITION_INVALID"
+    message = "Action status transition is not allowed"
+
+
+class ActionAssignmentError(AppError):
+    status_code = 422
+    code = "ACTION_ASSIGNMENT_INVALID"
+    message = "Assigned user is not a member of this workspace"
