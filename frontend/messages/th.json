@@ -444,6 +444,7 @@
       "notifications": "การแจ้งเตือน",
       "notificationsEmptyTitle": "ไม่มีการแจ้งเตือนใหม่",
       "notificationsEmptyDesc": "การแจ้งเตือนใหม่จะแสดงที่นี่",
+      "markAllRead": "อ่านทั้งหมดแล้ว",
       "profile": "โปรไฟล์",
       "settings": "ตั้งค่า",
       "logout": "ออกจากระบบ",
@@ -582,6 +583,13 @@
   },
   "inbox": {
     "search": "ค้นหาบทสนทนา",
+    "handoff": "ส่งต่อให้เจ้าหน้าที่",
+    "assignToMe": "รับเรื่องนี้",
+    "assignMember": "มอบหมายสมาชิก",
+    "returnToAi": "กลับไปใช้ AI",
+    "needsAttention": "ต้องตรวจสอบ",
+    "assigned": "มอบหมายแล้ว",
+    "unread": "ยังไม่ได้อ่าน",
     "channels": {
       "line": "LINE",
       "facebook": "Facebook",

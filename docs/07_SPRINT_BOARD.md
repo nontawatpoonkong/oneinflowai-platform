@@ -54,6 +54,14 @@ WebChat End-to-End AI Integration is complete: grounded answers, citations,
 action collection, explicit decisions, human mode, and concurrency-safe message
 idempotency.
 
+Sprint 8.11
+
+Human Handoff and Notifications
+
+Complete: explicit WebChat/staff handoff, member assignment, return to AI,
+per-member read cursors, attention state, in-app notifications, and action/payment
+notification sources.
+
 Analytics
 
 ⬜

@@ -36,6 +36,7 @@ export type WebChatResponseType =
   | "ACTION_CREATED"
   | "ACTION_CANCELLED"
   | "HUMAN_MODE"
+  | "HUMAN_HANDOFF"
   | "NO_RESPONSE"
   | "ERROR";
 

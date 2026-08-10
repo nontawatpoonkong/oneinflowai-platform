@@ -7,7 +7,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.core.channels import ChannelType
-from app.models.conversation import ConversationMode, ConversationStatus
+from app.models.conversation import ConversationMode, ConversationStatus, HandoffReason
 
 
 def _trim_optional(value: object) -> object:
@@ -48,6 +48,14 @@ class ConversationUpdate(BaseModel):
         return _trim_optional(value)
 
 
+class ConversationHandoffRequest(BaseModel):
+    reason: HandoffReason = HandoffReason.MANUAL_ADMIN
+
+
+class ConversationAssignRequest(BaseModel):
+    assigned_user_id: uuid.UUID | None = None
+
+
 class ConversationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -63,6 +71,11 @@ class ConversationResponse(BaseModel):
     ai_mode: ConversationMode
     taken_over_by: uuid.UUID | None
     taken_over_at: datetime | None
+    handoff_reason: HandoffReason | None
+    handoff_requested_at: datetime | None
+    assigned_at: datetime | None
+    needs_attention: bool
+    unread_count: int = 0
     created_at: datetime
     updated_at: datetime
 

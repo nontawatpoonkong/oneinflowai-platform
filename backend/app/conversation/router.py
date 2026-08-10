@@ -18,7 +18,9 @@ from app.models.user import User
 from app.models.workspace import Workspace
 from app.schemas.common import SortOrder
 from app.schemas.conversation import (
+    ConversationAssignRequest,
     ConversationCreate,
+    ConversationHandoffRequest,
     ConversationListResponse,
     ConversationResponse,
     ConversationSortField,
@@ -31,6 +33,8 @@ from app.schemas.message import (
 )
 from app.schemas.response import success_response
 from app.services.conversation import ConversationService
+from app.services.conversation_handoff import ConversationHandoffService
+from app.services.conversation_read_state import ConversationReadStateService
 from app.services.message import MessageService
 from app.workspace.dependencies import get_current_workspace
 
@@ -73,6 +77,7 @@ async def create_conversation(
 @router.get("", summary="List conversations (search, filter, sort, paginate)")
 async def list_conversations(
     workspace: Workspace = Depends(get_current_workspace),
+    current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
     q: str | None = Query(default=None, description="Search by subject"),
     status_filter: ConversationStatus | None = Query(default=None, alias="status"),
@@ -97,8 +102,16 @@ async def list_conversations(
         page_size=page_size,
     )
     total_pages = (total + page_size - 1) // page_size if total else 0
+    read_states = ConversationReadStateService(session)
+    response_items = []
+    for conversation in items:
+        item = ConversationResponse.model_validate(conversation)
+        item.unread_count = await read_states.unread_count(
+            workspace.id, conversation.id, current_user.id
+        )
+        response_items.append(item)
     data = ConversationListResponse(
-        items=[ConversationResponse.model_validate(c) for c in items],
+        items=response_items,
         total=total,
         page=page,
         page_size=page_size,
@@ -111,13 +124,18 @@ async def list_conversations(
 async def get_conversation(
     conversation_id: uuid.UUID,
     workspace: Workspace = Depends(get_current_workspace),
+    current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ) -> dict:
     conversation = await ConversationService(session).get_conversation(
         workspace.id,
         conversation_id,
     )
-    return success_response(data=_conversation_data(conversation), message="OK")
+    data = _conversation_data(conversation)
+    data["unread_count"] = await ConversationReadStateService(session).unread_count(
+        workspace.id, conversation.id, current_user.id
+    )
+    return success_response(data=data, message="OK")
 
 
 @router.patch("/{conversation_id}", summary="Update a conversation")
@@ -150,11 +168,23 @@ async def create_message(
     conversation_id: uuid.UUID,
     payload: MessageCreate,
     workspace: Workspace = Depends(get_current_workspace),
+    current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ) -> dict:
-    message = await MessageService(session).create_message(
-        workspace.id, conversation_id, payload
+    trusted_payload = payload.model_copy(
+        update={
+            "sender_id": current_user.id
+            if payload.sender_type.value == "agent"
+            else payload.sender_id
+        }
     )
+    message = await MessageService(session).create_message(
+        workspace.id, conversation_id, trusted_payload
+    )
+    if trusted_payload.sender_type.value == "agent":
+        await ConversationReadStateService(session).mark_read(
+            workspace.id, conversation_id, current_user.id
+        )
     return success_response(data=_message_data(message), message="Message created")
 
 
@@ -194,3 +224,78 @@ async def list_messages(
         total_pages=total_pages,
     )
     return success_response(data=data.model_dump(mode="json"), message="OK")
+
+
+@router.post("/{conversation_id}/handoff")
+async def request_handoff(
+    conversation_id: uuid.UUID,
+    payload: ConversationHandoffRequest,
+    workspace: Workspace = Depends(get_current_workspace),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+):
+    conversation, _ = await ConversationHandoffService(session).request_handoff(
+        workspace.id,
+        conversation_id,
+        payload.reason,
+        actor_user_id=user.id,
+        deduplication_key=f"manual-handoff:{conversation_id}:{payload.reason}",
+    )
+    return success_response(_conversation_data(conversation), "Conversation handed off")
+
+
+@router.post("/{conversation_id}/assign")
+async def assign_conversation(
+    conversation_id: uuid.UUID,
+    payload: ConversationAssignRequest,
+    workspace: Workspace = Depends(get_current_workspace),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+):
+    assignee = payload.assigned_user_id or user.id
+    conversation = await ConversationHandoffService(session).assign(
+        workspace.id, conversation_id, assignee, user.id
+    )
+    return success_response(_conversation_data(conversation), "Conversation assigned")
+
+
+@router.post("/{conversation_id}/return-to-ai")
+async def return_to_ai(
+    conversation_id: uuid.UUID,
+    workspace: Workspace = Depends(get_current_workspace),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+):
+    conversation = await ConversationHandoffService(session).return_to_ai(
+        workspace.id, conversation_id, user.id
+    )
+    return success_response(
+        _conversation_data(conversation), "Conversation returned to AI"
+    )
+
+
+@router.post("/{conversation_id}/read")
+async def mark_conversation_read(
+    conversation_id: uuid.UUID,
+    workspace: Workspace = Depends(get_current_workspace),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+):
+    await ConversationService(session).get_conversation(workspace.id, conversation_id)
+    data = await ConversationReadStateService(session).mark_read(
+        workspace.id, conversation_id, user.id
+    )
+    return success_response(data, "Conversation marked read")
+
+
+@router.post("/{conversation_id}/unassign")
+async def unassign_conversation(
+    conversation_id: uuid.UUID,
+    workspace: Workspace = Depends(get_current_workspace),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+):
+    conversation = await ConversationHandoffService(session).unassign(
+        workspace.id, conversation_id
+    )
+    return success_response(_conversation_data(conversation), "Conversation unassigned")

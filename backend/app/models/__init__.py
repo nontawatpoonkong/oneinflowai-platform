@@ -18,7 +18,8 @@ from app.models.action_collection import (
     ActionCollectionSession,
     ActionCollectionStatus,
 )
-from app.models.conversation import Conversation, ConversationStatus
+from app.models.conversation import Conversation, ConversationStatus, HandoffReason
+from app.models.conversation_read_state import ConversationReadState
 from app.models.customer import Customer, CustomerStatus
 from app.models.customer_identity import CustomerIdentity
 from app.models.knowledge_chunk import KnowledgeChunk
@@ -30,6 +31,11 @@ from app.models.knowledge_document import (
 )
 from app.models.knowledge_document_content import KnowledgeDocumentContent
 from app.models.message import Message, MessageType, SenderType
+from app.models.notification import (
+    Notification,
+    NotificationEntityType,
+    NotificationType,
+)
 from app.models.password_reset_session import PasswordResetSession
 from app.models.payment import (
     DestinationType,
@@ -62,6 +68,8 @@ __all__ = [
     "ActionRequestStatus",
     "Conversation",
     "ConversationStatus",
+    "HandoffReason",
+    "ConversationReadState",
     "Customer",
     "CustomerIdentity",
     "CustomerStatus",
@@ -73,6 +81,9 @@ __all__ = [
     "KnowledgeChunk",
     "KnowledgeSourceType",
     "MessageType",
+    "Notification",
+    "NotificationEntityType",
+    "NotificationType",
     "PasswordResetSession",
     "DestinationType",
     "Payment",

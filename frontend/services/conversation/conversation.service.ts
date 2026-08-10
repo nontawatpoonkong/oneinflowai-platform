@@ -30,4 +30,33 @@ export const conversationService = {
     );
     return unwrap(res);
   },
+  async handoff(conversationId: string): Promise<ConversationDTO> {
+    const res = await api.post<ApiEnvelope<ConversationDTO>>(
+      `/conversations/${encodeURIComponent(conversationId)}/handoff`,
+      { reason: "MANUAL_ADMIN" },
+    );
+    return unwrap(res);
+  },
+  async assign(
+    conversationId: string,
+    assignedUserId?: string,
+  ): Promise<ConversationDTO> {
+    const res = await api.post<ApiEnvelope<ConversationDTO>>(
+      `/conversations/${encodeURIComponent(conversationId)}/assign`,
+      assignedUserId ? { assigned_user_id: assignedUserId } : {},
+    );
+    return unwrap(res);
+  },
+  async returnToAi(conversationId: string): Promise<ConversationDTO> {
+    const res = await api.post<ApiEnvelope<ConversationDTO>>(
+      `/conversations/${encodeURIComponent(conversationId)}/return-to-ai`,
+    );
+    return unwrap(res);
+  },
+  async markRead(conversationId: string): Promise<{ unread_count: number }> {
+    const res = await api.post<ApiEnvelope<{ unread_count: number }>>(
+      `/conversations/${encodeURIComponent(conversationId)}/read`,
+    );
+    return unwrap(res);
+  },
 };

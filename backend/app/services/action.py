@@ -23,6 +23,7 @@ from app.models.action import (
 )
 from app.models.conversation import Conversation
 from app.models.customer import Customer
+from app.models.notification import NotificationEntityType, NotificationType
 from app.models.workspace_member import WorkspaceMember
 from app.repositories.action import (
     ActionDefinitionRepository,
@@ -35,6 +36,7 @@ from app.schemas.action import (
     ActionDefinitionUpdate,
 )
 from app.services.action_validation import ActionPayloadValidator
+from app.services.notification import NotificationService
 
 _TRANSITIONS = {
     ActionRequestStatus.WAITING: {
@@ -122,7 +124,19 @@ class ActionService:
             idempotency_key=data.idempotency_key,
         )
         await self.actions.add(action)
+        await self.session.flush()
         await self._event(action, ActionEventType.CREATED, user_id)
+        notifications = NotificationService(self.session)
+        await notifications.create_for_recipients(
+            workspace_id,
+            await notifications.administrative_recipients(workspace_id),
+            type=NotificationType.ACTION_CREATED,
+            title="New action requires attention",
+            body="A new fulfillment action is ready for staff review.",
+            entity_type=NotificationEntityType.ACTION,
+            entity_id=action.id,
+            deduplication_key=f"action-created:{action.id}",
+        )
         if not commit:
             return action
         try:
@@ -161,6 +175,16 @@ class ActionService:
         self._transition(action, ActionRequestStatus.ASSIGNED)
         action.assigned_to_user_id = assigned_user_id
         action.assigned_at = datetime.now(UTC)
+        await NotificationService(self.session).create_for_recipients(
+            workspace_id,
+            [assigned_user_id],
+            type=NotificationType.ACTION_ASSIGNED,
+            title="Action assigned to you",
+            body="Open the action queue to review the assigned work.",
+            entity_type=NotificationEntityType.ACTION,
+            entity_id=action.id,
+            deduplication_key=f"action-assigned:{action.id}:{assigned_user_id}",
+        )
         return await self._commit_transition(
             action,
             ActionEventType.ASSIGNED,

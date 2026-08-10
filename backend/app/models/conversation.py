@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import TIMESTAMP, ForeignKey, String
+from sqlalchemy import TIMESTAMP, Boolean, ForeignKey, String
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -32,6 +32,16 @@ class ConversationMode(enum.StrEnum):
     AUTO = "AUTO"
     COPILOT = "COPILOT"
     HUMAN = "HUMAN"
+
+
+class HandoffReason(enum.StrEnum):
+    CUSTOMER_REQUEST = "CUSTOMER_REQUEST"
+    AI_UNCERTAIN = "AI_UNCERTAIN"
+    GROUNDING_FAILURE = "GROUNDING_FAILURE"
+    ACTION_REQUIRES_HUMAN = "ACTION_REQUIRES_HUMAN"
+    PAYMENT_REVIEW = "PAYMENT_REVIEW"
+    MANUAL_ADMIN = "MANUAL_ADMIN"
+    OTHER = "OTHER"
 
 
 class Conversation(UUIDMixin, TimestampMixin, Base):
@@ -99,6 +109,23 @@ class Conversation(UUIDMixin, TimestampMixin, Base):
     taken_over_user: Mapped["User | None"] = relationship(foreign_keys=[taken_over_by])
     taken_over_at: Mapped[datetime | None] = mapped_column(
         TIMESTAMP(timezone=True), nullable=True
+    )
+    handoff_reason: Mapped[HandoffReason | None] = mapped_column(
+        SAEnum(
+            HandoffReason,
+            name="handoff_reason",
+            values_callable=lambda enum_cls: [m.value for m in enum_cls],
+        ),
+        nullable=True,
+    )
+    handoff_requested_at: Mapped[datetime | None] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=True
+    )
+    assigned_at: Mapped[datetime | None] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=True
+    )
+    needs_attention: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
     )
 
     # One-directional navigation (existing models are not modified).

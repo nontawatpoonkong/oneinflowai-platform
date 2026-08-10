@@ -13,7 +13,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { toast, Toaster } from "sonner";
 
 import { EmptyState } from "@/components/shared/empty-state";
@@ -22,9 +23,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useConversations } from "@/hooks/api/use-conversations";
+import { useConversationOperations } from "@/hooks/api/use-conversation-operations";
 import { useMessages } from "@/hooks/api/use-messages";
 import { useSendMessage } from "@/hooks/api/use-send-message";
 import { useUpdateConversation } from "@/hooks/api/use-update-conversation";
+import { useWorkspaceMembers } from "@/hooks/api/use-workspace";
 import { cn } from "@/lib/utils";
 import type { ConversationAiModeDTO, ConversationDTO } from "@/types/api";
 import type { MessageDTO } from "@/types/message";
@@ -55,6 +58,10 @@ interface Conversation {
   leadStatus: LeadStatus;
   orders: Order[];
   aiMode: ConversationAiModeDTO;
+  workspaceId: string;
+  assignedUserId: string | null;
+  needsAttention: boolean;
+  handoffReason: string | null;
 }
 
 function toConversation(dto: ConversationDTO): Conversation {
@@ -71,13 +78,17 @@ function toConversation(dto: ConversationDTO): Conversation {
         : "web",
     lastMessage: dto.subject || "—",
     time: new Date(activityAt).toLocaleString(),
-    unread: 0,
+    unread: dto.unread_count,
     email: "—",
     phone: "—",
     tags: [],
     leadStatus: "new",
     orders: [],
     aiMode: dto.ai_mode,
+    workspaceId: dto.workspace_id,
+    assignedUserId: dto.assigned_user_id,
+    needsAttention: dto.needs_attention,
+    handoffReason: dto.handoff_reason,
   };
 }
 
@@ -246,6 +257,11 @@ function ConversationList({
                     </p>
                     <div className="mt-1.5 flex items-center justify-between gap-2">
                       <ChannelBadge channel={conversation.channel} />
+                      {conversation.needsAttention ? (
+                        <span className="rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-medium text-warning">
+                          {t("needsAttention")}
+                        </span>
+                      ) : null}
                       {conversation.unread > 0 ? (
                         <span className="grid min-w-5 place-items-center rounded-full bg-brand px-1.5 text-xs font-semibold text-brand-foreground">
                           {conversation.unread}
@@ -274,6 +290,13 @@ function ChatWindow({ conversation }: { conversation: Conversation | null }) {
   );
   const sendMessage = useSendMessage(conversation?.id ?? null);
   const updateConversation = useUpdateConversation(conversation?.id ?? null);
+  const operations = useConversationOperations(conversation?.id ?? null);
+  const members = useWorkspaceMembers(conversation?.workspaceId);
+  const markRead = operations.markRead;
+
+  useEffect(() => {
+    if (conversation?.unread) markRead.mutate();
+  }, [conversation?.id, conversation?.unread, markRead]);
 
   function handleSubmit() {
     const content = draft.trim();
@@ -312,11 +335,46 @@ function ChatWindow({ conversation }: { conversation: Conversation | null }) {
           <p className="truncate text-sm font-medium">{conversation.name}</p>
           <ChannelBadge channel={conversation.channel} />
         </div>
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+        {conversation.aiMode === "HUMAN" ? (
+          <Button size="sm" variant="outline" onClick={() => operations.returnToAi.mutate()}>
+            {t("returnToAi")}
+          </Button>
+        ) : (
+          <Button size="sm" variant="outline" onClick={() => operations.handoff.mutate()}>
+            {t("handoff")}
+          </Button>
+        )}
+        <Button size="sm" variant="outline" onClick={() => operations.assign.mutate(undefined)}>
+          {t("assignToMe")}
+        </Button>
+        <select
+          value={conversation.assignedUserId ?? ""}
+          onChange={(event) => event.target.value && operations.assign.mutate(event.target.value)}
+          aria-label={t("assignMember")}
+          className="h-9 rounded-md border border-input bg-background px-2 text-xs"
+        >
+          <option value="">{t("assignMember")}</option>
+          {members.data?.map((member) => (
+            <option key={member.user_id} value={member.user_id}>
+              {member.full_name || member.email}
+            </option>
+          ))}
+        </select>
         <select
           value={conversation.aiMode}
           onChange={(event) => {
+            const mode = event.target.value as ConversationAiModeDTO;
+            if (mode === "HUMAN") {
+              operations.handoff.mutate();
+              return;
+            }
+            if (mode === "AUTO") {
+              operations.returnToAi.mutate();
+              return;
+            }
             updateConversation.mutate(
-              event.target.value as ConversationAiModeDTO,
+              mode,
               {
                 onError: (error) => {
                   toast.error(
@@ -330,7 +388,7 @@ function ChatWindow({ conversation }: { conversation: Conversation | null }) {
           }}
           disabled={updateConversation.isPending}
           aria-label="โหมดการตอบสนทนา"
-          className="ml-auto h-9 rounded-md border border-input bg-background px-2 text-xs font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+          className="h-9 rounded-md border border-input bg-background px-2 text-xs font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
         >
           {(Object.keys(AI_MODE_LABEL) as ConversationAiModeDTO[]).map(
             (mode) => (
@@ -340,6 +398,7 @@ function ChatWindow({ conversation }: { conversation: Conversation | null }) {
             ),
           )}
         </select>
+        </div>
       </div>
 
       <div className="flex-1 space-y-3 overflow-y-auto bg-muted/10 p-4">
@@ -499,7 +558,10 @@ function CustomerSidebar({ conversation }: { conversation: Conversation | null }
 /* --------------------------------- view ---------------------------------- */
 
 export function InboxView() {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const [selectedId, setSelectedId] = useState<string | null>(
+    searchParams.get("conversation"),
+  );
   const { data, isLoading, isError, refetch } = useConversations({
     page: 1,
     page_size: 100,

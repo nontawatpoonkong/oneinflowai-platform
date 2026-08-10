@@ -22,3 +22,11 @@ Message idempotency
 
 The migration audits non-NULL legacy pairs before creating the constraint and
 stops if duplicates exist. It never deletes, merges, or rewrites historical rows.
+
+Sprint 8.11
+
+- Conversation reuses `assigned_user_id`, `ai_mode`, and takeover timestamps; it adds controlled `handoff_reason`, `handoff_requested_at`, `assigned_at`, and `needs_attention`.
+- `conversation_read_states` is unique by `(conversation_id, user_id)` and stores a per-member read cursor. Unread count is derived from later customer messages.
+- `notifications` stores recipient, controlled type, concise title/body, entity reference, read state, and optional deduplication key.
+- Notification deduplication is unique by `(workspace_id, recipient_user_id, deduplication_key)` while NULL remains allowed.
+- Notification bodies never duplicate message text, action payloads, slip data, or complete payment details.

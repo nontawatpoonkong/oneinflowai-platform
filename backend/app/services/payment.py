@@ -25,6 +25,7 @@ from app.integrations.slip_verification import (
 from app.models.action import ActionRequest
 from app.models.conversation import Conversation
 from app.models.customer import Customer
+from app.models.notification import NotificationEntityType, NotificationType
 from app.models.payment import (
     Payment,
     PaymentDestination,
@@ -44,6 +45,7 @@ from app.schemas.payment import (
     PaymentDestinationCreate,
     PaymentDestinationUpdate,
 )
+from app.services.notification import NotificationService
 from app.storage import StorageProvider, create_storage_provider
 
 
@@ -295,6 +297,26 @@ class PaymentVerificationService:
             payment.verified_amount = result.amount
             payment.verified_at = verification.verified_at
             payment.paid_at = result.transferred_at
+            notifications = NotificationService(self.session)
+            recipients = []
+            if payment.action_request_id:
+                linked_action = await self.session.get(
+                    ActionRequest, payment.action_request_id
+                )
+                if linked_action and linked_action.assigned_to_user_id:
+                    recipients = [linked_action.assigned_to_user_id]
+            if not recipients:
+                recipients = await notifications.administrative_recipients(workspace_id)
+            await notifications.create_for_recipients(
+                workspace_id,
+                recipients,
+                type=NotificationType.PAYMENT_VERIFIED,
+                title="Customer payment verified",
+                body="A customer payment was verified and is ready for review.",
+                entity_type=NotificationEntityType.PAYMENT,
+                entity_id=payment.id,
+                deduplication_key=f"payment-verified:{payment.id}",
+            )
         else:
             payment.status = PaymentStatus.REJECTED
         await self.session.commit()

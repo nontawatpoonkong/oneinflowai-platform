@@ -40,3 +40,21 @@ Trust boundaries
 - AI output cannot create an ActionRequest without deterministic validation and explicit confirmation.
 - Payment verification is separate and is never controlled by WebChat generation.
 - Qdrant is derived search data; PostgreSQL remains authoritative.
+
+Human operations flow
+
+```mermaid
+flowchart LR
+    WebChat --> AI --> Handoff["Conversation HUMAN handoff"]
+    Handoff --> Assignment["WorkspaceMember assignment"]
+    Assignment --> Notification
+    Assignment --> ReadState["Per-member read cursor"]
+    ReadState --> Inbox
+    Inbox --> StaffReply["Staff reply"]
+    StaffReply --> ReturnAI["Explicit AUTO transition"]
+```
+
+Conversation state and its notifications are written in the same PostgreSQL
+transaction. Notification uniqueness is scoped by workspace, recipient, and a
+deterministic deduplication key. This is local database atomicity, not a claim of
+distributed delivery guarantees.

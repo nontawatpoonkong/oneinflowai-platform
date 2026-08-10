@@ -444,6 +444,7 @@
       "notifications": "Notifications",
       "notificationsEmptyTitle": "You're all caught up",
       "notificationsEmptyDesc": "Notifications will appear here.",
+      "markAllRead": "Mark all read",
       "profile": "Profile",
       "settings": "Settings",
       "logout": "Log out",
@@ -582,6 +583,13 @@
   },
   "inbox": {
     "search": "Search conversations",
+    "handoff": "Hand off to staff",
+    "assignToMe": "Assign to me",
+    "assignMember": "Assign member",
+    "returnToAi": "Return to AI",
+    "needsAttention": "Needs attention",
+    "assigned": "Assigned",
+    "unread": "Unread",
     "channels": {
       "line": "LINE",
       "facebook": "Facebook",

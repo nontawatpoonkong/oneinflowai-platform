@@ -8,11 +8,13 @@ in the same workspace.
 import uuid
 from datetime import UTC, datetime
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.channels import ChannelType
-from app.core.exceptions import NotFoundError
+from app.core.exceptions import AppError, NotFoundError
 from app.models.conversation import Conversation, ConversationMode
+from app.models.workspace_member import WorkspaceMember
 from app.repositories.conversation import ConversationRepository
 from app.repositories.customer import CustomerRepository
 from app.schemas.common import SortOrder
@@ -99,6 +101,17 @@ class ConversationService:
         for field, value in data.model_dump(exclude_unset=True).items():
             if field == "ai_mode":
                 self._apply_ai_mode(conversation, value, current_user_id)
+            elif field == "assigned_user_id" and value is not None:
+                member = await self.session.scalar(
+                    select(WorkspaceMember.id).where(
+                        WorkspaceMember.workspace_id == workspace_id,
+                        WorkspaceMember.user_id == value,
+                    )
+                )
+                if member is None:
+                    raise InvalidConversationAssigneeError()
+                conversation.assigned_user_id = value
+                conversation.assigned_at = datetime.now(UTC)
             else:
                 setattr(conversation, field, value)
         await self.session.commit()
@@ -119,3 +132,9 @@ class ConversationService:
 
         conversation.taken_over_by = current_user_id
         conversation.taken_over_at = datetime.now(UTC)
+
+
+class InvalidConversationAssigneeError(AppError):
+    status_code = 422
+    code = "INVALID_CONVERSATION_ASSIGNEE"
+    message = "Assignee must be a member of this workspace"

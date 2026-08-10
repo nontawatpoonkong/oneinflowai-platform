@@ -10,10 +10,12 @@ from datetime import UTC, datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundError
-from app.models.message import Message
+from app.models.message import Message, SenderType
+from app.models.notification import NotificationEntityType, NotificationType
 from app.repositories.conversation import ConversationRepository
 from app.repositories.message import MessageRepository
 from app.schemas.message import MessageCreate
+from app.services.notification import NotificationService
 
 
 class MessageService:
@@ -54,8 +56,30 @@ class MessageService:
             external_message_id=data.external_message_id,
         )
         await self.messages.add(message)
+        await self.session.flush()
 
         conversation.last_message_at = datetime.now(UTC)
+        if data.sender_type is SenderType.CUSTOMER:
+            conversation.needs_attention = True
+            notifications = NotificationService(self.session)
+            recipients = (
+                [conversation.assigned_user_id]
+                if conversation.assigned_user_id
+                else await notifications.administrative_recipients(workspace_id)
+            )
+            await notifications.create_for_recipients(
+                workspace_id,
+                recipients,
+                type=NotificationType.NEW_CUSTOMER_MESSAGE,
+                title="New customer message",
+                body="A customer conversation has a new message.",
+                entity_type=NotificationEntityType.CONVERSATION,
+                entity_id=conversation.id,
+                deduplication_key=(
+                    f"customer-message:{conversation.id}:"
+                    f"{data.external_message_id or message.id}"
+                ),
+            )
         if commit:
             await self.session.commit()
             await self.session.refresh(message)

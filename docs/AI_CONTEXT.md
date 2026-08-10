@@ -54,3 +54,12 @@ WebChat AI
 - Payment verification remains independent and cannot be controlled by AI.
 - Conversation-scoped client IDs make sequential and concurrent retries idempotent.
 - Message JSONB stores safe result metadata only, never prompts, full context, vectors, secrets, or confirmation-token hashes.
+
+Human Handoff
+
+- Explicit requests move the conversation to HUMAN and stop automatic AI replies.
+- Assignment accepts only existing WorkspaceMember users; public WebChat cannot assign.
+- Return-to-AI is an authenticated explicit transition to AUTO.
+- Per-member unread is derived from customer messages after each read cursor.
+- Notifications are recipient/workspace isolated and deduplicated; bodies contain no full messages, action payloads, slip data, or payment details.
+- COPILOT remains an existing selectable mode; Sprint 8.11 does not redefine it as automatic customer response.

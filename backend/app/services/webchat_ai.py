@@ -21,7 +21,7 @@ from app.integrations.action_intent import (
 from app.integrations.embedding import create_embedding_provider
 from app.integrations.qdrant_knowledge import QdrantKnowledgeVectorStore
 from app.models.action_collection import ActionCollectionStatus
-from app.models.conversation import ConversationMode
+from app.models.conversation import ConversationMode, HandoffReason
 from app.models.message import Message, MessageType, SenderType
 from app.repositories.action import ActionDefinitionRepository
 from app.repositories.action_collection import ActionCollectionRepository
@@ -30,6 +30,7 @@ from app.schemas.action_collection import ActionCollectionCreate, ActionCollecti
 from app.schemas.message import MessageCreate
 from app.schemas.webchat import WebChatResponseType
 from app.services.action_collection import ActionCollectionService
+from app.services.conversation_handoff import ConversationHandoffService
 from app.services.grounded_generation import GroundedGenerationService
 from app.services.knowledge_retrieval import KnowledgeRetrievalService
 from app.services.message import MessageService
@@ -67,7 +68,20 @@ class WebChatAIOrchestrator:
             return await self._recover(conversation, client_message_id)
 
         assistant_data: dict[str, Any] | None
-        if conversation.ai_mode is ConversationMode.HUMAN:
+        if self._is_explicit_handoff(content):
+            await ConversationHandoffService(self.session).request_handoff(
+                conversation.workspace_id,
+                conversation.id,
+                HandoffReason.CUSTOMER_REQUEST,
+                deduplication_key=f"webchat-handoff:{conversation.id}:{client_message_id}",
+                commit=False,
+            )
+            assistant_data = {
+                "type": WebChatResponseType.HUMAN_HANDOFF,
+                "message": self._text(stored.language, "handoff"),
+                "citations": [],
+            }
+        elif conversation.ai_mode is ConversationMode.HUMAN:
             assistant_data = None
         else:
             try:
@@ -428,8 +442,26 @@ class WebChatAIOrchestrator:
                 "ขออภัย ตอนนี้ยังไม่สามารถตอบข้อมูลนี้ได้",
                 "Sorry, this request cannot be answered right now.",
             ),
+            "handoff": (
+                "กำลังส่งต่อให้เจ้าหน้าที่ค่ะ",
+                "We are connecting you with a staff member.",
+            ),
         }
         return values[key][0 if thai else 1]
+
+    @staticmethod
+    def _is_explicit_handoff(content: str) -> bool:
+        normalized = " ".join(content.casefold().split())
+        phrases = {
+            "ขอคุยกับแอดมิน",
+            "ขอคุยกับเจ้าหน้าที่",
+            "ต้องการคุยกับเจ้าหน้าที่",
+            "คุยกับเจ้าหน้าที่",
+            "human agent",
+            "talk to a human",
+            "speak to an agent",
+        }
+        return normalized in phrases
 
     @staticmethod
     def _prompt(language, label):

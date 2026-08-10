@@ -29,3 +29,8 @@ WebChat AI configuration
 - Never expose provider secrets, session tokens, confirmation-token hashes, prompts, or full RAG context.
 
 Tests use isolated `oneflowai_test` through `TEST_DATABASE_URL`, never the normal application database.
+
+Handoff and notifications are synchronous PostgreSQL-backed foundations. No
+external notification provider or background worker is required. Apply the
+Sprint 8.11 migration before serving traffic and monitor API polling load; the
+MVP frontend polls inbox and notifications rather than using WebSockets.

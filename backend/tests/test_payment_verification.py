@@ -105,6 +105,10 @@ def test_valid_exact_payment_verifies_without_completing_action(
     assert data["payment"]["status"] == "VERIFIED"
     assert data["payment"]["verified_amount"] == "1234.50"
     assert data["verification"]["status"] == "VALID"
+    notifications = client_db.get("/api/v1/notifications", headers=headers).json()[
+        "data"
+    ]["items"]
+    assert any(item["type"] == "PAYMENT_VERIFIED" for item in notifications)
     assert (
         client_db.get(f"/api/v1/actions/{action['id']}", headers=headers).json()[
             "data"

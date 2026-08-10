@@ -98,6 +98,13 @@ def test_assignment_lifecycle_timestamps_and_audit_order(client_db: TestClient) 
     )
     assert assigned.json()["data"]["status"] == "ASSIGNED"
     assert assigned.json()["data"]["assigned_at"] is not None
+    notification_types = {
+        item["type"]
+        for item in client_db.get("/api/v1/notifications", headers=headers).json()[
+            "data"
+        ]["items"]
+    }
+    assert {"ACTION_CREATED", "ACTION_ASSIGNED"} <= notification_types
     started = client_db.post(f"{URL}/{action_id}/start", headers=headers)
     assert started.json()["data"]["started_at"] is not None
     completed = client_db.post(f"{URL}/{action_id}/complete", headers=headers)

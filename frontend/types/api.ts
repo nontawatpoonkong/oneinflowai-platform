@@ -35,6 +35,15 @@ export interface WorkspaceDTO {
   updated_at: string;
 }
 
+export interface WorkspaceMemberDTO {
+  id: string;
+  user_id: string;
+  email: string;
+  full_name: string | null;
+  role: "owner" | "admin" | "member";
+  joined_at: string;
+}
+
 export interface TokenDTO {
   access_token: string;
   token_type: string;
@@ -141,6 +150,13 @@ export interface ConversationDTO {
   external_conversation_id: string | null;
   last_message_at: string | null;
   ai_mode: ConversationAiModeDTO;
+  taken_over_by: string | null;
+  taken_over_at: string | null;
+  handoff_reason: string | null;
+  handoff_requested_at: string | null;
+  assigned_at: string | null;
+  needs_attention: boolean;
+  unread_count: number;
   created_at: string;
   updated_at: string;
 }

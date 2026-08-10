@@ -62,6 +62,22 @@ The public WebChat creates a scoped visitor session, persists customer messages,
 
 Every WebChat send requires a caller-generated `client_message_id`. PostgreSQL uniquely scopes that ID to its conversation; sequential and concurrent retries return the original persisted customer/assistant result without repeating generation, collection, action creation, or payment-related work. Assistant metadata contains only the safe response data needed for citations and action-card recovery. It never stores system prompts, full RAG context, vectors, secrets, or confirmation-token hashes.
 
+## Human handoff and in-app notifications
+
+An explicit customer request can move a WebChat conversation from AI handling to `HUMAN` mode without fuzzy intent matching. Staff can also request handoff, assign themselves or another verified workspace member, and explicitly return the conversation to `AUTO`. Returning to AI clears the active handoff/attention state while retaining assignment as operational history.
+
+Unread state is truthful per workspace member: `ConversationReadState` stores each member's read cursor and unread counts are derived from customer messages after that cursor. AI messages and a staff member's own replies do not create unread customer work. In-app `Notification` records are recipient-scoped, workspace-isolated, deduplicated, and contain concise operational text only. Implemented sources include conversation handoff/assignment, new customer messages, action creation/assignment, and verified customer payments. No email, SMS, mobile push, browser push, or background delivery worker is included.
+
+```mermaid
+flowchart LR
+    Customer --> WebChat --> AI
+    AI -->|explicit handoff| Human["Human mode"]
+    Human --> Assignment["Workspace member assignment"]
+    Assignment --> Attention["Per-member unread and notification"]
+    Attention --> Reply["Staff reply"]
+    Reply -->|explicit return| AI
+```
+
 ## Action and fulfillment queue
 
 The authenticated Action API supports reusable workspace-owned action definitions, strict structured payload validation, idempotent action creation, staff assignment, controlled status transitions, queue filtering, and atomic audit events. The implemented flow is structured business data → confirmed ActionRequest → fulfillment queue → human fulfillment.
@@ -199,6 +215,7 @@ Implemented:
 - Customer-to-workspace Payment records, protected destinations, hardened slip evidence, duplicate controls, and provider-neutral verification.
 - Persisted multi-turn AI-assisted Action Collection with strict field validation, payload-bound confirmation, and atomic ActionRequest creation.
 - End-to-end WebChat routing for grounded answers, citations, action collection, explicit confirmation/cancellation, human mode, and concurrency-safe message idempotency.
+- Human handoff, workspace-safe conversation assignment, per-member read state, and deduplicated in-app operational notifications.
 
 In development:
 

@@ -11,3 +11,11 @@ export function useMyWorkspace() {
     queryFn: workspaceService.me,
   });
 }
+
+export function useWorkspaceMembers(workspaceId: string | undefined) {
+  return useQuery({
+    queryKey: ["workspace", workspaceId, "members"],
+    queryFn: () => workspaceService.members(workspaceId!),
+    enabled: Boolean(workspaceId),
+  });
+}
