@@ -1,6 +1,9 @@
 """Focused public WebChat API tests."""
 
+import pytest
 from fastapi.testclient import TestClient
+
+from tests.test_webchat_ai import _install_fake_grounded
 
 WEBCHAT_URL = "/api/v1/webchat/sessions"
 
@@ -37,18 +40,21 @@ def _headers(token: str) -> dict[str, str]:
     return {"X-WebChat-Token": token}
 
 
-def test_session_creation_and_valid_token_send_read(client_db: TestClient) -> None:
+def test_session_creation_and_valid_token_send_read(
+    client_db: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _install_fake_grounded(monkeypatch)
     session = _session(client_db, _workspace_key(client_db))
     url = f"{WEBCHAT_URL}/{session['conversation_id']}/messages"
 
     sent = client_db.post(
         url,
-        json={"content": " สวัสดี "},
+        json={"content": " สวัสดี ", "client_message_id": "msg-1"},
         headers=_headers(session["session_token"]),
     )
     assert sent.status_code == 201
-    assert sent.json()["data"]["sender_type"] == "customer"
-    assert sent.json()["data"]["content"] == "สวัสดี"
+    assert sent.json()["data"]["customer_message"]["sender_type"] == "customer"
+    assert sent.json()["data"]["customer_message"]["content"] == "สวัสดี"
 
     read = client_db.get(url, headers=_headers(session["session_token"]))
     assert read.status_code == 200
@@ -83,7 +89,7 @@ def test_empty_message_is_rejected(client_db: TestClient) -> None:
     url = f"{WEBCHAT_URL}/{session['conversation_id']}/messages"
     response = client_db.post(
         url,
-        json={"content": "   "},
+        json={"content": "   ", "client_message_id": "empty-1"},
         headers=_headers(session["session_token"]),
     )
     assert response.status_code == 422

@@ -48,6 +48,12 @@ AI
 
 Sprint 9
 
+Sprint 8.10 completion
+
+WebChat End-to-End AI Integration is complete: grounded answers, citations,
+action collection, explicit decisions, human mode, and concurrency-safe message
+idempotency.
+
 Analytics
 
 ⬜

@@ -58,7 +58,9 @@ The backend includes registration, email OTP verification, login, token-based pr
 
 ## Conversation platform
 
-The repository includes workspace, customer, conversation, message, AI-mode, and WebChat foundations. Grounded knowledge answers are available through the authenticated Knowledge API, but automatic WebChat or conversation replies are not implemented. Broader channel integrations remain future work.
+The public WebChat creates a scoped visitor session, persists customer messages, and routes each turn according to conversation mode. In `AUTO` and `COPILOT`, an active action collection has priority, an explicit supported action intent starts structured collection, and other input uses grounded generation. `HUMAN` mode never invokes AI or action collection.
+
+Every WebChat send requires a caller-generated `client_message_id`. PostgreSQL uniquely scopes that ID to its conversation; sequential and concurrent retries return the original persisted customer/assistant result without repeating generation, collection, action creation, or payment-related work. Assistant metadata contains only the safe response data needed for citations and action-card recovery. It never stores system prompts, full RAG context, vectors, secrets, or confirmation-token hashes.
 
 ## Action and fulfillment queue
 
@@ -78,7 +80,7 @@ Slip Verification is not included in Plan 1. Plan 2 and higher include a monthly
 
 Action collection follows a guarded flow: customer intent → a trusted workspace `ActionDefinition` → provider-assisted structured field proposals → deterministic `ActionPayloadValidator` validation → explicit missing/invalid-field collection → a deterministic confirmation summary → explicit confirmation → `ActionRequestService`. Collection state survives multiple turns without storing raw model prompts or responses, and confirmation tokens are random, stored only as payload-bound hashes, short-lived, and idempotent on retry.
 
-Provider/LLM output is always untrusted and cannot directly create an ActionRequest, Payment, or PaymentVerification or perform a status transition. Action creation occurs only after the exact collected payload passes deterministic validation and an authenticated caller supplies its current confirmation token. Payment verification remains exclusively controlled by `PaymentVerificationService`. End-to-end WebChat orchestration is planned for Sprint 8.10, and external API execution remains future work.
+Provider/LLM output is always untrusted and cannot directly create an ActionRequest, Payment, or PaymentVerification or perform a status transition. Action creation occurs only after the exact collected payload passes deterministic validation and an authenticated caller supplies its current confirmation token. Payment verification remains exclusively controlled by `PaymentVerificationService`. End-to-end WebChat orchestration is implemented, while external API execution remains future work.
 
 ## Project structure
 
@@ -196,16 +198,15 @@ Implemented:
 - Generic manual Action/Fulfillment Queue with definitions, validation, assignment, lifecycle control, idempotency, and audit history.
 - Customer-to-workspace Payment records, protected destinations, hardened slip evidence, duplicate controls, and provider-neutral verification.
 - Persisted multi-turn AI-assisted Action Collection with strict field validation, payload-bound confirmation, and atomic ActionRequest creation.
+- End-to-end WebChat routing for grounded answers, citations, action collection, explicit confirmation/cancellation, human mode, and concurrency-safe message idempotency.
 
 In development:
 
-- Product UI refinement and end-to-end conversation workflows.
+- Product UI refinement and broader conversation workflows.
 - Operational hardening and expanded knowledge ingestion formats.
 
 Planned:
 
-- Automatic WebChat and conversation AI replies.
-- End-to-end WebChat action-intent orchestration (Sprint 8.10).
 - Authoritative production slip-verification provider integration.
 - OneInFlow SaaS subscription billing, separate from Customer Payment.
 - Automatic external action execution.

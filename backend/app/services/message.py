@@ -37,6 +37,8 @@ class MessageService:
         workspace_id: uuid.UUID,
         conversation_id: uuid.UUID,
         data: MessageCreate,
+        *,
+        commit: bool = True,
     ) -> Message:
         conversation = await self._get_conversation_or_404(
             workspace_id, conversation_id
@@ -54,8 +56,9 @@ class MessageService:
         await self.messages.add(message)
 
         conversation.last_message_at = datetime.now(UTC)
-        await self.session.commit()
-        await self.session.refresh(message)
+        if commit:
+            await self.session.commit()
+            await self.session.refresh(message)
         return message
 
     async def list_messages(

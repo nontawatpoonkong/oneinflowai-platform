@@ -11,6 +11,14 @@ from app.repositories.base import BaseRepository
 class MessageRepository(BaseRepository[Message]):
     model = Message
 
+    async def get_external(self, conversation_id: uuid.UUID, external_id: str):
+        return await self.session.scalar(
+            select(Message).where(
+                Message.conversation_id == conversation_id,
+                Message.external_message_id == external_id,
+            )
+        )
+
     async def list_for_conversation(
         self, conversation_id: uuid.UUID, *, limit: int, offset: int
     ) -> tuple[list[Message], int]:

@@ -94,7 +94,7 @@ class ActionService:
     async def create(
         self,
         workspace_id: uuid.UUID,
-        user_id: uuid.UUID,
+        user_id: uuid.UUID | None,
         data: ActionCreate,
         *,
         commit: bool = True,

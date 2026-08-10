@@ -118,6 +118,14 @@ class WebChatService:
         await self.session.commit()
         return message
 
+    async def _conversation_or_unauthorized(self, conversation_id: uuid.UUID):
+        conversation = await ConversationService(self.session).conversations.get_by_id(
+            conversation_id
+        )
+        if conversation is None:
+            raise AuthenticationError("Invalid or expired WebChat session")
+        return conversation
+
     async def list_messages(
         self,
         conversation_id: uuid.UUID,

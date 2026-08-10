@@ -8,8 +8,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database.session import get_db
 from app.schemas.message import MessageListResponse, MessageResponse
 from app.schemas.response import success_response
-from app.schemas.webchat import WebChatMessageCreate, WebChatSessionCreate
+from app.schemas.webchat import (
+    WebChatActionDecision,
+    WebChatAIResponse,
+    WebChatAssistantResponse,
+    WebChatMessageCreate,
+    WebChatSessionCreate,
+)
 from app.services.webchat import WebChatService
+from app.services.webchat_ai import create_webchat_ai_orchestrator
 from app.webchat.rate_limit import enforce_webchat_rate_limit
 
 router = APIRouter(dependencies=[Depends(enforce_webchat_rate_limit)])
@@ -53,13 +60,58 @@ async def create_session(
 async def send_message(
     conversation_id: uuid.UUID,
     payload: WebChatMessageCreate,
+    request: Request,
     token: str = Header(alias="X-WebChat-Token", min_length=1),
     session: AsyncSession = Depends(get_db),
 ) -> dict:
-    message = await WebChatService(session).send_message(
-        conversation_id, token, payload.content
+    customer, assistant = await create_webchat_ai_orchestrator(
+        session, request.app.state.qdrant
+    ).process(
+        conversation_id,
+        token,
+        payload.client_message_id,
+        payload.content,
     )
-    return success_response(data=_message_data(message), message="Message created")
+    data = WebChatAIResponse(
+        conversation_id=conversation_id,
+        customer_message=MessageResponse(**_message_data(customer)),
+        assistant=WebChatAssistantResponse.model_validate(assistant)
+        if assistant
+        else None,
+    )
+    return success_response(
+        data=data.model_dump(mode="json"), message="Message processed"
+    )
+
+
+@router.post("/sessions/{conversation_id}/action-collections/{collection_id}/confirm")
+async def confirm_action(
+    conversation_id: uuid.UUID,
+    collection_id: uuid.UUID,
+    payload: WebChatActionDecision,
+    request: Request,
+    token: str = Header(alias="X-WebChat-Token", min_length=1),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    assistant = await create_webchat_ai_orchestrator(
+        session, request.app.state.qdrant
+    ).confirm(conversation_id, token, collection_id, payload)
+    return success_response(data=assistant, message="Action confirmed")
+
+
+@router.post("/sessions/{conversation_id}/action-collections/{collection_id}/cancel")
+async def cancel_action(
+    conversation_id: uuid.UUID,
+    collection_id: uuid.UUID,
+    payload: WebChatActionDecision,
+    request: Request,
+    token: str = Header(alias="X-WebChat-Token", min_length=1),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    assistant = await create_webchat_ai_orchestrator(
+        session, request.app.state.qdrant
+    ).cancel(conversation_id, token, collection_id, payload)
+    return success_response(data=assistant, message="Action cancelled")
 
 
 @router.get("/sessions/{conversation_id}/messages")

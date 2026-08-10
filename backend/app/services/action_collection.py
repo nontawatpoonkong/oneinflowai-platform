@@ -54,7 +54,7 @@ class ActionCollectionService:
         self.actions = ActionRequestRepository(session)
         self.validator = ActionPayloadValidator()
 
-    async def create(self, workspace_id, data):
+    async def create(self, workspace_id, data, *, commit: bool = True):
         definition = await self._definition(workspace_id, data.action_definition_id)
         await self._validate_links(workspace_id, data.conversation_id, data.customer_id)
         now = datetime.now(UTC)
@@ -79,11 +79,12 @@ class ActionCollectionService:
                 await self._extract(definition, data.initial_input, collection)
             )
         token = await self._apply(definition, collection, candidates)
-        await self.session.commit()
-        await self.session.refresh(collection)
+        if commit:
+            await self.session.commit()
+            await self.session.refresh(collection)
         return collection, definition, token
 
-    async def add_input(self, workspace_id, session_id, data):
+    async def add_input(self, workspace_id, session_id, data, *, commit: bool = True):
         collection = await self._get_active(workspace_id, session_id, for_update=True)
         if collection.status in {
             ActionCollectionStatus.CONFIRMED,
@@ -97,8 +98,9 @@ class ActionCollectionService:
         if data.input:
             candidates.update(await self._extract(definition, data.input, collection))
         token = await self._apply(definition, collection, candidates)
-        await self.session.commit()
-        await self.session.refresh(collection)
+        if commit:
+            await self.session.commit()
+            await self.session.refresh(collection)
         return collection, definition, token
 
     async def get(self, workspace_id, session_id):
@@ -183,7 +185,7 @@ class ActionCollectionService:
         if missing or invalid:
             collection.status = ActionCollectionStatus.COLLECTING
             return None
-        token = secrets.token_urlsafe(32)
+        token = self._confirmation_token(collection, normalized)
         collection.status = ActionCollectionStatus.AWAITING_CONFIRMATION
         collection.confirmation_expires_at = min(
             collection.expires_at, datetime.now(UTC) + timedelta(minutes=10)
@@ -271,12 +273,28 @@ class ActionCollectionService:
         if not expected or not hmac.compare_digest(expected, actual):
             raise ActionCollectionConfirmationError()
 
+    def confirmation_token(self, collection) -> str | None:
+        if collection.status is not ActionCollectionStatus.AWAITING_CONFIRMATION:
+            return None
+        return self._confirmation_token(collection, collection.collected_payload)
+
     @staticmethod
     def _token_hash(token: str, payload: dict[str, Any]) -> str:
         canonical = json.dumps(
             payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
         )
         return hashlib.sha256(f"{token}:{canonical}".encode()).hexdigest()
+
+    @staticmethod
+    def _confirmation_token(collection, payload: dict[str, Any]) -> str:
+        canonical = json.dumps(
+            payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        )
+        return hmac.new(
+            collection.action_idempotency_key.encode(),
+            f"{collection.id}:{canonical}".encode(),
+            hashlib.sha256,
+        ).hexdigest()
 
     @staticmethod
     def summary(definition: ActionDefinition, payload: dict[str, Any]):

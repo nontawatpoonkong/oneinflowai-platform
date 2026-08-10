@@ -25,3 +25,20 @@ class ActionCollectionRepository(BaseRepository[ActionCollectionSession]):
         if for_update:
             statement = statement.with_for_update()
         return await self.session.scalar(statement)
+
+    async def get_active_for_conversation(
+        self, workspace_id: uuid.UUID, conversation_id: uuid.UUID
+    ):
+        return await self.session.scalar(
+            select(ActionCollectionSession)
+            .where(
+                ActionCollectionSession.workspace_id == workspace_id,
+                ActionCollectionSession.conversation_id == conversation_id,
+                ActionCollectionSession.status.in_(
+                    ("COLLECTING", "AWAITING_CONFIRMATION")
+                ),
+            )
+            .order_by(ActionCollectionSession.updated_at.desc())
+            .with_for_update()
+            .limit(1)
+        )

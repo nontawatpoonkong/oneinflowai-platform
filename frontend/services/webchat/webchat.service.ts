@@ -1,7 +1,10 @@
 import { publicApi, unwrapPublic } from "@/services/api/public-client";
 import type { ApiEnvelope } from "@/types/api";
 import type {
-  WebChatMessageDTO,
+  WebChatAIResponse,
+  WebChatActionDecision,
+  WebChatAssistantResult,
+  WebChatMessageCreate,
   WebChatMessageListData,
   WebChatSessionCreate,
   WebChatSessionDTO,
@@ -30,11 +33,25 @@ export const webchatService = {
   async sendMessage(
     conversationId: string,
     token: string,
-    content: string,
-  ): Promise<WebChatMessageDTO> {
-    const response = await publicApi.post<ApiEnvelope<WebChatMessageDTO>>(
+    payload: WebChatMessageCreate,
+  ): Promise<WebChatAIResponse> {
+    const response = await publicApi.post<ApiEnvelope<WebChatAIResponse>>(
       `/webchat/sessions/${encodeURIComponent(conversationId)}/messages`,
-      { content },
+      payload,
+      { headers: tokenHeaders(token) },
+    );
+    return unwrapPublic(response);
+  },
+  async decideAction(
+    conversationId: string,
+    collectionId: string,
+    token: string,
+    decision: "confirm" | "cancel",
+    payload: WebChatActionDecision,
+  ): Promise<WebChatAssistantResult> {
+    const response = await publicApi.post<ApiEnvelope<WebChatAssistantResult>>(
+      `/webchat/sessions/${encodeURIComponent(conversationId)}/action-collections/${encodeURIComponent(collectionId)}/${decision}`,
+      payload,
       { headers: tokenHeaders(token) },
     );
     return unwrapPublic(response);

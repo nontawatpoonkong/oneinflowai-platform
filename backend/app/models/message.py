@@ -5,7 +5,7 @@ import uuid
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import ForeignKey, Index, String, Text, text
+from sqlalchemy import ForeignKey, Index, String, Text, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -36,6 +36,11 @@ class Message(UUIDMixin, TimestampMixin, Base):
     __tablename__ = "messages"
     __table_args__ = (
         Index("ix_messages_conversation_created", "conversation_id", "created_at"),
+        UniqueConstraint(
+            "conversation_id",
+            "external_message_id",
+            name="uq_messages_conversation_external_id",
+        ),
     )
 
     conversation_id: Mapped[uuid.UUID] = mapped_column(
@@ -74,9 +79,7 @@ class Message(UUIDMixin, TimestampMixin, Base):
         default=dict,
         server_default=text("'{}'::jsonb"),
     )
-    external_message_id: Mapped[str | None] = mapped_column(
-        String(255), nullable=True
-    )
+    external_message_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     # created_at + updated_at provided by TimestampMixin (project-wide convention).
 
     conversation: Mapped["Conversation"] = relationship(back_populates="messages")

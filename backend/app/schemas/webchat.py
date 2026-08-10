@@ -1,6 +1,8 @@
 """Public WebChat request/response schemas."""
 
+import enum
 import uuid
+from typing import Any
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
@@ -44,6 +46,9 @@ class WebChatSessionResponse(BaseModel):
 
 class WebChatMessageCreate(BaseModel):
     content: str = Field(min_length=1, max_length=4000)
+    client_message_id: str = Field(
+        min_length=1, max_length=128, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+    )
 
     @field_validator("content", mode="before")
     @classmethod
@@ -53,3 +58,35 @@ class WebChatMessageCreate(BaseModel):
 
 WebChatMessageResponse = MessageResponse
 WebChatMessageListResponse = MessageListResponse
+
+
+class WebChatResponseType(enum.StrEnum):
+    ANSWER = "ANSWER"
+    ACTION_COLLECTING = "ACTION_COLLECTING"
+    ACTION_CONFIRMATION = "ACTION_CONFIRMATION"
+    ACTION_CREATED = "ACTION_CREATED"
+    ACTION_CANCELLED = "ACTION_CANCELLED"
+    HUMAN_MODE = "HUMAN_MODE"
+    NO_RESPONSE = "NO_RESPONSE"
+    ERROR = "ERROR"
+
+
+class WebChatActionDecision(BaseModel):
+    client_message_id: str = Field(
+        min_length=1, max_length=128, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+    )
+    confirmation_token: str | None = Field(default=None, min_length=32, max_length=512)
+
+
+class WebChatAssistantResponse(BaseModel):
+    type: WebChatResponseType
+    message: str | None
+    citations: list[dict[str, Any]] = Field(default_factory=list)
+    action_collection: dict[str, Any] | None = None
+    action_request_id: uuid.UUID | None = None
+
+
+class WebChatAIResponse(BaseModel):
+    conversation_id: uuid.UUID
+    customer_message: MessageResponse
+    assistant: WebChatAssistantResponse | None
