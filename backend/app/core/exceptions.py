@@ -172,3 +172,21 @@ class VectorCollectionConfigurationError(AppError):
     status_code = 500
     code = "VECTOR_COLLECTION_CONFIGURATION_ERROR"
     message = "Knowledge vector collection is incompatible"
+
+
+class KnowledgeRetrievalValidationError(AppError):
+    status_code = 422
+    code = "KNOWLEDGE_RETRIEVAL_VALIDATION_ERROR"
+    message = "Knowledge search request is invalid"
+
+
+class KnowledgeDocumentNotIndexedError(AppError):
+    status_code = 409
+    code = "KNOWLEDGE_DOCUMENT_NOT_INDEXED"
+    message = "Knowledge document is not indexed"
+
+
+class KnowledgeRetrievalError(AppError):
+    status_code = 502
+    code = "KNOWLEDGE_RETRIEVAL_FAILED"
+    message = "Knowledge search is temporarily unavailable"

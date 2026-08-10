@@ -1,6 +1,7 @@
 """Qdrant boundary for tenant-safe knowledge point synchronization."""
 
 import uuid
+from dataclasses import dataclass
 from typing import Any, Protocol
 
 from qdrant_client import AsyncQdrantClient, models
@@ -15,6 +16,25 @@ class KnowledgeVectorStore(Protocol):
     ) -> set[uuid.UUID]: ...
     async def upsert(self, points: list[models.PointStruct]) -> None: ...
     async def delete_ids(self, point_ids: set[uuid.UUID]) -> None: ...
+    async def validate_collection(self, dimensions: int) -> None: ...
+    async def search(
+        self,
+        *,
+        vector: list[float],
+        workspace_id: uuid.UUID,
+        embedding_model: str,
+        embedding_version: str,
+        limit: int,
+        score_threshold: float | None,
+        document_id: uuid.UUID | None = None,
+    ) -> list["VectorSearchHit"]: ...
+
+
+@dataclass(frozen=True, slots=True)
+class VectorSearchHit:
+    point_id: uuid.UUID
+    score: float
+    payload: dict[str, Any]
 
 
 class QdrantKnowledgeVectorStore:
@@ -43,6 +63,62 @@ class QdrantKnowledgeVectorStore:
                 field_schema=models.PayloadSchemaType.KEYWORD,
                 wait=True,
             )
+
+    async def validate_collection(self, dimensions: int) -> None:
+        if not await self.client.collection_exists(self.collection_name):
+            raise VectorCollectionConfigurationError()
+        info = await self.client.get_collection(self.collection_name)
+        existing = getattr(info.config.params.vectors, "size", None)
+        if existing != dimensions:
+            raise VectorCollectionConfigurationError()
+
+    async def search(
+        self,
+        *,
+        vector: list[float],
+        workspace_id: uuid.UUID,
+        embedding_model: str,
+        embedding_version: str,
+        limit: int,
+        score_threshold: float | None,
+        document_id: uuid.UUID | None = None,
+    ) -> list[VectorSearchHit]:
+        conditions = [
+            models.FieldCondition(
+                key="workspace_id", match=models.MatchValue(value=str(workspace_id))
+            ),
+            models.FieldCondition(
+                key="embedding_model", match=models.MatchValue(value=embedding_model)
+            ),
+            models.FieldCondition(
+                key="embedding_version",
+                match=models.MatchValue(value=embedding_version),
+            ),
+        ]
+        if document_id is not None:
+            conditions.append(
+                models.FieldCondition(
+                    key="document_id",
+                    match=models.MatchValue(value=str(document_id)),
+                )
+            )
+        response = await self.client.query_points(
+            collection_name=self.collection_name,
+            query=vector,
+            query_filter=models.Filter(must=conditions),
+            limit=limit,
+            score_threshold=score_threshold,
+            with_payload=True,
+            with_vectors=False,
+        )
+        return [
+            VectorSearchHit(
+                point_id=uuid.UUID(str(point.id)),
+                score=float(point.score),
+                payload=dict(point.payload or {}),
+            )
+            for point in response.points
+        ]
 
     def _document_filter(
         self, workspace_id: uuid.UUID, document_id: uuid.UUID

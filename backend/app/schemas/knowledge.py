@@ -79,3 +79,28 @@ class KnowledgeIndexResponse(BaseModel):
     embedding_model: str
     indexed_at: datetime
     embedding_request_count: int
+
+
+class KnowledgeSearchRequest(BaseModel):
+    query: str
+    limit: int | None = None
+    document_id: uuid.UUID | None = None
+
+
+class KnowledgeRetrievalResultResponse(BaseModel):
+    chunk_id: uuid.UUID
+    document_id: uuid.UUID
+    chunk_index: int
+    text: str
+    score: float
+    content_hash: str
+    chunking_version: str
+    embedding_model: str
+    embedding_version: str
+    document_title: str | None = None
+    original_filename: str | None = None
+
+
+class KnowledgeSearchResponse(BaseModel):
+    query: str
+    results: list[KnowledgeRetrievalResultResponse]

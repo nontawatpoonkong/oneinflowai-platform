@@ -44,6 +44,10 @@ class Settings(BaseSettings):
     KNOWLEDGE_CHUNK_SIZE: int = 1200
     KNOWLEDGE_CHUNK_OVERLAP: int = 200
     KNOWLEDGE_MAX_CHUNKS_PER_DOCUMENT: int = 10_000
+    KNOWLEDGE_RETRIEVAL_DEFAULT_LIMIT: int = 5
+    KNOWLEDGE_RETRIEVAL_MAX_LIMIT: int = 20
+    KNOWLEDGE_RETRIEVAL_MAX_QUERY_CHARACTERS: int = 2000
+    KNOWLEDGE_RETRIEVAL_SCORE_THRESHOLD: float | None = None
 
     @model_validator(mode="after")
     def validate_knowledge_chunking(self) -> "Settings":
@@ -71,6 +75,19 @@ class Settings(BaseSettings):
             )
         if not self.QDRANT_KNOWLEDGE_COLLECTION.strip():
             raise ValueError("QDRANT_KNOWLEDGE_COLLECTION must not be empty")
+        if self.KNOWLEDGE_RETRIEVAL_DEFAULT_LIMIT <= 0:
+            raise ValueError("KNOWLEDGE_RETRIEVAL_DEFAULT_LIMIT must be positive")
+        if self.KNOWLEDGE_RETRIEVAL_MAX_LIMIT <= 0:
+            raise ValueError("KNOWLEDGE_RETRIEVAL_MAX_LIMIT must be positive")
+        if self.KNOWLEDGE_RETRIEVAL_DEFAULT_LIMIT > self.KNOWLEDGE_RETRIEVAL_MAX_LIMIT:
+            raise ValueError("retrieval default limit must not exceed maximum")
+        if self.KNOWLEDGE_RETRIEVAL_MAX_QUERY_CHARACTERS <= 0:
+            raise ValueError("retrieval query maximum must be positive")
+        if (
+            self.KNOWLEDGE_RETRIEVAL_SCORE_THRESHOLD is not None
+            and not -1 <= self.KNOWLEDGE_RETRIEVAL_SCORE_THRESHOLD <= 1
+        ):
+            raise ValueError("retrieval score threshold must be between -1 and 1")
         return self
 
     # ------------------------------------------------------------------ App

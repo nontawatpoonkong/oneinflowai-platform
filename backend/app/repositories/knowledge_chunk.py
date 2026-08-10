@@ -5,6 +5,7 @@ import uuid
 from sqlalchemy import delete, select
 
 from app.models.knowledge_chunk import KnowledgeChunk
+from app.models.knowledge_document import KnowledgeDocument
 from app.repositories.base import BaseRepository
 
 
@@ -27,3 +28,15 @@ class KnowledgeChunkRepository(BaseRepository[KnowledgeChunk]):
         )
         self.session.add_all(chunks)
         await self.session.flush()
+
+    async def get_with_documents(
+        self, chunk_ids: set[uuid.UUID]
+    ) -> list[tuple[KnowledgeChunk, KnowledgeDocument]]:
+        if not chunk_ids:
+            return []
+        result = await self.session.execute(
+            select(KnowledgeChunk, KnowledgeDocument)
+            .join(KnowledgeDocument, KnowledgeDocument.id == KnowledgeChunk.document_id)
+            .where(KnowledgeChunk.id.in_(chunk_ids))
+        )
+        return list(result.tuples().all())

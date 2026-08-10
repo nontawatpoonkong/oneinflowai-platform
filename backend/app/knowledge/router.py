@@ -20,11 +20,14 @@ from app.schemas.knowledge import (
     KnowledgeDocumentResponse,
     KnowledgeIndexResponse,
     KnowledgeRechunkResponse,
+    KnowledgeSearchRequest,
+    KnowledgeSearchResponse,
 )
 from app.schemas.response import success_response
 from app.services.chunking import ChunkingService
 from app.services.knowledge_document import KnowledgeDocumentService
 from app.services.knowledge_indexing import KnowledgeIndexingService
+from app.services.knowledge_retrieval import KnowledgeRetrievalService
 from app.workspace.dependencies import get_current_workspace
 
 router = APIRouter()
@@ -70,6 +73,33 @@ async def list_documents(
         page_size=page_size,
         total_pages=(total + page_size - 1) // page_size if total else 0,
     )
+    return success_response(data=data.model_dump(mode="json"), message="OK")
+
+
+@router.post("/search")
+async def search_knowledge(
+    payload: KnowledgeSearchRequest,
+    request: Request,
+    workspace: Workspace = Depends(get_current_workspace),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    settings = get_settings()
+    service = KnowledgeRetrievalService(
+        session,
+        settings=settings,
+        provider=create_embedding_provider(settings),
+        vector_store=QdrantKnowledgeVectorStore(
+            request.app.state.qdrant,
+            collection_name=settings.QDRANT_KNOWLEDGE_COLLECTION,
+        ),
+    )
+    result = await service.search(
+        workspace_id=workspace.id,
+        query=payload.query,
+        limit=payload.limit,
+        document_id=payload.document_id,
+    )
+    data = KnowledgeSearchResponse.model_validate(result, from_attributes=True)
     return success_response(data=data.model_dump(mode="json"), message="OK")
 
 
