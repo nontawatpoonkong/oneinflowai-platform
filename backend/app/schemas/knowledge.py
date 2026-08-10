@@ -104,3 +104,28 @@ class KnowledgeRetrievalResultResponse(BaseModel):
 class KnowledgeSearchResponse(BaseModel):
     query: str
     results: list[KnowledgeRetrievalResultResponse]
+
+
+class RAGSourceResponse(BaseModel):
+    source_number: int
+    source_label: str
+    chunk_id: uuid.UUID
+    document_id: uuid.UUID
+    chunk_index: int
+    text: str
+    score: float
+    content_hash: str
+    document_title: str | None = None
+    original_filename: str | None = None
+
+
+class RAGPreviewResponse(BaseModel):
+    query: str
+    sources: list[RAGSourceResponse]
+    formatted_context: str
+    included_chunk_count: int
+    omitted_chunk_count: int
+    character_count: int
+    context_version: str
+    user_prompt: str
+    prompt_version: str

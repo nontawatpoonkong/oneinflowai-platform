@@ -48,6 +48,8 @@ class Settings(BaseSettings):
     KNOWLEDGE_RETRIEVAL_MAX_LIMIT: int = 20
     KNOWLEDGE_RETRIEVAL_MAX_QUERY_CHARACTERS: int = 2000
     KNOWLEDGE_RETRIEVAL_SCORE_THRESHOLD: float | None = None
+    RAG_MAX_CONTEXT_CHARACTERS: int = 12_000
+    RAG_MAX_SOURCES: int = 8
 
     @model_validator(mode="after")
     def validate_knowledge_chunking(self) -> "Settings":
@@ -88,6 +90,10 @@ class Settings(BaseSettings):
             and not -1 <= self.KNOWLEDGE_RETRIEVAL_SCORE_THRESHOLD <= 1
         ):
             raise ValueError("retrieval score threshold must be between -1 and 1")
+        if self.RAG_MAX_CONTEXT_CHARACTERS <= 0:
+            raise ValueError("RAG_MAX_CONTEXT_CHARACTERS must be positive")
+        if self.RAG_MAX_SOURCES <= 0:
+            raise ValueError("RAG_MAX_SOURCES must be positive")
         return self
 
     # ------------------------------------------------------------------ App

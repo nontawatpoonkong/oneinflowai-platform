@@ -22,12 +22,14 @@ from app.schemas.knowledge import (
     KnowledgeRechunkResponse,
     KnowledgeSearchRequest,
     KnowledgeSearchResponse,
+    RAGPreviewResponse,
 )
 from app.schemas.response import success_response
 from app.services.chunking import ChunkingService
 from app.services.knowledge_document import KnowledgeDocumentService
 from app.services.knowledge_indexing import KnowledgeIndexingService
 from app.services.knowledge_retrieval import KnowledgeRetrievalService
+from app.services.rag_preparation import RAGPreparationService
 from app.workspace.dependencies import get_current_workspace
 
 router = APIRouter()
@@ -103,15 +105,52 @@ async def search_knowledge(
     return success_response(data=data.model_dump(mode="json"), message="OK")
 
 
+@router.post("/rag-preview")
+async def preview_rag(
+    payload: KnowledgeSearchRequest,
+    request: Request,
+    workspace: Workspace = Depends(get_current_workspace),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    """Prepare bounded RAG context and prompts without calling a generation model."""
+    settings = get_settings()
+    retrieval = KnowledgeRetrievalService(
+        session,
+        settings=settings,
+        provider=create_embedding_provider(settings),
+        vector_store=QdrantKnowledgeVectorStore(
+            request.app.state.qdrant,
+            collection_name=settings.QDRANT_KNOWLEDGE_COLLECTION,
+        ),
+    )
+    package = await RAGPreparationService(retrieval, settings=settings).prepare(
+        workspace_id=workspace.id,
+        query=payload.query,
+        limit=payload.limit,
+        document_id=payload.document_id,
+    )
+    context = package.context
+    data = RAGPreviewResponse(
+        query=context.query,
+        sources=context.sources,
+        formatted_context=context.formatted_context,
+        included_chunk_count=context.included_chunk_count,
+        omitted_chunk_count=context.omitted_chunk_count,
+        character_count=context.character_count,
+        context_version=context.version,
+        user_prompt=package.user_prompt,
+        prompt_version=package.version,
+    )
+    return success_response(data=data.model_dump(mode="json"), message="OK")
+
+
 @router.get("/{document_id}")
 async def get_document(
     document_id: uuid.UUID,
     workspace: Workspace = Depends(get_current_workspace),
     session: AsyncSession = Depends(get_db),
 ) -> dict:
-    document = await KnowledgeDocumentService(session).get(
-        workspace.id, document_id
-    )
+    document = await KnowledgeDocumentService(session).get(workspace.id, document_id)
     return success_response(data=_document_data(document), message="OK")
 
 
