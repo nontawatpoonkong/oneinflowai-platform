@@ -34,3 +34,13 @@ Handoff and notifications are synchronous PostgreSQL-backed foundations. No
 external notification provider or background worker is required. Apply the
 Sprint 8.11 migration before serving traffic and monitor API polling load; the
 MVP frontend polls inbox and notifications rather than using WebSockets.
+
+Set `CHANNEL_CREDENTIAL_ENCRYPTION_KEY` to a base64-encoded 32-byte server-only
+key before configuring or using LINE/Facebook connections. Missing, malformed,
+wrong-version, or authentication-failing keys fail channel operations closed
+without preventing unrelated backend startup. Sprint 9.0 uses an
+environment-managed `v1` key; KMS/Vault and automated rotation are not included.
+
+Configure provider webhooks manually over HTTPS. Outbound `FAILED` state is
+visible but has no automatic infinite retry worker. `SENT` records provider
+acceptance only, not customer delivery/read.

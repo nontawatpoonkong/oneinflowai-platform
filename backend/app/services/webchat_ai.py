@@ -61,6 +61,28 @@ class WebChatAIOrchestrator:
     async def process(self, conversation_id, token, client_message_id, content):
         stored = await self.webchat.authorize(conversation_id, token)
         conversation = await self.webchat._conversation_or_unauthorized(conversation_id)
+        result = await self._process_conversation(
+            conversation, client_message_id, content, stored.language
+        )
+        stored.expires_at = self.webchat._expiry()
+        await self.session.commit()
+        return result
+
+    async def process_channel(
+        self, conversation, external_message_id, content, *, language="en"
+    ):
+        result = await self._process_conversation(
+            conversation, external_message_id, content, language
+        )
+        await self.session.commit()
+        assistant = await self.messages.get_external(
+            conversation.id, f"assistant:{external_message_id}"
+        )
+        return result[0], assistant, result[1]
+
+    async def _process_conversation(
+        self, conversation, client_message_id, content, language
+    ):
         customer = await self._claim_customer_message(
             conversation, client_message_id, content
         )
@@ -73,33 +95,30 @@ class WebChatAIOrchestrator:
                 conversation.workspace_id,
                 conversation.id,
                 HandoffReason.CUSTOMER_REQUEST,
-                deduplication_key=f"webchat-handoff:{conversation.id}:{client_message_id}",
+                deduplication_key=f"channel-handoff:{conversation.id}:{client_message_id}",
                 commit=False,
             )
             assistant_data = {
                 "type": WebChatResponseType.HUMAN_HANDOFF,
-                "message": self._text(stored.language, "handoff"),
+                "message": self._text(language, "handoff"),
                 "citations": [],
             }
         elif conversation.ai_mode is ConversationMode.HUMAN:
             assistant_data = None
         else:
             try:
-                assistant_data = await self._route(
-                    conversation, stored.language, content
-                )
+                assistant_data = await self._route(conversation, language, content)
             except AppError:
-                assistant_data = self._error(stored.language)
+                assistant_data = self._error(language)
             except Exception:
-                assistant_data = self._error(stored.language)
+                assistant_data = self._error(language)
 
         assistant_message = None
         if assistant_data is not None:
             assistant_message = await self._assistant_message(
                 conversation.id, client_message_id, assistant_data
             )
-        stored.expires_at = self.webchat._expiry()
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(customer)
         if assistant_message:
             await self.session.refresh(assistant_message)
@@ -199,6 +218,32 @@ class WebChatAIOrchestrator:
             conversation.workspace_id, conversation.id
         )
         if active:
+            normalized = " ".join(content.casefold().split())
+            if (
+                active.status is ActionCollectionStatus.AWAITING_CONFIRMATION
+                and normalized in {"confirm", "confirm request", "ยืนยัน", "ยืนยันรายการ"}
+            ):
+                token = self.collection_service.confirmation_token(active)
+                active, _definition, action = await self.collection_service.confirm(
+                    conversation.workspace_id, None, active.id, token
+                )
+                return {
+                    "type": WebChatResponseType.ACTION_CREATED,
+                    "message": self._text(language, "created"),
+                    "citations": [],
+                    "action_request_id": str(action.id),
+                    "action_collection_session_id": str(active.id),
+                }
+            if normalized in {"cancel", "cancel request", "ยกเลิก", "ยกเลิกรายการ"}:
+                await self.collection_service.cancel(
+                    conversation.workspace_id, active.id
+                )
+                return {
+                    "type": WebChatResponseType.ACTION_CANCELLED,
+                    "message": self._text(language, "cancelled"),
+                    "citations": [],
+                    "action_collection_session_id": str(active.id),
+                }
             return await self._continue_collection(
                 conversation, language, active, content
             )

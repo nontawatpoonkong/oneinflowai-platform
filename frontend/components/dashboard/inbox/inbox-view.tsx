@@ -303,7 +303,12 @@ function ChatWindow({ conversation }: { conversation: Conversation | null }) {
     if (!content || sendMessage.isPending || !conversation) return;
 
     sendMessage.mutate(content, {
-      onSuccess: () => setDraft(""),
+      onSuccess: (message) => {
+        setDraft("");
+        if (message.delivery?.status === "FAILED") {
+          toast.error(t("deliveryFailed"));
+        }
+      },
       onError: (error) => {
         toast.error(
           error instanceof Error ? error.message : tErrors("serverDesc"),

@@ -169,6 +169,12 @@ class Settings(BaseSettings):
     WEBCHAT_METADATA_HASH_SECRET: str = "change-me-webchat-metadata-secret"
     WEBCHAT_CUSTOMER_MERGE_ENABLED: bool = False
 
+    # ----------------------------------------------- External channel security
+    CHANNEL_CREDENTIAL_ENCRYPTION_KEY: str | None = None
+    CHANNEL_CREDENTIAL_KEY_VERSION: str = "v1"
+    CHANNEL_PROVIDER_TIMEOUT_SECONDS: float = 10.0
+    CHANNEL_WEBHOOK_MAX_BYTES: int = 1_000_000
+
     # -------------------------------------------------- Derived / computed
     @computed_field  # type: ignore[prop-decorator]
     @property

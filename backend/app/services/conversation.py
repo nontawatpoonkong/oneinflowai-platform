@@ -48,6 +48,7 @@ class ConversationService:
             subject=data.subject,
             assigned_user_id=data.assigned_user_id,
             external_conversation_id=data.external_conversation_id,
+            channel_connection_id=getattr(data, "channel_connection_id", None),
         )
         await self.conversations.add(conversation)
         await self.session.commit()

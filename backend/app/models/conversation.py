@@ -86,6 +86,12 @@ class Conversation(UUIDMixin, TimestampMixin, Base):
     external_conversation_id: Mapped[str | None] = mapped_column(
         String(255), nullable=True
     )
+    channel_connection_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("channel_connections.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     last_message_at: Mapped[datetime | None] = mapped_column(
         TIMESTAMP(timezone=True), nullable=True, index=True
     )

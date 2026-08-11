@@ -18,6 +18,12 @@ from app.models.action_collection import (
     ActionCollectionSession,
     ActionCollectionStatus,
 )
+from app.models.channel import (
+    ChannelConnection,
+    ChannelConnectionStatus,
+    ChannelDeliveryStatus,
+    ChannelMessageDelivery,
+)
 from app.models.conversation import Conversation, ConversationStatus, HandoffReason
 from app.models.conversation_read_state import ConversationReadState
 from app.models.customer import Customer, CustomerStatus
@@ -66,6 +72,10 @@ __all__ = [
     "ActionPriority",
     "ActionRequest",
     "ActionRequestStatus",
+    "ChannelConnection",
+    "ChannelConnectionStatus",
+    "ChannelDeliveryStatus",
+    "ChannelMessageDelivery",
     "Conversation",
     "ConversationStatus",
     "HandoffReason",

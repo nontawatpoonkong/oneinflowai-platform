@@ -486,6 +486,26 @@
       "workspace": "Workspace members and settings are coming soon.",
       "settings": "Account and preference settings are coming soon."
     },
+    "integrations": {
+      "title": "Channels",
+      "description": "Connect customer messaging channels to the shared OneInFlow conversation layer.",
+      "available": "Available for this workspace",
+      "notConnected": "Not connected",
+      "connect": "Connect {provider}",
+      "secretNote": "Credentials are encrypted after saving and are never displayed again.",
+      "display_name": "Connection name",
+      "external_account_id": "Provider account ID",
+      "channel_access_token": "Channel access token",
+      "channel_secret": "Channel secret",
+      "page_access_token": "Page access token",
+      "app_secret": "App secret",
+      "verify_token": "Webhook verify token",
+      "save": "Save connection",
+      "cancel": "Cancel",
+      "loading": "Loading channels...",
+      "configure": "Configure",
+      "disconnect": "Disconnect"
+    },
     "owner": {
       "greeting": {
         "morning": "Good morning, {name} 👋",
@@ -583,6 +603,7 @@
   },
   "inbox": {
     "search": "Search conversations",
+    "deliveryFailed": "The reply was saved but could not be sent to the external channel.",
     "handoff": "Hand off to staff",
     "assignToMe": "Assign to me",
     "assignMember": "Assign member",

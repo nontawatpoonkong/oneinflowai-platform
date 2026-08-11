@@ -32,6 +32,7 @@ from app.schemas.message import (
     MessageResponse,
 )
 from app.schemas.response import success_response
+from app.services.channel_delivery import ChannelDeliveryService
 from app.services.conversation import ConversationService
 from app.services.conversation_handoff import ConversationHandoffService
 from app.services.conversation_read_state import ConversationReadStateService
@@ -181,11 +182,28 @@ async def create_message(
     message = await MessageService(session).create_message(
         workspace.id, conversation_id, trusted_payload
     )
+    delivery = None
+    conversation = await ConversationService(session).get_conversation(
+        workspace.id, conversation_id
+    )
+    if (
+        trusted_payload.sender_type.value == "agent"
+        and conversation.channel_connection_id is not None
+    ):
+        delivery = await ChannelDeliveryService(session).dispatch(conversation, message)
     if trusted_payload.sender_type.value == "agent":
         await ConversationReadStateService(session).mark_read(
             workspace.id, conversation_id, current_user.id
         )
-    return success_response(data=_message_data(message), message="Message created")
+    data = _message_data(message)
+    if delivery is not None:
+        data["delivery"] = {
+            "status": delivery.status,
+            "provider_message_id": delivery.provider_message_id,
+            "last_error_code": delivery.last_error_code,
+            "sent_at": delivery.sent_at.isoformat() if delivery.sent_at else None,
+        }
+    return success_response(data=data, message="Message created")
 
 
 @router.get(

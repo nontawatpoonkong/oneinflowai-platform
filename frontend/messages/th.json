@@ -486,6 +486,26 @@
       "workspace": "การจัดการสมาชิกและตั้งค่าพื้นที่ทำงานกำลังจะมาเร็ว ๆ นี้",
       "settings": "การตั้งค่าบัญชีและการปรับแต่งกำลังจะมาเร็ว ๆ นี้"
     },
+    "integrations": {
+      "title": "ช่องทาง",
+      "description": "เชื่อมต่อช่องทางลูกค้าเข้ากับระบบสนทนากลางของ OneInFlow",
+      "available": "พร้อมใช้งานสำหรับ Workspace นี้",
+      "notConnected": "ยังไม่ได้เชื่อมต่อ",
+      "connect": "เชื่อมต่อ {provider}",
+      "secretNote": "ข้อมูลลับจะถูกเข้ารหัสหลังบันทึกและจะไม่แสดงอีกครั้ง",
+      "display_name": "ชื่อการเชื่อมต่อ",
+      "external_account_id": "รหัสบัญชีจากผู้ให้บริการ",
+      "channel_access_token": "Channel access token",
+      "channel_secret": "Channel secret",
+      "page_access_token": "Page access token",
+      "app_secret": "App secret",
+      "verify_token": "Webhook verify token",
+      "save": "บันทึกการเชื่อมต่อ",
+      "cancel": "ยกเลิก",
+      "loading": "กำลังโหลดช่องทาง...",
+      "configure": "ตั้งค่า",
+      "disconnect": "ยกเลิกการเชื่อมต่อ"
+    },
     "owner": {
       "greeting": {
         "morning": "สวัสดีตอนเช้า คุณ{name} 👋",
@@ -583,6 +603,7 @@
   },
   "inbox": {
     "search": "ค้นหาบทสนทนา",
+    "deliveryFailed": "บันทึกข้อความแล้ว แต่ส่งไปยังช่องทางภายนอกไม่สำเร็จ",
     "handoff": "ส่งต่อให้เจ้าหน้าที่",
     "assignToMe": "รับเรื่องนี้",
     "assignMember": "มอบหมายสมาชิก",

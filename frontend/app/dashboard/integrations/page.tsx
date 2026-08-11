@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import { Plug } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
-import { PagePlaceholder } from "@/components/dashboard/page-placeholder";
+import { ChannelSettings } from "@/components/dashboard/integrations/channel-settings";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("meta");
@@ -10,15 +9,5 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function IntegrationsPage() {
-  const tNav = await getTranslations("dashboard.nav");
-  const tp = await getTranslations("dashboard.placeholders");
-  const title = tNav("integrations");
-  return (
-    <PagePlaceholder
-      title={title}
-      comingSoonTitle={tp("comingSoonTitle", { title })}
-      description={tp("integrations")}
-      icon={Plug}
-    />
-  );
+  return <ChannelSettings />;
 }

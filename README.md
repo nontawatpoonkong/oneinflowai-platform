@@ -23,7 +23,9 @@ flowchart LR
     Queue --> Staff["Human fulfillment"]
     API --> Payment["Customer payment and slip verification"]
     Payment --> Queue
-    Channels["Additional customer channels"] -. "planned" .-> API
+    WebChat["WebChat - implemented"] --> API
+    LINE["LINE OA - implemented"] --> API
+    Facebook["Facebook Page Messenger - implemented"] --> API
 ```
 
 PostgreSQL is the source of truth for tenant-owned document and chunk data. Qdrant stores searchable vector records, while retrieval validates results against trusted PostgreSQL rows before returning them.
@@ -63,6 +65,18 @@ The public WebChat creates a scoped visitor session, persists customer messages,
 Every WebChat send requires a caller-generated `client_message_id`. PostgreSQL uniquely scopes that ID to its conversation; sequential and concurrent retries return the original persisted customer/assistant result without repeating generation, collection, action creation, or payment-related work. Assistant metadata contains only the safe response data needed for citations and action-card recovery. It never stores system prompts, full RAG context, vectors, secrets, or confirmation-token hashes.
 
 ## Human handoff and in-app notifications
+
+LINE OA and Facebook Page Messenger enter the same channel-neutral ingestion and
+conversation orchestration used by WebChat. Provider adapters authenticate
+webhooks, normalize text events, isolate identities by workspace connection,
+reuse Message idempotency, and dispatch assistant/staff replies. Instagram,
+Facebook Comments, Lead Ads, broadcasts, media, and rich templates are excluded.
+
+Long-lived channel credentials are encrypted at rest with AES-256-GCM using the
+server-only `CHANNEL_CREDENTIAL_ENCRYPTION_KEY`, random nonces, and
+workspace/connection/provider AAD. External delivery is `PENDING`, `SENT`, or
+`FAILED`; `SENT` means provider acceptance, not customer delivery/read. Failed
+sends are not retried indefinitely or on every webhook retry.
 
 An explicit customer request can move a WebChat conversation from AI handling to `HUMAN` mode without fuzzy intent matching. Staff can also request handoff, assign themselves or another verified workspace member, and explicitly return the conversation to `AUTO`. Returning to AI clears the active handoff/attention state while retaining assignment as operational history.
 
@@ -216,6 +230,7 @@ Implemented:
 - Persisted multi-turn AI-assisted Action Collection with strict field validation, payload-bound confirmation, and atomic ActionRequest creation.
 - End-to-end WebChat routing for grounded answers, citations, action collection, explicit confirmation/cancellation, human mode, and concurrency-safe message idempotency.
 - Human handoff, workspace-safe conversation assignment, per-member read state, and deduplicated in-app operational notifications.
+- Shared text-first Channel Integration Layer for WebChat, LINE OA, and Facebook Page Messenger with authenticated webhooks, encrypted credentials, tenant-safe identity mapping, and truthful outbound delivery state.
 
 In development:
 

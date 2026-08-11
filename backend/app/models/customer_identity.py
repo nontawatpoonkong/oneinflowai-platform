@@ -4,7 +4,15 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import TIMESTAMP, ForeignKey, Index, String, func, text
+from sqlalchemy import (
+    TIMESTAMP,
+    ForeignKey,
+    Index,
+    String,
+    UniqueConstraint,
+    func,
+    text,
+)
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -21,6 +29,24 @@ class CustomerIdentity(UUIDMixin, Base):
     __tablename__ = "customer_identities"
     __table_args__ = (
         Index("ix_customer_identities_channel_ext", "channel", "external_user_id"),
+        UniqueConstraint(
+            "channel_connection_id",
+            "external_user_id",
+            name="uq_customer_identity_connection_user",
+        ),
+    )
+
+    workspace_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("workspaces.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    channel_connection_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("channel_connections.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
     )
 
     customer_id: Mapped[uuid.UUID] = mapped_column(

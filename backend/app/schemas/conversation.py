@@ -28,6 +28,7 @@ class ConversationCreate(BaseModel):
     subject: str | None = Field(default=None, max_length=255)
     assigned_user_id: uuid.UUID | None = None
     external_conversation_id: str | None = Field(default=None, max_length=255)
+    channel_connection_id: uuid.UUID | None = None
     status: ConversationStatus = ConversationStatus.OPEN
 
     @field_validator("subject", "external_conversation_id", mode="before")
@@ -67,6 +68,7 @@ class ConversationResponse(BaseModel):
     subject: str | None
     assigned_user_id: uuid.UUID | None
     external_conversation_id: str | None
+    channel_connection_id: uuid.UUID | None
     last_message_at: datetime | None
     ai_mode: ConversationMode
     taken_over_by: uuid.UUID | None

@@ -6,6 +6,7 @@
 """
 
 import asyncio
+import base64
 import os
 from collections.abc import AsyncGenerator, Iterator
 
@@ -20,6 +21,12 @@ from sqlalchemy.pool import NullPool
 
 # Required secret for deterministic OTP hashing in tests only.
 os.environ.setdefault("OTP_HASH_SECRET", "test-only-otp-hash-secret")
+os.environ.setdefault("EMBEDDING_PROVIDER", "development")
+os.environ.setdefault("GENERATION_PROVIDER", "development")
+os.environ.setdefault(
+    "CHANNEL_CREDENTIAL_ENCRYPTION_KEY",
+    base64.b64encode(b"0123456789abcdef0123456789abcdef").decode(),
+)
 
 import app.auth.router as auth_router_module
 import app.core.lifespan as lifespan_module
