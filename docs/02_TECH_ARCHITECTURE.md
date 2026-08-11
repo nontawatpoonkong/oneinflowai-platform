@@ -1,60 +1,112 @@
-Next.js
+# Technical architecture
 
-↓
-
-FastAPI
-
-↓
-
-Redis
-
-↓
-
-PostgreSQL
-
-↓
-
-Qdrant
-
-↓
-
-Provider-neutral generation and action-intent adapters
-
-↓
-
-LINE OA
-
-WebChat request flow
-
-WebChat session token -> conversation mode guard -> active Action Collection ->
-explicit action intent -> grounded RAG answer -> persisted Messages.
-
-PostgreSQL owns message idempotency through a unique
-`(conversation_id, external_message_id)` key. A savepoint-protected insert
-claims a WebChat request before AI or action execution. A losing concurrent
-request recovers the stored result instead of processing it again.
-
-Trust boundaries
-
-- Workspace and conversation identity come from the authorized WebChat session.
-- AI output cannot create an ActionRequest without deterministic validation and explicit confirmation.
-- Payment verification is separate and is never controlled by WebChat generation.
-- Qdrant is derived search data; PostgreSQL remains authoritative.
-
-Human operations flow
+## Runtime
 
 ```mermaid
-flowchart LR
-    WebChat --> AI --> Handoff["Conversation HUMAN handoff"]
-    Handoff --> Assignment["WorkspaceMember assignment"]
-    Assignment --> Notification
-    Assignment --> ReadState["Per-member read cursor"]
-    ReadState --> Inbox
-    Inbox --> StaffReply["Staff reply"]
-    StaffReply --> ReturnAI["Explicit AUTO transition"]
+flowchart TD
+    Browser["Next.js application and public WebChat"] --> API["FastAPI /api/v1"]
+    API --> PG["PostgreSQL source of truth"]
+    API --> Redis["Redis"]
+    API --> Qdrant["Qdrant derived vector index"]
+    API --> Providers["Provider-neutral integrations"]
 ```
 
-Conversation state and its notifications are written in the same PostgreSQL
-transaction. Notification uniqueness is scoped by workspace, recipient, and a
-deterministic deduplication key. This is local database atomicity, not a claim of
-distributed delivery guarantees.
+PostgreSQL is authoritative for tenant and operational state. Qdrant contains
+derived searchable vectors; retrieval revalidates results against trusted
+PostgreSQL rows.
+
+## Implemented WebChat orchestration
+
+```mermaid
+flowchart TD
+    WebChat["WebChat - IMPLEMENTED"] --> Customer["Customer and Conversation"]
+    Customer --> Idempotency["Message idempotency claim"]
+    Idempotency --> Orchestrator["WebChat AI orchestrator"]
+    Orchestrator --> RAG["Grounded RAG"]
+    Orchestrator --> Collection["Action Collection"]
+    Orchestrator --> Handoff["Human Handoff"]
+    RAG --> Messages["Persisted Messages"]
+    Collection --> Queue["Action Queue"]
+    Handoff --> Human["Human staff"]
+    Queue --> Human
+    Payment["Customer Payment"] --> Human
+    Notifications["In-app Notifications"] --> Human
+    Human --> Return["Explicit return to AUTO"]
+```
+
+PostgreSQL uniquely scopes `external_message_id` by conversation. A
+savepoint-protected insert claims a WebChat request before AI/Action execution;
+a concurrent loser recovers the persisted result rather than processing again.
+
+## Human handoff and read state
+
+```text
+Customer request -> HUMAN -> needs_attention -> staff notification
+                 -> workspace-member assignment -> staff interaction
+                 -> explicit return to AUTO
+```
+
+Conversation state and notifications created by that operation share the same
+PostgreSQL transaction. `needs_attention` is conversation-level operational
+state. Unread is independently derived for each member from
+`ConversationReadState`; it is not stored as a global conversation flag.
+
+Notification creation deduplicates on workspace, recipient, and a deterministic
+key. Notifications are synchronous database records, not external delivery or a
+distributed delivery guarantee.
+
+Recipient policy follows the active service paths: handoff and new-customer
+message notifications go to the assigned member when present, otherwise to
+workspace owners/admins; conversation assignment and Action assignment notify
+the assignee; Action creation notifies owners/admins; verified Customer Payment
+notifies the member assigned to its linked Action when present, otherwise
+owners/admins.
+
+## Provider boundaries
+
+Implemented provider contracts include:
+
+- `EmbeddingProvider`
+- `GenerationProvider`
+- `ActionFieldExtractionProvider`
+- `ActionIntentProvider`
+- `SlipVerificationProvider`
+
+Provider/model output is untrusted. Knowledge cannot override system authority;
+Action creation requires deterministic validation and explicit confirmation;
+AI cannot mark a Customer Payment `VERIFIED`.
+
+## Security boundaries
+
+- Authenticated workspace context scopes staff operations; assignment targets
+  are validated against `WorkspaceMember` in the same workspace.
+- The public WebChat session supplies trusted workspace/conversation identity
+  and cannot assign staff, mark staff read state, or read/mutate notifications.
+- Notification list/read operations require both workspace and recipient match;
+  read cursors are isolated per member.
+- Client-provided workspace/user IDs do not override authenticated authority in
+  the implemented routes.
+- Knowledge is untrusted reference data and cannot override system authority.
+- Provider secrets stay server-side; public errors and notification bodies avoid
+  sensitive operational payloads.
+
+## Sprint 9.0 Channel Integration Layer - IMPLEMENTED
+
+LINE and Facebook adapters authenticate and normalize provider traffic before
+the shared ingestion service resolves connection, identity, customer,
+conversation, Message idempotency, orchestration, and outbound state.
+
+```mermaid
+flowchart TD
+    Web["WebChat - IMPLEMENTED"] --> Layer["Channel Integration Layer"]
+    Line["LINE OA - IMPLEMENTED"] --> Layer
+    Facebook["Facebook Page Messenger - IMPLEMENTED"] --> Layer
+    Layer --> Core["Customer / Conversation / OneInFlow Core"]
+    Core --> Ops["AI / Action / Human"]
+    Ops --> Outbound["Outbound Channel Adapter"]
+```
+
+Credential bundles use AES-256-GCM with random nonces and AAD bound to trusted
+workspace, connection, and provider IDs. Delivery rows ensure one external send
+per outbound Message and preserve `PENDING`/`SENT`/`FAILED` truth. Provider
+errors are normalized and raw bodies/responses are not persisted.

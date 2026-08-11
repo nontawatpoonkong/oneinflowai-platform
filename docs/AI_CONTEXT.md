@@ -1,65 +1,65 @@
-Project Name
+# AI context
 
-OneInFlow
+## Product
 
-Product Type
+- Name: **OneInFlow**
+- Tagline: **Everything in one flow.**
+- Category: **AI-first Customer Operations Platform**
+- Customer explanation: manage customer conversations and the operational work
+  that follows through AI and human collaboration.
+- Stage: MVP; not production-ready.
+- Primary market/language direction: Thailand and Thai-first UX.
 
-AI Customer Communication Platform
+OneInFlow is not documented as a general CRM replacement or as a sales-pipeline
+product.
 
-Theme
+## Technical baseline
 
-Cyan White Black
+- Backend: FastAPI, async SQLAlchemy, Alembic, PostgreSQL, Redis, Qdrant.
+- Frontend: Next.js, React, TypeScript.
+- PostgreSQL is authoritative; Qdrant is derived search data.
+- Current Alembic head: `b8c9d0e1f2a3`.
 
-Target
+## Implemented AI and operations rules
 
-SME Thailand
+- `AUTO`/`COPILOT`: active Action Collection first, explicit supported Action
+  intent second, grounded answering otherwise.
+- `HUMAN`: no AI generation or Action Collection execution.
+- AI/LLM output and retrieved Knowledge are untrusted.
+- ActionRequest creation requires deterministic validation and explicit
+  confirmation.
+- Payment verification is independent; AI cannot mark a payment verified.
+- Conversation-scoped client IDs make sequential and concurrent WebChat retries
+  idempotent.
+- Message JSONB contains safe result-recovery metadata only, never system
+  prompts, full RAG context, vectors, secrets, or confirmation-token hashes.
 
-Language
+## Human Handoff and notifications
 
-Thai First
+- Exact supported customer phrases or an authenticated staff operation can move
+  a conversation to `HUMAN`.
+- Assignment accepts only an existing member of that workspace. Public WebChat
+  cannot select an assignee.
+- Return-to-AI is an authenticated explicit transition to `AUTO`.
+- `needs_attention` is conversation-level; unread is separately derived per
+  member from customer messages after their read cursor.
+- Notification reads are isolated by workspace and recipient. Bodies omit full
+  messages, Action payloads, slip data, and payment details.
+- Active notification sources: handoff, assignment, new customer messages,
+  Action creation/assignment, and verified Customer Payment.
+- `PAYMENT_REVIEW_REQUIRED` is defined but has no active event source.
 
-Backend
+## Channel truth
 
-FastAPI
+- WebChat: **IMPLEMENTED**.
+- LINE OA: **IMPLEMENTED** for text messaging.
+- Facebook Page Messenger: **IMPLEMENTED** for text messaging.
+- Instagram: **PLANNED LATER**, not Sprint 9.0.
+- All three channels reuse the same orchestration core. External credentials are
+  AES-GCM encrypted and external delivery is persisted truthfully.
 
-Frontend
+## Billing truth
 
-Next.js
-
-Database
-
-PostgreSQL
-
-Vector DB
-
-Qdrant
-
-Coding Style
-
-Clean Architecture
-
-Dashboard
-
-Business First
-
-Never show CPU/RAM to customers.
-
-Platform Admin has a separate dashboard.
-
-WebChat AI
-
-- AUTO/COPILOT: active collection first, explicit action intent second, grounded answering otherwise.
-- HUMAN: no AI or action collection execution.
-- AI output is untrusted; ActionRequest creation requires validation and explicit confirmation.
-- Payment verification remains independent and cannot be controlled by AI.
-- Conversation-scoped client IDs make sequential and concurrent retries idempotent.
-- Message JSONB stores safe result metadata only, never prompts, full context, vectors, secrets, or confirmation-token hashes.
-
-Human Handoff
-
-- Explicit requests move the conversation to HUMAN and stop automatic AI replies.
-- Assignment accepts only existing WorkspaceMember users; public WebChat cannot assign.
-- Return-to-AI is an authenticated explicit transition to AUTO.
-- Per-member unread is derived from customer messages after each read cursor.
-- Notifications are recipient/workspace isolated and deduplicated; bodies contain no full messages, action payloads, slip data, or payment details.
-- COPILOT remains an existing selectable mode; Sprint 8.11 does not redefine it as automatic customer response.
+Customer Payment is an implemented foundation for money paid to a workspace
+business. OneInFlow SaaS Billing, plans, entitlements, and quotas are planned for
+Sprint 9.2. Production Slip Verification is planned for Sprint 9.3.

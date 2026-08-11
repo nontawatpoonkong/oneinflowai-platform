@@ -1,49 +1,57 @@
-MVP
+# Roadmap
 
-↓
+## Completed
 
-Beta
+### Sprint 8.10 - WebChat End-to-End AI Integration
 
-↓
+- Grounded answers and validated citations.
+- Action intent, multi-turn collection, confirmation, and cancellation.
+- Conversation-mode routing and concurrency-safe message idempotency.
 
-Production
+### Sprint 8.11 - Human Handoff + Notifications
 
-↓
+- Explicit WebChat/staff handoff and return to AI.
+- Workspace-member assignment, self-assignment, reassignment, and unassignment.
+- Per-member read cursor and derived unread counts.
+- Conversation attention state and recipient-scoped in-app notifications.
+- Action and verified Customer Payment notification sources.
 
-Marketplace
+### Sprint 9.0 - LINE OA + Facebook Page Messenger Integration - COMPLETE
 
-↓
+Reusable normalization, encrypted workspace connections, tenant-safe external
+identity mapping, authenticated LINE/Facebook webhooks, shared
+AI/Action/Handoff orchestration, text outbound dispatch, echo protection, and
+truthful delivery state are implemented. Instagram is not part of Sprint 9.0.
 
-AI Agent
+## Planned
 
-↓
+### Sprint 9.1 - MVP Dashboard + Operational UX
 
-Enterprise
+Planned dashboard and operational UX work. This does not mark Analytics as
+implemented.
 
-Sprint 8.10 complete
+### Sprint 9.2 - SaaS Billing + Plans + Entitlements
 
-- WebChat grounded answers and citations
-- Action intent, multi-turn collection, and explicit confirmation/cancellation
-- Conversation-mode routing and human handoff behavior
-- Sequential and concurrent request idempotency
+Planned OneInFlow subscription billing and entitlement/quota enforcement,
+separate from Customer Payment. Product requirement: Plan 1 excludes Slip
+Verification; Plan 2+ includes a monthly verification quota. Prices, quota
+amounts, and quota-exceeded policy are not yet defined in implementation.
 
-Future work
+### Sprint 9.3 - Production Slip Verification
 
-- Additional messaging channels and asynchronous delivery
-- Authoritative production providers and operational hardening
-- External action execution after separately authorized fulfillment design
+Planned authoritative provider integration and production hardening. Current
+deterministic verification is development/test infrastructure only.
 
-Sprint 8.11 complete
+### Sprint 9.4 - Analytics + Insights
 
-- Human handoff and explicit return to AI
-- Workspace member assignment and self-assignment
-- Per-member unread/read state
-- In-app operational notification foundation
-- Action and verified-payment notification sources
+Planned analytics and operational insights.
 
-Next roadmap: 9.0 LINE OA; 9.1 MVP Dashboard and Analytics; 9.2 SaaS
-Billing and Entitlements; 9.3 MVP Hardening and Pilot.
+### Sprint 9.5 - MVP Hardening + Pilot
 
-Slip Verification entitlement remains planned for Sprint 9.2: Plan 1 is not
-included; Plan 2+ includes a monthly quota. No plan price or quota amount is
-defined here, and enforcement is not part of the customer Payment domain.
+Planned security, observability, operational hardening, and pilot readiness.
+
+## Later direction
+
+Instagram, external notification delivery, and automated external fulfillment
+remain later work unless assigned to a future sprint. No release date,
+production SLA, pricing, or performance claim is established here.

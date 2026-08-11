@@ -1,67 +1,42 @@
-Sprint 1
+# Sprint board
 
-Authentication
+Status is based on repository source, migrations, tests, and Git history rather
+than the age of the original planning board.
 
-✅
+## Completed foundation
 
-Sprint 2
+- Authentication, email verification, password reset, users, and workspaces.
+- Customers, conversations, messages, and WebChat sessions.
+- Knowledge upload/extraction/chunking, embeddings, Qdrant indexing, semantic
+  retrieval, RAG context, grounded generation, and citation validation.
+- Action definitions, Action Collection, fulfillment queue, assignment,
+  lifecycle, and audit events.
+- Customer Payment foundation, evidence handling, and provider-neutral
+  verification.
 
-Customer
+## Sprint 8.10 - COMPLETE
 
-✅
+WebChat End-to-End AI Integration: grounded answers, citations, Action
+Collection, explicit confirmation/cancellation, conversation-mode behavior, and
+concurrency-safe message idempotency.
 
-Sprint 3
+## Sprint 8.11 - COMPLETE
 
-Conversation
+Human Handoff + Notifications: explicit customer/staff handoff, verified
+workspace-member assignment, self-assignment/reassignment/unassignment, return
+to AI, per-member read state, derived unread, conversation attention, in-app
+notifications, and Action/verified Customer Payment notification sources.
 
-✅
+## Sprint 9.0 - COMPLETE
 
-Sprint 4
+LINE OA + Facebook Page Messenger Integration through a reusable Channel
+Integration Layer. WebChat, LINE OA, and Facebook Page Messenger text messaging
+are **IMPLEMENTED**. Instagram is not in Sprint 9.0.
 
-Frontend Foundation
+## Subsequent planned sprints
 
-✅
-
-Sprint 5
-
-Dashboard
-
-🟡
-
-Sprint 6
-
-Inbox
-
-⬜
-
-Sprint 7
-
-Knowledge
-
-⬜
-
-Sprint 8
-
-AI
-
-⬜
-
-Sprint 9
-
-Sprint 8.10 completion
-
-WebChat End-to-End AI Integration is complete: grounded answers, citations,
-action collection, explicit decisions, human mode, and concurrency-safe message
-idempotency.
-
-Sprint 8.11
-
-Human Handoff and Notifications
-
-Complete: explicit WebChat/staff handoff, member assignment, return to AI,
-per-member read cursors, attention state, in-app notifications, and action/payment
-notification sources.
-
-Analytics
-
-⬜
+- 9.1 - MVP Dashboard + Operational UX
+- 9.2 - SaaS Billing + Plans + Entitlements
+- 9.3 - Production Slip Verification
+- 9.4 - Analytics + Insights
+- 9.5 - MVP Hardening + Pilot

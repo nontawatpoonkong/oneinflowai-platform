@@ -61,6 +61,8 @@ One external outbound Message has one `channel_message_deliveries` row:
 
 Raw provider responses are not stored. `SENT` is never resent on webhook retry;
 `PENDING` is not blindly duplicated; `FAILED` has no automatic infinite retry.
+Webhook processing is synchronous in Sprint 9.0; there is no background channel
+queue or asynchronous outbound worker.
 
 ## Manual LINE sandbox checklist
 

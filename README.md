@@ -2,7 +2,7 @@
 
 **Everything in one flow.**
 
-OneInFlow is a multi-tenant customer-conversation platform that brings workspace administration, customer channels, conversations, and company knowledge into one product. The current codebase provides the secure platform foundation and grounded, citation-validated answer generation from workspace knowledge. It is not yet production-ready.
+OneInFlow is an **AI-first Customer Operations Platform** for managing customer conversations and the operational work that follows them through AI and human collaboration. Its core flow is Conversation -> Understanding -> Knowledge -> Action -> Human -> Payment -> Operations: **Everything in one flow.** The current product is an MVP and is not yet production-ready or a replacement for every CRM.
 
 ## Current architecture
 
@@ -199,7 +199,7 @@ Backend lifecycle and transaction tests use PostgreSQL through `TEST_DATABASE_UR
 
 ```powershell
 cd backend
-$env:TEST_DATABASE_URL = "postgresql+asyncpg://oneflowai:oneflowai@localhost:5432/oneflowai_test"
+$env:TEST_DATABASE_URL = "postgresql+asyncpg://<test-user>:<test-password>@localhost:5432/oneflowai_test"
 uv run pytest -q
 uv run ruff check .
 ```
@@ -214,7 +214,7 @@ npm run build
 
 ## API overview
 
-All application routes use the configured API prefix (normally `/api/v1`). Major route groups include authentication, workspaces, customers, conversations, messages, WebChat, AI mode, and knowledge management. Knowledge endpoints cover upload, content, chunks, indexing, semantic search, authenticated RAG preview, and grounded answers. Consult `/docs` for the exact request and response contracts of the running revision.
+All application routes use the configured API prefix (normally `/api/v1`). Registered route groups cover authentication, workspaces, customers, conversations/messages, WebChat, Knowledge/RAG, Actions, Action Collection, Customer Payment, and notifications. Human operations include handoff, assignment/unassignment, return to AI, per-member read state, and recipient-scoped notification reads. See [API guideline](docs/04_API_GUIDELINE.md) for the implemented route inventory.
 
 ## Development status
 
@@ -239,10 +239,13 @@ In development:
 
 Planned:
 
-- Authoritative production slip-verification provider integration.
-- OneInFlow SaaS subscription billing, separate from Customer Payment.
+- Sprint 9.1: MVP Dashboard and Operational UX.
+- Sprint 9.2: OneInFlow SaaS Billing, plans, entitlements, and Slip Verification quota enforcement, separate from Customer Payment.
+- Sprint 9.3: authoritative production Slip Verification.
+- Sprint 9.4: Analytics and Insights.
+- Sprint 9.5: MVP Hardening and Pilot.
 - Automatic external action execution.
-- Additional customer messaging channels, asynchronous processing, expanded observability, and production deployment guidance.
+- External notification delivery, asynchronous processing, expanded observability, and production deployment guidance.
 
 ## Design principles
 
@@ -255,7 +258,20 @@ Planned:
 
 ## MVP scope
 
-The MVP targets a secure workspace-based customer-conversation foundation with managed knowledge ingestion and retrieval-ready context. It does not yet promise autonomous AI responses, every messaging channel, enterprise analytics, or a production hosted service.
+The MVP provides a secure workspace-based conversation and operations foundation with implemented WebChat, LINE OA, Facebook Page Messenger, grounded AI, Action workflows, Customer Payment foundations, and human collaboration. It does not yet provide Instagram, external notification delivery, SaaS billing/entitlement enforcement, production bank slip verification, Analytics, or a production hosted-service guarantee.
+
+## Documentation
+
+- [Project vision](docs/00_PROJECT_VISION.md)
+- [Product specification](docs/01_PRODUCT_SPEC.md)
+- [Technical architecture](docs/02_TECH_ARCHITECTURE.md)
+- [Database](docs/03_DATABASE.md)
+- [API guideline](docs/04_API_GUIDELINE.md)
+- [Roadmap](docs/06_ROADMAP.md)
+- [Sprint board](docs/07_SPRINT_BOARD.md)
+- [Deployment](docs/09_DEPLOYMENT.md)
+- [Channel integrations](docs/10_CHANNEL_INTEGRATIONS.md)
+- [Changelog](docs/CHANGELOG.md)
 
 ## Naming compatibility
 
