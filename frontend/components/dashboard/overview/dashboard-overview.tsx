@@ -1,72 +1,35 @@
 "use client";
 
-import { AlertTriangle, Inbox, RefreshCw } from "lucide-react";
+import Link from "next/link";
+import { AlertTriangle, Bell, BookOpen, ClipboardList, CreditCard, Inbox, Plug, RefreshCw } from "lucide-react";
 import { useTranslations } from "next-intl";
-
-import { ConversationTrend } from "@/components/dashboard/overview/conversation-trend";
-import { DashboardHero } from "@/components/dashboard/overview/dashboard-hero";
-import { Greeting } from "@/components/dashboard/overview/greeting";
-import { KpiCards } from "@/components/dashboard/overview/kpi-cards";
-import { QuickActions } from "@/components/dashboard/overview/quick-actions";
-import { RecentActivity } from "@/components/dashboard/overview/recent-activity";
-import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useDashboard } from "@/hooks/use-dashboard";
+import { useActions } from "@/hooks/api/use-actions";
+import { useChannels } from "@/hooks/api/use-channels";
+import { useConversations } from "@/hooks/api/use-conversations";
+import { useKnowledgeDocuments } from "@/hooks/api/use-knowledge";
+import { useNotifications } from "@/hooks/api/use-notifications";
+import { usePayments } from "@/hooks/api/use-payments";
 
-/** Owner dashboard — greeting, hero, KPIs (live), trend + activity, quick actions. */
 export function DashboardOverview() {
-  const t = useTranslations();
-  const { data, loading, error, refetch } = useDashboard();
-
-  return (
-    <div className="flex flex-col gap-6 sm:gap-8">
-      <Greeting />
-      <DashboardHero />
-
-      {loading ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-[132px] w-full rounded-2xl" />
-          ))}
-        </div>
-      ) : error ? (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-10 text-center">
-          <span className="grid size-12 place-items-center rounded-2xl bg-destructive/10 text-destructive">
-            <AlertTriangle className="size-6" />
-          </span>
-          <div>
-            <p className="font-semibold">{t("errors.serverTitle")}</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {t("errors.serverDesc")}
-            </p>
-          </div>
-          <Button variant="outline" size="sm" onClick={() => refetch()}>
-            <RefreshCw className="size-4" />
-            {t("common.tryAgain")}
-          </Button>
-        </div>
-      ) : !data ? (
-        <EmptyState icon={Inbox} title={t("common.noData")} />
-      ) : (
-        <KpiCards
-          values={{
-            conversations: data.today_conversations,
-            replyRate: data.ai_reply_rate,
-            newCustomers: data.new_customers,
-            avgResponse: data.avg_response_time,
-          }}
-        />
-      )}
-
-      <div className="grid gap-5 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <ConversationTrend />
-        </div>
-        <RecentActivity />
-      </div>
-
-      <QuickActions />
-    </div>
-  );
+  const t = useTranslations("operations.overview");
+  const conversations = useConversations({page:1,page_size:100,sort_by:"last_message_at",order:"desc"});
+  const actions = useActions({page:1,page_size:100}); const knowledge = useKnowledgeDocuments();
+  const payments = usePayments(); const channels = useChannels(); const notifications = useNotifications();
+  const queries = [conversations, actions, knowledge, payments, channels, notifications];
+  const loading = queries.some((query) => query.isLoading); const failed = queries.some((query) => query.isError);
+  const retry = () => void Promise.all(queries.map((query) => query.refetch()));
+  const conversationItems = conversations.data?.items ?? []; const actionItems = actions.data?.items ?? []; const documentItems = knowledge.data?.items ?? [];
+  const cards = [
+    {label:t("attention"),value:conversationItems.filter((item)=>item.needs_attention).length,href:"/dashboard/inbox",icon:Inbox},
+    {label:t("openActions"),value:actionItems.filter((item)=>!["COMPLETED","FAILED","CANCELLED"].includes(item.status)).length,href:"/dashboard/actions",icon:ClipboardList},
+    {label:t("knowledgeReady"),value:documentItems.filter((item)=>item.status==="READY").length,href:"/dashboard/knowledge",icon:BookOpen},
+    {label:t("pendingPayments"),value:(payments.data??[]).filter((item)=>["PENDING","VERIFYING"].includes(item.status)).length,href:"/dashboard/payments",icon:CreditCard},
+    {label:t("connectedChannels"),value:(channels.data??[]).filter((item)=>item.status==="CONNECTED").length+1,href:"/dashboard/integrations",icon:Plug},
+    {label:t("unreadNotifications"),value:notifications.data?.unread_count??0,href:"/dashboard/notifications",icon:Bell},
+  ];
+  return <div className="space-y-7"><header><h1 className="text-2xl font-semibold">{t("title")}</h1><p className="text-sm text-muted-foreground">{t("description")}</p></header>
+    {loading ? <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{Array.from({length:6}).map((_,index)=><div key={index} className="h-28 animate-pulse rounded-2xl bg-muted"/>)}</div> : failed ? <div className="rounded-2xl border border-dashed p-8 text-center"><AlertTriangle className="mx-auto mb-3 size-8 text-destructive"/><p>{t("error")}</p><Button className="mt-3" variant="outline" onClick={retry}><RefreshCw className="size-4"/>{t("retry")}</Button></div> : <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{cards.map(({label,value,href,icon:Icon})=><Link key={href} href={href} className="rounded-2xl border bg-card p-5 transition hover:border-brand/40 hover:shadow-sm"><div className="flex items-start justify-between"><div><p className="text-sm text-muted-foreground">{label}</p><p className="mt-2 text-3xl font-semibold tabular-nums">{value}</p></div><Icon className="size-5 text-brand"/></div></Link>)}</div>}
+    <section><h2 className="mb-3 text-lg font-semibold">{t("recentConversations")}</h2>{!conversationItems.length&&!loading?<p className="rounded-2xl border border-dashed p-8 text-center text-sm text-muted-foreground">{t("emptyConversations")}</p>:<div className="grid gap-3 md:grid-cols-2">{conversationItems.slice(0,6).map((item)=><Link key={item.id} href={`/dashboard/inbox?conversation=${item.id}`} className="rounded-xl border bg-card p-4"><div className="flex justify-between gap-3"><p className="truncate font-medium">{item.subject||item.customer_id}</p><span className="text-xs uppercase text-muted-foreground">{item.channel}</span></div><div className="mt-2 flex gap-2 text-xs text-muted-foreground"><span>{item.ai_mode}</span>{item.needs_attention?<span className="text-warning">{t("attention")}</span>:null}{item.unread_count?<span>{t("unread",{count:item.unread_count})}</span>:null}</div></Link>)}</div>}</section>
+  </div>;
 }

@@ -11,6 +11,9 @@
     "forgotPassword": "Forgot password",
     "dashboard": "Overview",
     "inbox": "Inbox",
+    "actions": "Actions",
+    "payments": "Payments",
+    "notifications": "Notifications",
     "customers": "Customers",
     "knowledge": "Knowledge Base",
     "analytics": "Analytics",
@@ -427,6 +430,10 @@
     "nav": {
       "dashboard": "Overview",
       "inbox": "Inbox",
+      "actions": "Actions",
+      "payments": "Payments",
+      "channels": "Channels",
+      "notifications": "Notifications",
       "customers": "Customers",
       "knowledge": "Knowledge Base",
       "analytics": "Analytics",
@@ -505,6 +512,11 @@
       "loading": "Loading channels...",
       "configure": "Configure",
       "disconnect": "Disconnect"
+      ,"textOnly": "LINE and Facebook currently support text messaging only.",
+      "readOnly": "Your workspace role can view channel status but cannot change connections.",
+      "error": "Unable to load channel connections.",
+      "retry": "Retry",
+      "connectionError": "The provider connection needs attention. Reconnect it after checking credentials."
     },
     "owner": {
       "greeting": {
@@ -566,6 +578,14 @@
       }
     }
   },
+  "operations": {
+    "overview": {"title":"Operations overview","description":"A current snapshot composed from existing workspace services.","attention":"Conversations needing attention","openActions":"Open actions","knowledgeReady":"Ready knowledge documents","pendingPayments":"Pending payment checks","connectedChannels":"Available channels","unreadNotifications":"Unread notifications","recentConversations":"Recent conversations","emptyConversations":"No conversations yet.","unread":"{count} unread","error":"Some operational data could not be loaded.","retry":"Retry"},
+    "actions": {"title":"Actions","description":"Manage the operational queue and the workspace-defined types AI can collect.","loading":"Loading actions...","error":"Unable to load actions.","empty":"No actions match this filter.","select":"Select an action to see its details.","type":"Type","statusLabel":"Status","priority":"Priority","assignee":"Assignee","created":"Created","assigned":"Assigned","unassigned":"Unassigned","unknownType":"Unknown action","openConversation":"Open conversation","assignMe":"Assign to me","start":"Start","complete":"Complete","fail":"Mark failed","cancel":"Cancel","yes":"Yes","no":"No","tabs":{"queue":"Queue","types":"Action Types"},"types":{"relationshipTitle":"How Action Types work","relationship":"An Action Type defines required information → AI collects missing fields → server validation → customer confirmation → Action Queue.","create":"Create Action Type","readOnly":"You can view Action Types. Only workspace owners and admins can manage them.","readOnlyLabel":"View only","loading":"Loading Action Types...","error":"Unable to load Action Types.","empty":"Create an Action Type to define what information AI must collect from customers before placing work in the queue.","name":"Name","key":"Key / type","state":"State","required":"Required fields","optional":"Optional fields","updated":"Updated","manage":"Manage","enabled":"Enabled","disabled":"Disabled","edit":"Edit","view":"View","enable":"Enable","disable":"Disable","saved":"Action Type saved.","saveError":"Unable to save Action Type.","createTitle":"Create Action Type","editTitle":"Edit Action Type","editorHelp":"Define only the fields supported by the server. AI collection and validation remain server-controlled.","description":"Description","keyImmutable":"The key is immutable after creation.","keyHelp":"Lowercase letters, numbers, and underscores; start with a letter.","fields":"Fields","addField":"Add field","fieldLabel":"Human-readable label","fieldKey":"Field key","requiredField":"Required","optionalField":"Optional","enumValues":"Allowed values, separated by commas","moveUp":"Move field up","moveDown":"Move field down","save":"Save Action Type","back":"Back to Action Types","fieldTypes":{"string":"Text","integer":"Integer","number":"Number","boolean":"Yes / No","enum":"Select / Enum"}},"status":{"OPEN":"Open","WAITING":"Waiting","ASSIGNED":"Assigned","IN_PROGRESS":"In progress","COMPLETED":"Completed","FAILED":"Failed","CANCELLED":"Cancelled"}},
+    "payments": {"title":"Payments","description":"Review payment records and verification outcomes without changing payment policy.","loading":"Loading payments...","error":"Unable to load payments.","empty":"No payment records yet.","reference":"Reference","expected":"Expected","verified":"Verified","status":"Status","created":"Created","detail":"Payment details","destination":"Destination","paidAt":"Paid at","verifiedAt":"Verified at","providerNotice":"Slip verification availability and quota are controlled by subscription entitlement; this page does not implement billing policy."},
+    "notifications": {"title":"Notifications","description":"Operational alerts with links back to the related work.","markAllRead":"Mark all read","error":"Unable to load notifications.","empty":"You're all caught up."},
+    "workspace": {"title":"Workspace","description":"View workspace identity, your role, and current members.","loading":"Loading workspace...","error":"Unable to load workspace.","workspaceName":"Workspace","roleNotice":"Permissions remain enforced by the server for every operation.","manageChannels":"Open channel settings","members":"Members","name":"Name","email":"Email","role":"Role","roles":{"owner":"Owner","admin":"Admin","member":"Member"}},
+    "knowledge": {"title":"Knowledge","description":"Upload and monitor documents used by grounded AI answers.","upload":"Upload document","uploading":"Uploading","uploadSuccess":"Document uploaded.","uploadError":"Unable to upload document.","deleteConfirm":"Delete {title}?","deleteSuccess":"Document deleted.","deleteError":"Unable to delete document.","loadError":"Unable to load documents.","empty":"No documents yet.","formats":"Supported uploads: PDF, DOCX, TXT, and Markdown.","name":"Document","size":"Size","pipeline":"Pipeline","index":"Index","updated":"Updated","actions":"Actions","indexFailed":"Indexing failed. Safe details are available from server status only.","retry":"Retry chunking","indexNow":"Index now","delete":"Delete document"}
+  },
   "errors": {
     "notFoundTitle": "Page not found",
     "notFoundDesc": "The page you're looking for doesn't exist or has moved.",
@@ -611,6 +631,14 @@
     "needsAttention": "Needs attention",
     "assigned": "Assigned",
     "unread": "Unread",
+    "allChannels": "All channels",
+    "allModes": "All modes",
+    "mode": "Conversation mode",
+    "sendFailed": "Unable to send the message.",
+    "messageError": "Unable to load messages.",
+    "conversationError": "Unable to load conversations.",
+    "noMatches": "No conversations match these filters.",
+    "delivery": {"pending":"Pending","sent":"Sent","failed":"Failed"},
     "channels": {
       "line": "LINE",
       "facebook": "Facebook",

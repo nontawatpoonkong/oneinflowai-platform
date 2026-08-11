@@ -110,3 +110,17 @@ Credential bundles use AES-256-GCM with random nonces and AAD bound to trusted
 workspace, connection, and provider IDs. Delivery rows ensure one external send
 per outbound Message and preserve `PENDING`/`SENT`/`FAILED` truth. Provider
 errors are normalized and raw bodies/responses are not persisted.
+
+## Sprint 9.1 operational frontend - IMPLEMENTED
+
+The Next.js dashboard composes existing conversation, action, knowledge,
+payment, channel, notification, and workspace contracts through React Query.
+There is intentionally no `/dashboard/overview` API, database migration, or
+frontend copy of backend transition/authorization rules. Polling remains the
+current near-real-time mechanism; WebSockets and background analytics are not
+part of Sprint 9.1.
+
+Action Type management reuses the existing `ActionDefinition` model and JSONB
+field arrays. `POST` and `PATCH` definition routes require an authenticated
+workspace owner/admin; member `GET` access remains available. Repository
+queries retain workspace predicates. No schema change or migration is needed.

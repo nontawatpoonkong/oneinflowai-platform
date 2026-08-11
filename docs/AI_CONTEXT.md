@@ -17,6 +17,14 @@ product.
 
 - Backend: FastAPI, async SQLAlchemy, Alembic, PostgreSQL, Redis, Qdrant.
 - Frontend: Next.js, React, TypeScript.
+- Sprint 9.1 operational routes: Overview, Inbox, Actions, Knowledge, Payments,
+  Channels, Notifications, and Workspace/Settings.
+- Overview is composed from existing APIs. There is no `/dashboard/overview`
+  backend and no Sprint 9.1 migration.
+- Analytics remains planned for Sprint 9.4.
+- Actions has Queue and Action Types. Existing workspace-scoped
+  `ActionDefinition` remains the server source of truth; owner/admin may mutate,
+  members may read, keys are immutable, and lifecycle is enable/disable.
 - PostgreSQL is authoritative; Qdrant is derived search data.
 - Current Alembic head: `b8c9d0e1f2a3`.
 

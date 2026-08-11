@@ -20,4 +20,10 @@ export const knowledgeService = {
   async remove(documentId: string): Promise<void> {
     await api.delete(`/knowledge/${encodeURIComponent(documentId)}`);
   },
+  async rechunk(documentId: string): Promise<void> {
+    await api.post(`/knowledge/${encodeURIComponent(documentId)}/rechunk`);
+  },
+  async index(documentId: string): Promise<void> {
+    await api.post(`/knowledge/${encodeURIComponent(documentId)}/index`);
+  },
 };

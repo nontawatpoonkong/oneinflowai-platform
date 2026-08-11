@@ -35,7 +35,7 @@ are **IMPLEMENTED**. Instagram is not in Sprint 9.0.
 
 ## Subsequent planned sprints
 
-- 9.1 - MVP Dashboard + Operational UX
+- 9.1 - MVP Dashboard + Operational UX - **COMPLETE**
 - 9.2 - SaaS Billing + Plans + Entitlements
 - 9.3 - Production Slip Verification
 - 9.4 - Analytics + Insights

@@ -4,12 +4,19 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 
 import { useChannelOperations, useChannels } from "@/hooks/api/use-channels";
+import { useAuth } from "@/hooks/use-auth";
+import { useMyWorkspace, useWorkspaceMembers } from "@/hooks/api/use-workspace";
 
 type Provider = "line" | "facebook";
 
 export function ChannelSettings() {
   const t = useTranslations("dashboard.integrations");
-  const { data = [], isLoading } = useChannels();
+  const { data = [], isLoading, isError, refetch } = useChannels();
+  const workspace = useMyWorkspace();
+  const members = useWorkspaceMembers(workspace.data?.id);
+  const { user } = useAuth();
+  const role = members.data?.find((member) => member.user_id === user?.id)?.role;
+  const canManage = role === "owner" || role === "admin";
   const operations = useChannelOperations();
   const [provider, setProvider] = useState<Provider | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
@@ -43,6 +50,7 @@ export function ChannelSettings() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{t("description")}</p>
+        <p className="mt-2 text-xs text-muted-foreground">{t("textOnly")}</p>
       </div>
       <div className="grid gap-4 lg:grid-cols-3">
         <ChannelCard name="WebChat" status="CONNECTED" detail={t("available")} />
@@ -59,13 +67,15 @@ export function ChannelSettings() {
                   ? `/api/v1/channels/webhooks/${name}/${item.id}`
                   : undefined
               }
-              onConnect={() => setProvider(name)}
-              onDisconnect={item ? () => operations.disconnect.mutate(item.id) : undefined}
+              onConnect={canManage ? () => setProvider(name) : undefined}
+              onDisconnect={item && canManage ? () => operations.disconnect.mutate(item.id) : undefined}
             />
           );
         })}
       </div>
-      {provider ? (
+      {!canManage && !isLoading ? <p className="rounded-xl border bg-muted/20 p-4 text-sm text-muted-foreground">{t("readOnly")}</p> : null}
+      {isError ? <div className="rounded-xl border border-destructive/30 p-4 text-sm text-destructive">{t("error")} <button className="underline" onClick={() => refetch()}>{t("retry")}</button></div> : null}
+      {provider && canManage ? (
         <div className="max-w-2xl rounded-2xl border border-border bg-card p-6">
           <h2 className="font-semibold">{t("connect", { provider })}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{t("secretNote")}</p>
@@ -102,5 +112,5 @@ function fields(provider: Provider) {
 
 function ChannelCard({ name, status, detail, webhook, onConnect, onDisconnect }: { name: string; status: string; detail: string; webhook?: string; onConnect?: () => void; onDisconnect?: () => void }) {
   const t = useTranslations("dashboard.integrations");
-  return <section className="rounded-2xl border border-border bg-card p-5"><div className="flex items-center justify-between"><h2 className="font-semibold">{name}</h2><span className="text-xs font-medium">{status}</span></div><p className="mt-2 min-h-10 text-sm text-muted-foreground">{detail}</p>{webhook ? <code className="mt-2 block break-all rounded-lg bg-muted px-2 py-1 text-xs">{webhook}</code> : null}{onConnect && !onDisconnect ? <button onClick={onConnect} className="mt-4 text-sm font-medium text-primary">{t("configure")}</button> : null}{onDisconnect ? <button onClick={onDisconnect} className="mt-4 text-sm font-medium text-destructive">{t("disconnect")}</button> : null}</section>;
+  return <section className="rounded-2xl border border-border bg-card p-5"><div className="flex items-center justify-between"><h2 className="font-semibold">{name}</h2><span className={status === "ERROR" ? "text-xs font-medium text-destructive" : "text-xs font-medium"}>{status}</span></div><p className="mt-2 min-h-10 text-sm text-muted-foreground">{detail}</p>{status === "ERROR" ? <p className="text-xs text-destructive">{t("connectionError")}</p> : null}{webhook ? <code className="mt-2 block break-all rounded-lg bg-muted px-2 py-1 text-xs">{webhook}</code> : null}{onConnect && !onDisconnect ? <button onClick={onConnect} className="mt-4 text-sm font-medium text-primary">{t("configure")}</button> : null}{onDisconnect ? <button onClick={onDisconnect} className="mt-4 text-sm font-medium text-destructive">{t("disconnect")}</button> : null}</section>;
 }

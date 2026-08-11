@@ -26,3 +26,12 @@ export function useDeleteKnowledgeDocument() {
     onSuccess: () => client.invalidateQueries({ queryKey: ["knowledge"] }),
   });
 }
+
+export function useKnowledgeOperations() {
+  const client = useQueryClient();
+  const refresh = () => client.invalidateQueries({ queryKey: ["knowledge"] });
+  return {
+    rechunk: useMutation({ mutationFn: knowledgeService.rechunk, onSuccess: refresh }),
+    index: useMutation({ mutationFn: knowledgeService.index, onSuccess: refresh }),
+  };
+}

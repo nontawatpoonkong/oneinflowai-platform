@@ -1,14 +1,17 @@
 """Action definition and payload validator coverage."""
 
+import asyncio
 import uuid
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 from app.core.exceptions import ActionPayloadValidationError
 from app.models.action import ActionDefinition
+from app.models.workspace_member import WorkspaceMember, WorkspaceRole
 from app.services.action_validation import ActionPayloadValidator
-from tests.conftest import register_verify_and_login
+from tests.conftest import TestSessionLocal, register_verify_and_login
 
 URL = "/api/v1/actions/definitions"
 
@@ -46,6 +49,21 @@ def _payload(key="top_up", active=True):
     }
 
 
+def _set_role(user_id: str, role: WorkspaceRole) -> None:
+    async def _update() -> None:
+        async with TestSessionLocal() as session:
+            membership = await session.scalar(
+                select(WorkspaceMember).where(
+                    WorkspaceMember.user_id == uuid.UUID(user_id)
+                )
+            )
+            assert membership is not None
+            membership.role = role
+            await session.commit()
+
+    asyncio.run(_update())
+
+
 def test_create_list_get_update_definition(client_db: TestClient) -> None:
     _, headers = _auth(client_db, "definitions@example.com")
     created = client_db.post(URL, headers=headers, json=_payload())
@@ -57,6 +75,56 @@ def test_create_list_get_update_definition(client_db: TestClient) -> None:
         f"{URL}/{definition_id}", headers=headers, json={"is_active": False}
     )
     assert updated.json()["data"]["is_active"] is False
+
+
+@pytest.mark.parametrize("role", [WorkspaceRole.OWNER, WorkspaceRole.ADMIN])
+def test_owner_and_admin_can_create_and_toggle_definition(
+    client_db: TestClient, role: WorkspaceRole
+) -> None:
+    user, headers = _auth(client_db, f"definition-{role.value}@example.com")
+    _set_role(user["id"], role)
+    created = client_db.post(URL, headers=headers, json=_payload(role.value))
+    assert created.status_code == 201
+    definition_id = created.json()["data"]["id"]
+    disabled = client_db.patch(
+        f"{URL}/{definition_id}", headers=headers, json={"is_active": False}
+    )
+    assert disabled.status_code == 200
+    assert disabled.json()["data"]["is_active"] is False
+    enabled = client_db.patch(
+        f"{URL}/{definition_id}", headers=headers, json={"is_active": True}
+    )
+    assert enabled.status_code == 200
+    assert enabled.json()["data"]["is_active"] is True
+
+
+def test_member_can_read_but_cannot_manage_definitions(client_db: TestClient) -> None:
+    user, headers = _auth(client_db, "definition-member@example.com")
+    created = client_db.post(URL, headers=headers, json=_payload("member_visible"))
+    definition_id = created.json()["data"]["id"]
+    _set_role(user["id"], WorkspaceRole.MEMBER)
+
+    assert client_db.get(URL, headers=headers).status_code == 200
+    assert client_db.get(f"{URL}/{definition_id}", headers=headers).status_code == 200
+    create_denied = client_db.post(URL, headers=headers, json=_payload("denied"))
+    assert create_denied.status_code == 403
+    assert create_denied.json()["error"]["code"] == "FORBIDDEN"
+    patch_denied = client_db.patch(
+        f"{URL}/{definition_id}", headers=headers, json={"is_active": False}
+    )
+    assert patch_denied.status_code == 403
+    assert patch_denied.json()["error"]["code"] == "FORBIDDEN"
+
+
+def test_definition_key_remains_immutable(client_db: TestClient) -> None:
+    _, headers = _auth(client_db, "definition-immutable@example.com")
+    created = client_db.post(URL, headers=headers, json=_payload("immutable"))
+    definition_id = created.json()["data"]["id"]
+    response = client_db.patch(
+        f"{URL}/{definition_id}", headers=headers, json={"key": "changed"}
+    )
+    assert response.status_code == 200
+    assert response.json()["data"]["key"] == "immutable"
 
 
 def test_duplicate_same_workspace_rejected_and_other_workspace_allowed(
@@ -76,6 +144,12 @@ def test_cross_workspace_definition_hidden(client_db: TestClient) -> None:
         "id"
     ]
     assert client_db.get(f"{URL}/{definition_id}", headers=second).status_code == 404
+    assert (
+        client_db.patch(
+            f"{URL}/{definition_id}", headers=second, json={"is_active": False}
+        ).status_code
+        == 404
+    )
 
 
 def _definition():

@@ -23,12 +23,15 @@ identity mapping, authenticated LINE/Facebook webhooks, shared
 AI/Action/Handoff orchestration, text outbound dispatch, echo protection, and
 truthful delivery state are implemented. Instagram is not part of Sprint 9.0.
 
-## Planned
+### Sprint 9.1 - MVP Dashboard + Operational UX - COMPLETE
 
-### Sprint 9.1 - MVP Dashboard + Operational UX
-
-Planned dashboard and operational UX work. This does not mark Analytics as
+Implemented operational Overview, unified Inbox, Actions, Knowledge, Payments,
+Channels, Notifications, and role-aware Workspace/Settings in English and Thai.
+Overview reuses existing APIs; no aggregate dashboard endpoint or migration was
+added. This does not mark Analytics as
 implemented.
+
+## Planned
 
 ### Sprint 9.2 - SaaS Billing + Plans + Entitlements
 

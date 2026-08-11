@@ -5,6 +5,20 @@ routes derive user/workspace identity from authentication and return the common
 API response envelope. The list below reflects registered routers through
 Sprint 9.0; it is not a list of planned APIs.
 
+Sprint 9.1 adds no API route. Its Overview is a client-side operational
+composition of the existing list endpoints. Action transitions, conversation
+handoff/assignment, Knowledge rechunk/index operations, channel configuration,
+and notification reads continue to use their existing authenticated APIs and
+server-side authorization.
+
+ActionDefinition management authorization:
+
+- `GET /actions/definitions` and `GET /actions/definitions/{id}`: authenticated
+  workspace members.
+- `POST /actions/definitions` and `PATCH /actions/definitions/{id}`: workspace
+  owner/admin only.
+- No DELETE route. Lifecycle uses `is_active`; `key` is immutable after create.
+
 ## Auth
 
 - `POST /auth/register`, `/auth/login`, `/auth/verify-email`

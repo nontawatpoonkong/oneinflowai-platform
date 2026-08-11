@@ -79,7 +79,7 @@ components/
   landing/      # landing sections (hero, features, statistics, faq, …)
   dashboard/    # sidebar, stat-card, charts, server-health, overview
 providers/      # theme + TanStack Query providers
-hooks/          # useMounted, useMediaQuery, useScrolled, useDashboardOverview
+hooks/          # shared state and API query hooks
 services/       # axios client + mock dashboard service
 types/          # shared domain types
 lib/            # utils (cn), constants, animation presets, mock-data

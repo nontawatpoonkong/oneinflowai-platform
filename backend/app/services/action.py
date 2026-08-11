@@ -12,6 +12,7 @@ from app.core.exceptions import (
     ActionDefinitionConflictError,
     ActionNotFoundError,
     ActionTransitionError,
+    WorkspaceAccessDeniedError,
 )
 from app.models.action import (
     ActionActorType,
@@ -24,7 +25,7 @@ from app.models.action import (
 from app.models.conversation import Conversation
 from app.models.customer import Customer
 from app.models.notification import NotificationEntityType, NotificationType
-from app.models.workspace_member import WorkspaceMember
+from app.models.workspace_member import WorkspaceMember, WorkspaceRole
 from app.repositories.action import (
     ActionDefinitionRepository,
     ActionEventRepository,
@@ -62,6 +63,16 @@ class ActionService:
         self.actions = ActionRequestRepository(session)
         self.events = ActionEventRepository(session)
         self.validator = ActionPayloadValidator()
+
+    async def require_definition_admin(self, workspace_id, user_id) -> None:
+        role = await self.session.scalar(
+            select(WorkspaceMember.role).where(
+                WorkspaceMember.workspace_id == workspace_id,
+                WorkspaceMember.user_id == user_id,
+            )
+        )
+        if role not in {WorkspaceRole.OWNER, WorkspaceRole.ADMIN}:
+            raise WorkspaceAccessDeniedError()
 
     async def create_definition(self, workspace_id, data: ActionDefinitionCreate):
         if await self.definitions.get_by_key(workspace_id, data.key):

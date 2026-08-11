@@ -96,6 +96,7 @@ export type KnowledgeDocumentStatus =
   | "DELETED";
 
 export type KnowledgeSourceType = "UPLOAD" | "TEXT" | "URL" | "FAQ";
+export type KnowledgeIndexStatus = "PENDING" | "INDEXING" | "INDEXED" | "FAILED";
 
 export interface KnowledgeDocumentDTO {
   id: string;
@@ -106,6 +107,9 @@ export interface KnowledgeDocumentDTO {
   file_size: number;
   source_type: KnowledgeSourceType;
   status: KnowledgeDocumentStatus;
+  index_status: KnowledgeIndexStatus;
+  indexed_at: string | null;
+  index_error_code: string | null;
   language: string | null;
   created_by: string;
   created_at: string;

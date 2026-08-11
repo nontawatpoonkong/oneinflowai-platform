@@ -231,15 +231,16 @@ Implemented:
 - End-to-end WebChat routing for grounded answers, citations, action collection, explicit confirmation/cancellation, human mode, and concurrency-safe message idempotency.
 - Human handoff, workspace-safe conversation assignment, per-member read state, and deduplicated in-app operational notifications.
 - Shared text-first Channel Integration Layer for WebChat, LINE OA, and Facebook Page Messenger with authenticated webhooks, encrypted credentials, tenant-safe identity mapping, and truthful outbound delivery state.
+- MVP operational dashboard with a live Overview composed from existing APIs, unified Inbox filters and delivery state, Action and Payment work queues, Knowledge pipeline/index controls, Channels, Notifications, and role-aware Workspace views in English and Thai.
+- Workspace Action Type management for owner/admin users, including ordered required/optional fields, supported scalar/enum types, immutable keys, and enable/disable lifecycle; members retain read-only visibility.
 
 In development:
 
-- Product UI refinement and broader conversation workflows.
+- Further product UI refinement and broader conversation workflows.
 - Operational hardening and expanded knowledge ingestion formats.
 
 Planned:
 
-- Sprint 9.1: MVP Dashboard and Operational UX.
 - Sprint 9.2: OneInFlow SaaS Billing, plans, entitlements, and Slip Verification quota enforcement, separate from Customer Payment.
 - Sprint 9.3: authoritative production Slip Verification.
 - Sprint 9.4: Analytics and Insights.
@@ -271,6 +272,7 @@ The MVP provides a secure workspace-based conversation and operations foundation
 - [Sprint board](docs/07_SPRINT_BOARD.md)
 - [Deployment](docs/09_DEPLOYMENT.md)
 - [Channel integrations](docs/10_CHANNEL_INTEGRATIONS.md)
+- [MVP operations guide](docs/11_MVP_OPERATIONS.md)
 - [Changelog](docs/CHANGELOG.md)
 
 ## Naming compatibility

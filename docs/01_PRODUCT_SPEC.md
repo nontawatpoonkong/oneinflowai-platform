@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-Sprint 9.0, LINE OA + Facebook Page Messenger Integration, is the latest
+Sprint 9.1, MVP Dashboard and Operational UX, is the latest
 completed sprint.
 OneInFlow remains an MVP-stage AI-first Customer Operations Platform.
 
@@ -85,6 +85,21 @@ OneInFlow remains an MVP-stage AI-first Customer Operations Platform.
   enforcement exists.
 - No production slip-verification provider is claimed.
 - Analytics is planned.
+
+## Sprint 9.1 operational surface
+
+The authenticated product exposes Overview, Inbox, Actions, Knowledge,
+Payments, Channels, Notifications, and Workspace/Settings as the primary MVP
+workflow. Overview composes existing resource APIs and does not introduce an
+analytics or aggregate dashboard backend. Role-sensitive controls are hidden or
+read-only in the client while server authorization remains authoritative.
+
+Actions contains two concepts: the operational Queue and workspace-scoped
+Action Types. An ActionDefinition specifies the ordered information AI may
+collect. Collection still flows through deterministic server validation and
+customer confirmation before an ActionRequest reaches the Queue. Owners and
+admins may create, edit, enable, or disable definitions; members may view them.
+Keys are immutable and deletion is not exposed.
 - No fuzzy handoff classifier, grounding-failure auto-handoff, ML/team routing,
   or external fulfillment automation is implemented.
 

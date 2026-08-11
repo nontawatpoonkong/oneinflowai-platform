@@ -38,12 +38,13 @@ def _action(value):
 async def create_definition(
     payload: ActionDefinitionCreate,
     workspace: Workspace = Depends(get_current_workspace),
+    user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ):
+    service = ActionService(session)
+    await service.require_definition_admin(workspace.id, user.id)
     return success_response(
-        _definition(
-            await ActionService(session).create_definition(workspace.id, payload)
-        ),
+        _definition(await service.create_definition(workspace.id, payload)),
         "Action definition created",
     )
 
@@ -75,13 +76,14 @@ async def update_definition(
     definition_id: uuid.UUID,
     payload: ActionDefinitionUpdate,
     workspace: Workspace = Depends(get_current_workspace),
+    user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ):
+    service = ActionService(session)
+    await service.require_definition_admin(workspace.id, user.id)
     return success_response(
         _definition(
-            await ActionService(session).update_definition(
-                workspace.id, definition_id, payload
-            )
+            await service.update_definition(workspace.id, definition_id, payload)
         )
     )
 

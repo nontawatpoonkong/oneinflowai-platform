@@ -64,6 +64,11 @@ Raw provider responses are not stored. `SENT` is never resent on webhook retry;
 Webhook processing is synchronous in Sprint 9.0; there is no background channel
 queue or asynchronous outbound worker.
 
+Sprint 9.1 exposes connection status and role-aware configuration in the
+Channels dashboard. The UI states the current text-only limitation, never
+returns stored credentials, and shows safe recovery guidance for `ERROR`
+connections. Provider webhook and outbound security rules remain unchanged.
+
 ## Manual LINE sandbox checklist
 
 1. Create or select a LINE Developers Messaging API channel.
