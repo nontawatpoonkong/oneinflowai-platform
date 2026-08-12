@@ -273,6 +273,9 @@ In development:
 Planned:
 
 - Sprint 9.4: Analytics and Insights.
+- Sprint 9.4 operational Analytics is implemented from Workspace-scoped source
+  tables with UTC ranges, truthful KPI definitions, and management-only access.
+  See [Analytics and Insights](docs/14_ANALYTICS.md).
 - Sprint 9.5: MVP Hardening and Pilot.
 - Automatic external action execution.
 - External notification delivery, asynchronous processing, expanded observability, and production deployment guidance.

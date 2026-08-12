@@ -8,6 +8,9 @@ Sprint 9.3 consumes the configured `payments.slip_verification` entitlement and
 records production provider attempts in `saas_usage_records`. Quota values and
 provider pricing remain data/configuration, never Customer Payment logic.
 
+The reference subscription enables the Boolean `analytics.basic` entitlement.
+Analytics authorization evaluates entitlement data and never plan display names.
+
 ## Architecture
 
 `SaaSPlan → PlanEntitlement → WorkspaceSubscription → EntitlementService → product service`

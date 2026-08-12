@@ -593,6 +593,7 @@
       }
     }
   },
+  "analyticsDashboard": {"title":"Analytics","description":"Operational trends from data your workspace already owns.","loading":"Loading analytics...","error":"Unable to load analytics.","empty":"No data yet. Analytics will appear after customer activity.","days":"{count} days","conversations":"Conversations","customers":"Customers","aiHandled":"AI-handled","aiHelp":"Conversations with an AI response and no recorded human handoff. This is not a resolution or success rate.","actions":"Actions","verifiedPayments":"Verified payments","trend":"Conversation trend","channels":"Conversation channels","handling":"AI and human handling","handoffRate":"Handoff rate","handoffs":"Handoffs","actionOutcomes":"Action outcomes","completionRate":"Completion rate","payments":"Customer payments","verificationRate":"Verification rate","currentQueue":"Current queue snapshot","openActions":"Open actions","unassigned":"Unassigned actions","attention":"Conversations needing attention"},
   "billing": {
     "title": "Plan & Billing",
     "description": "OneInFlow subscription status, configured capabilities, and reliable usage meters.",

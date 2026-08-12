@@ -84,6 +84,8 @@ OneInFlow remains an MVP-stage AI-first Customer Operations Platform.
   subscription checkout is not.
 - EasySlip API v2 is the approved production slip-verification provider.
 - Analytics is planned.
+- Analytics is implemented for owner/admin operational insight using real
+  Workspace conversations, messages, Actions, Customer Payments, and queue state.
 
 ## Sprint 9.1 operational surface
 

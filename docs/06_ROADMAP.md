@@ -48,7 +48,9 @@ failures, Payment UX, tests, and documentation.
 
 ### Sprint 9.4 - Analytics + Insights
 
-Planned analytics and operational insights.
+**IMPLEMENTED.** Workspace-scoped operational KPIs, daily conversation trends,
+channel/handoff/Action/Customer Payment insights, current queue snapshot,
+management authorization, entitlement enforcement, and EN/TH dashboard.
 
 ### Sprint 9.5 - MVP Hardening + Pilot
 

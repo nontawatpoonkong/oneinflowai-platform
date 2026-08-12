@@ -72,6 +72,10 @@ Customer Payment is implemented for money paid to a workspace business.
 EasySlip API v2 production verification is isolated behind the provider-neutral
 contract; `PaymentVerificationService` remains authoritative. SaaS plans,
 entitlements, quota locking, and usage metering are implemented separately.
+
+Sprint 9.4 Analytics uses typed, Workspace-scoped PostgreSQL aggregates behind
+owner/admin and `analytics.basic` checks. AI-handled means AI response with no
+recorded handoff; never describe it as resolution, accuracy, or success.
 # SaaS billing context
 
 Never infer capabilities from a plan key. Use `EntitlementService`. Authorization

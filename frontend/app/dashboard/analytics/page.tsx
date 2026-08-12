@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import { BarChart3 } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
-import { PagePlaceholder } from "@/components/dashboard/page-placeholder";
+import { AnalyticsView } from "@/components/dashboard/analytics/analytics-view";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("meta");
@@ -10,15 +9,5 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AnalyticsPage() {
-  const tNav = await getTranslations("dashboard.nav");
-  const tp = await getTranslations("dashboard.placeholders");
-  const title = tNav("analytics");
-  return (
-    <PagePlaceholder
-      title={title}
-      comingSoonTitle={tp("comingSoonTitle", { title })}
-      description={tp("analytics")}
-      icon={BarChart3}
-    />
-  );
+  return <AnalyticsView />;
 }

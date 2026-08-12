@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 from app.action.router import router as action_router
 from app.action_collection.router import router as action_collection_router
+from app.analytics.router import router as analytics_router
 from app.auth.router import router as auth_router
 from app.billing.router import router as billing_router
 from app.channel.router import router as channel_router
@@ -17,6 +18,7 @@ from app.webchat.router import router as webchat_router
 from app.workspace.router import router as workspace_router
 
 api_router = APIRouter()
+api_router.include_router(analytics_router, prefix="/analytics", tags=["analytics"])
 api_router.include_router(channel_router, prefix="/channels", tags=["channels"])
 api_router.include_router(action_router, prefix="/actions", tags=["actions"])
 api_router.include_router(

@@ -151,3 +151,6 @@ centralizes capability and quota decisions separately from authorization.
 PostgreSQL advisory transaction locks protect derived count limits. Usage records
 contain quantities and safe provider/model metadata, never prompts or answers.
 Customer Payment tables do not reference or mutate SaaS subscriptions.
+Sprint 9.4 uses `PostgreSQL → AnalyticsService aggregate queries → typed API →
+Analytics dashboard`. Every query is Workspace-scoped; no warehouse, ETL,
+duplicate counters, or analytics cache is introduced.

@@ -65,6 +65,7 @@ invent an Action schema when no applicable active definition exists.
 
 ## Known limitations
 
-Analytics is planned for Sprint 9.4. There is no Instagram, media messaging,
+Analytics is implemented for entitled owners/admins with explicit UTC ranges
+and a separately labeled current queue snapshot. There is no Instagram, media messaging,
 channel read receipt, automatic outbound retry, WebSocket, or background channel
 processing in this sprint. Polling remains the current refresh mechanism.

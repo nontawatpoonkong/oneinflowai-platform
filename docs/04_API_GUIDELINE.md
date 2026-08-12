@@ -98,6 +98,13 @@ fields only. `GET /payments/{payment_id}/evidence` returns safe evidence metadat
 without storage keys or file content. EasySlip credentials and raw responses are
 never part of the public contract.
 
+## Analytics
+
+`GET /analytics/overview` accepts timezone-aware `start` and `end`, uses the UTC
+half-open range `[start, end)`, and is restricted to entitled Workspace
+owners/admins. Responses contain typed aggregates only and no customer content
+or payment evidence.
+
 - `POST|GET /payments/destinations`
 - `PATCH /payments/destinations/{destination_id}`
 - `POST|GET /payments`, `GET /payments/{payment_id}`

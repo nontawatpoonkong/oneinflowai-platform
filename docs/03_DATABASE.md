@@ -76,6 +76,10 @@ Sprint 9.3 requires no migration. Normalized EasySlip results fit the existing
 `saas_usage_records` meter. Raw responses and full account details are not
 persisted.
 
+Sprint 9.4 adds no table or migration. Analytics aggregate existing source
+tables and rely on their Workspace/status/date indexes. Query plans should be
+measured before adding a conversation date/channel composite index.
+
 ## Sprint 9.0 channel schema
 
 `channel_connections` is workspace-owned and unique by workspace, provider, and
