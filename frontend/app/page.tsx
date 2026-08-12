@@ -6,6 +6,7 @@ import { HowItWorks } from "@/components/landing/how-it-works";
 import { LiveMetrics } from "@/components/landing/live-metrics";
 import { SiteShell } from "@/components/layout/site-shell";
 import { GlowCursor } from "@/components/shared/glow-cursor";
+import { DemoChat } from "@/components/demo/demo-chat";
 
 // Below-the-fold sections are code-split (SSR kept for SEO).
 const DashboardPreview = dynamic(() =>
@@ -51,6 +52,7 @@ export default function LandingPage() {
         <Faq />
         <Cta />
       </SiteShell>
+      <DemoChat />
     </>
   );
 }

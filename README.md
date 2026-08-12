@@ -136,6 +136,24 @@ frontend/
 
 ## Local development
 
+### Public Demo Chat
+
+The landing-page AI demo is separate from tenant WebChat. It keeps history only
+in browser state and does not create tenant or operational database records.
+Answers use only the explicitly allowlisted public README/docs corpus and must
+contain valid source citations.
+
+`POST /api/v1/demo/chat` is protected before retrieval/generation by an atomic
+Redis fixed-window limit. Identity is a hash of the direct connection IP;
+forwarded headers are not trusted without an explicit trusted-proxy policy.
+Limit breaches return 429 with `Retry-After`. Redis failure returns 503 and no
+LLM call occurs. These limits protect public infrastructure and are not billing
+quotas or subscription entitlements.
+
+Configuration: `DEMO_CHAT_RATE_LIMIT_REQUESTS` (default `5`),
+`DEMO_CHAT_RATE_LIMIT_WINDOW_SECONDS` (default `60`), and
+`DEMO_CHAT_MAX_INPUT_CHARS` (default `1000`).
+
 Prerequisites: Python 3.12, `uv`, Node.js with npm, Docker, and Docker Compose.
 
 ```powershell

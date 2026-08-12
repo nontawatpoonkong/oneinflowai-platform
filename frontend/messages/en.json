@@ -40,6 +40,20 @@
     "online": "Online",
     "live": "live"
   },
+  "demoChat": {
+    "title": "Try OneInFlow AI",
+    "subtitle": "Answers from OneInFlow public documentation",
+    "welcome": "Ask about OneInFlow features and channels. History is not stored and clears when you refresh.",
+    "sources": "Sources",
+    "placeholder": "Ask about OneInFlow...",
+    "launcher": "Try AI",
+    "open": "Open demo chat",
+    "close": "Close demo chat",
+    "send": "Send message",
+    "rateLimited": "You have sent too many demo messages. Please wait a moment and try again.",
+    "unavailable": "The public demo is temporarily unavailable. Please try again later.",
+    "error": "Sorry, the demo could not answer right now."
+  },
   "nav": {
     "sections": {
       "features": "Features",

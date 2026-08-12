@@ -235,6 +235,22 @@ class GroundingValidationError(AppError):
     message = "Generated answer could not be verified against knowledge sources"
 
 
+class DemoRateLimitExceededError(AppError):
+    status_code = 429
+    code = "DEMO_RATE_LIMIT_EXCEEDED"
+    message = "Public demo request limit exceeded"
+
+    def __init__(self, retry_after_seconds: int) -> None:
+        self.headers = {"Retry-After": str(retry_after_seconds)}
+        super().__init__(details={"retry_after_seconds": retry_after_seconds})
+
+
+class DemoRateLimitUnavailableError(AppError):
+    status_code = 503
+    code = "DEMO_RATE_LIMIT_UNAVAILABLE"
+    message = "Public demo is temporarily unavailable"
+
+
 class ActionNotFoundError(AppError):
     status_code = 404
     code = "ACTION_NOT_FOUND"

@@ -56,6 +56,7 @@ def _register_exception_handlers(app: FastAPI) -> None:
     async def handle_app_error(request: Request, exc: AppError) -> JSONResponse:
         return JSONResponse(
             status_code=exc.status_code,
+            headers=getattr(exc, "headers", None),
             content=error_response(
                 message=exc.message, code=exc.code, details=exc.details
             ),

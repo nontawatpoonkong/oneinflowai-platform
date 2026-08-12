@@ -124,3 +124,17 @@ Action Type management reuses the existing `ActionDefinition` model and JSONB
 field arrays. `POST` and `PATCH` definition routes require an authenticated
 workspace owner/admin; member `GET` access remains available. Repository
 queries retain workspace predicates. No schema change or migration is needed.
+
+## Public Demo Chat boundary
+
+The landing-page Demo Chat is a stateless public product surface, not tenant
+WebChat or a production customer channel. Browser refresh clears its React-state
+history. Its API has no database dependency and retrieves only from the approved
+public documentation allowlist; answers require valid citations.
+
+Before retrieval or generation, a Redis Lua script atomically increments a
+fixed-window counter and applies expiry. Keys contain a SHA-256-derived client
+identity rather than the raw direct socket IP. `X-Forwarded-For` is deliberately
+ignored until deployment defines trusted proxies. Exceeded limits return 429
+with `Retry-After`; Redis failure returns 503 and prevents any LLM call. This
+ephemeral state is abuse protection, not tenant usage or entitlement data.

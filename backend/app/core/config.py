@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     GENERATION_TEMPERATURE: float = 0.2
     GENERATION_MAX_OUTPUT_TOKENS: int = 800
     GENERATION_REQUEST_TIMEOUT_SECONDS: float = 45
+    DEMO_CHAT_RATE_LIMIT_REQUESTS: int = 5
+    DEMO_CHAT_RATE_LIMIT_WINDOW_SECONDS: int = 60
+    DEMO_CHAT_MAX_INPUT_CHARS: int = 1000
     EMBEDDING_PROVIDER: str = "openai"
     OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
     EMBEDDING_BATCH_SIZE: int = 64
@@ -121,6 +124,12 @@ class Settings(BaseSettings):
             raise ValueError("GENERATION_MAX_OUTPUT_TOKENS must be positive")
         if self.GENERATION_REQUEST_TIMEOUT_SECONDS <= 0:
             raise ValueError("GENERATION_REQUEST_TIMEOUT_SECONDS must be positive")
+        if self.DEMO_CHAT_RATE_LIMIT_REQUESTS <= 0:
+            raise ValueError("DEMO_CHAT_RATE_LIMIT_REQUESTS must be positive")
+        if self.DEMO_CHAT_RATE_LIMIT_WINDOW_SECONDS <= 0:
+            raise ValueError("DEMO_CHAT_RATE_LIMIT_WINDOW_SECONDS must be positive")
+        if self.DEMO_CHAT_MAX_INPUT_CHARS <= 0:
+            raise ValueError("DEMO_CHAT_MAX_INPUT_CHARS must be positive")
         return self
 
     # ------------------------------------------------------------------ App
