@@ -11,6 +11,7 @@ from app.core.exceptions import NotFoundError, WorkspaceAccessDeniedError
 from app.integrations.channels.security import ChannelCredentialCipher
 from app.models.channel import ChannelConnection, ChannelConnectionStatus
 from app.models.workspace_member import WorkspaceMember, WorkspaceRole
+from app.services.entitlement import EntitlementService
 
 
 class ChannelConnectionService:
@@ -42,6 +43,9 @@ class ChannelConnectionService:
         await self.require_admin(workspace_id, user_id)
         if provider not in {ChannelType.LINE, ChannelType.FACEBOOK}:
             raise ValueError("Unsupported channel provider")
+        await EntitlementService(self.session).require(
+            workspace_id, f"channels.{provider.value}"
+        )
         connection = ChannelConnection(
             id=uuid.uuid4(),
             workspace_id=workspace_id,

@@ -18,7 +18,8 @@
     "knowledge": "Knowledge Base",
     "analytics": "Analytics",
     "integrations": "Integrations",
-    "workspace": "Workspace",
+        "workspace": "Workspace",
+        "billing": "Plan & Billing",
     "settings": "Settings",
     "notFound": "Page not found"
   },
@@ -591,6 +592,23 @@
         "hoursUnit": "hrs"
       }
     }
+  },
+  "billing": {
+    "title": "Plan & Billing",
+    "description": "OneInFlow subscription status, configured capabilities, and reliable usage meters.",
+    "currentPlan": "Current plan",
+    "noPlan": "No active plan",
+    "usage": "Usage and limits",
+    "availablePlans": "Configured plans",
+    "unlimited": "Unlimited",
+    "notMetered": "Not metered",
+    "remaining": "{count} remaining",
+    "checkoutUnavailable": "Production checkout is not configured",
+    "checkoutExplanation": "Plan changes and purchases are unavailable until a verified billing provider is selected.",
+    "provisional": "Pricing v0.1 is a configurable working hypothesis, not final production pricing.",
+    "capabilities": "enabled capabilities",
+    "error": "Unable to load billing information.",
+    "retry": "Try again"
   },
   "operations": {
     "overview": {"title":"Operations overview","description":"A current snapshot composed from existing workspace services.","attention":"Conversations needing attention","openActions":"Open actions","knowledgeReady":"Ready knowledge documents","pendingPayments":"Pending payment checks","connectedChannels":"Available channels","unreadNotifications":"Unread notifications","recentConversations":"Recent conversations","emptyConversations":"No conversations yet.","unread":"{count} unread","error":"Some operational data could not be loaded.","retry":"Retry"},

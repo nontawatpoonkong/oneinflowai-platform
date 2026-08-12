@@ -100,6 +100,19 @@ The Action queue remains manual-first and `AUTOMATED` is metadata only. AI-assis
 
 ## Customer payment and slip verification
 
+Customer Payment is money paid by an end customer to a Workspace business. It
+is not OneInFlow SaaS billing.
+
+## SaaS billing and entitlements
+
+Sprint 9.2 adds data-driven plans, one effective Workspace subscription,
+explicit boolean/limited/unlimited entitlements, billing-period usage, and
+central server-side enforcement. Derived counts remain sourced from members,
+Action Types, and Knowledge documents; AI usage records only real requests and
+provider-reported tokens. Pricing v0.1 is provisional reference data. Production
+checkout, plan mutation, automatic overage charging, and a verified billing
+provider are not implemented. See [SaaS Billing](docs/12_SAAS_BILLING.md).
+
 Customer Payment records money a customer pays directly to a workspace business; it is separate from money a workspace may later pay OneInFlow for SaaS Billing. The implemented flow is Customer → workspace payment destination → evidence upload → provider-neutral SlipVerificationProvider → PaymentVerificationService → verified or safely rejected/duplicate/expired state → linked Action remains available for human fulfillment.
 
 Evidence is limited to signature-validated JPEG/PNG files in opaque storage. Amounts use exact decimal NUMERIC values, receiver and amount matches are mandatory, and reused evidence or transaction references cannot verify multiple workspace payments. AI has no route that can mark a payment verified. The deterministic provider is development/test-only; no authoritative bank provider or OCR-only verification is claimed. SaaS subscription billing remains separate and planned.

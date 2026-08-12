@@ -21,6 +21,7 @@ from app.schemas.message import MessageCreate
 from app.schemas.webchat import WebChatSessionCreate
 from app.services.conversation import ConversationService
 from app.services.customer import CustomerService
+from app.services.entitlement import EntitlementService
 from app.services.message import MessageService
 
 
@@ -55,6 +56,9 @@ class WebChatService:
         workspace = await self.workspaces.get_by_slug(data.workspace_key)
         if workspace is None:
             raise NotFoundError("Workspace not found")
+        await EntitlementService(self.session).require(
+            workspace.id, "channels.webchat"
+        )
 
         # TODO: When verified visitor identity exists, use this flag to enable a
         # carefully scoped merge implementation. Public email/phone is unverified.

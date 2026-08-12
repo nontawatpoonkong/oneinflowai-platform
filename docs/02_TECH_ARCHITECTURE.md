@@ -138,3 +138,10 @@ identity rather than the raw direct socket IP. `X-Forwarded-For` is deliberately
 ignored until deployment defines trusted proxies. Exceeded limits return 429
 with `Retry-After`; Redis failure returns 503 and prevents any LLM call. This
 ephemeral state is abuse protection, not tenant usage or entitlement data.
+# Sprint 9.2 SaaS Billing architecture
+
+`SaaSPlan → PlanEntitlement → WorkspaceSubscription → EntitlementService`
+centralizes capability and quota decisions separately from authorization.
+PostgreSQL advisory transaction locks protect derived count limits. Usage records
+contain quantities and safe provider/model metadata, never prompts or answers.
+Customer Payment tables do not reference or mutate SaaS subscriptions.

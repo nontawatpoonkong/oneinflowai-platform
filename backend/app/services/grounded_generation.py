@@ -16,6 +16,7 @@ from app.integrations.generation import (
     create_generation_provider,
 )
 from app.rag import RAGContextSource
+from app.services.entitlement import AI_REQUESTS, AI_TOKENS, EntitlementService
 from app.services.rag_preparation import RAGPreparationService
 
 logger = get_logger(__name__)
@@ -117,6 +118,11 @@ class GroundedGenerationService:
         document_id: uuid.UUID | None = None,
     ) -> GroundedAnswer:
         started = time.perf_counter()
+        session = getattr(self.preparation, "session", None)
+        entitlements = EntitlementService(session) if session is not None else None
+        if entitlements is not None:
+            await entitlements.require(workspace_id, "ai.enabled")
+            await entitlements.require_capacity(workspace_id, AI_REQUESTS)
         package = await self.preparation.prepare(
             workspace_id=workspace_id,
             query=query,
@@ -149,6 +155,24 @@ class GroundedGenerationService:
             )
         )
         citations = validate_citations(result.text, package.sources)
+        if entitlements is not None:
+            await entitlements.record(
+                workspace_id,
+                AI_REQUESTS,
+                1,
+                provider=result.provider,
+                model=result.model,
+            )
+        if entitlements is not None and result.total_tokens is not None:
+            await entitlements.record(
+                workspace_id,
+                AI_TOKENS,
+                result.total_tokens,
+                provider=result.provider,
+                model=result.model,
+            )
+        if entitlements is not None:
+            await session.commit()
         answer = GroundedAnswer(
             query=package.context.query,
             answer=result.text,

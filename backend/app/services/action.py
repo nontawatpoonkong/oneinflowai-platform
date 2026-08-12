@@ -37,6 +37,7 @@ from app.schemas.action import (
     ActionDefinitionUpdate,
 )
 from app.services.action_validation import ActionPayloadValidator
+from app.services.entitlement import ACTION_TYPES, EntitlementService
 from app.services.notification import NotificationService
 
 _TRANSITIONS = {
@@ -75,6 +76,9 @@ class ActionService:
             raise WorkspaceAccessDeniedError()
 
     async def create_definition(self, workspace_id, data: ActionDefinitionCreate):
+        await EntitlementService(self.session).require_capacity(
+            workspace_id, ACTION_TYPES
+        )
         if await self.definitions.get_by_key(workspace_id, data.key):
             raise ActionDefinitionConflictError()
         definition = ActionDefinition(

@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from app.action.router import router as action_router
 from app.action_collection.router import router as action_collection_router
 from app.auth.router import router as auth_router
+from app.billing.router import router as billing_router
 from app.channel.router import router as channel_router
 from app.conversation.router import router as conversation_router
 from app.customer.router import router as customer_router
@@ -24,6 +25,7 @@ api_router.include_router(
     tags=["action-collections"],
 )
 api_router.include_router(auth_router, prefix="/auth", tags=["auth"])
+api_router.include_router(billing_router, prefix="/billing", tags=["billing"])
 api_router.include_router(workspace_router, prefix="/workspaces", tags=["workspaces"])
 api_router.include_router(customer_router, prefix="/customers", tags=["customers"])
 api_router.include_router(demo_router, prefix="/demo", tags=["demo"])

@@ -251,6 +251,24 @@ class DemoRateLimitUnavailableError(AppError):
     message = "Public demo is temporarily unavailable"
 
 
+class SubscriptionRequiredError(AppError):
+    status_code = 403
+    code = "SUBSCRIPTION_REQUIRED"
+    message = "An active subscription is required for this capability"
+
+
+class EntitlementDeniedError(AppError):
+    status_code = 403
+    code = "ENTITLEMENT_DENIED"
+    message = "The current plan does not include this capability"
+
+
+class EntitlementQuotaExceededError(AppError):
+    status_code = 409
+    code = "ENTITLEMENT_QUOTA_EXCEEDED"
+    message = "The current plan limit has been reached"
+
+
 class ActionNotFoundError(AppError):
     status_code = 404
     code = "ACTION_NOT_FOUND"

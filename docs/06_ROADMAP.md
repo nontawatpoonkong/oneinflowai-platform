@@ -58,3 +58,9 @@ Planned security, observability, operational hardening, and pilot readiness.
 Instagram, external notification delivery, and automated external fulfillment
 remain later work unless assigned to a future sprint. No release date,
 production SLA, pricing, or performance claim is established here.
+# Sprint 9.2 — SaaS Billing foundation
+
+Implemented: data-driven plans, Workspace subscriptions, central entitlements,
+derived and metered usage, server-side quota checks, and truthful Billing UI.
+Planned: verified production checkout/provider, webhook processing, finalized
+prices/quotas, and monetary overage charging.

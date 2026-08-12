@@ -34,6 +34,7 @@ from app.repositories.knowledge_document_content import (
     KnowledgeDocumentContentRepository,
 )
 from app.services.chunking import ChunkingService
+from app.services.entitlement import KNOWLEDGE_DOCUMENTS, EntitlementService
 from app.storage import StorageProvider, create_storage_provider
 
 _ALLOWED_TYPES: dict[str, set[str]] = {
@@ -74,6 +75,9 @@ class KnowledgeDocumentService:
         title: str | None,
         language: str | None,
     ) -> KnowledgeDocument:
+        await EntitlementService(self.session).require_capacity(
+            workspace_id, KNOWLEDGE_DOCUMENTS
+        )
         filename = Path(file.filename or "").name
         extension = Path(filename).suffix.lower()
         content_type = (file.content_type or "").lower()

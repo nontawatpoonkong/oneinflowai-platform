@@ -85,3 +85,12 @@ the trusted outbound adapter.
 sent timestamp. It stores no raw provider response or credentials.
 
 Current Alembic head is `b8c9d0e1f2a3`.
+# SaaS billing tables
+
+- `saas_plans`: configurable plan and provisional pricing metadata
+- `plan_entitlements`: boolean, limited, or unlimited capabilities
+- `workspace_subscriptions`: period and lifecycle per Workspace
+- `saas_usage_records`: append-only metered quantities
+
+These tables are intentionally separate from `payments`, `payment_evidence`, and
+`payment_verifications`, which represent end-customer payments.

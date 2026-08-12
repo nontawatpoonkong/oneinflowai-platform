@@ -71,3 +71,8 @@ product.
 Customer Payment is an implemented foundation for money paid to a workspace
 business. OneInFlow SaaS Billing, plans, entitlements, and quotas are planned for
 Sprint 9.2. Production Slip Verification is planned for Sprint 9.3.
+# SaaS billing context
+
+Never infer capabilities from a plan key. Use `EntitlementService`. Authorization
+and entitlement checks are independent. Do not treat Customer Payment as SaaS
+billing, fabricate token usage, promise final Pricing v0.1, or expose self-upgrade.

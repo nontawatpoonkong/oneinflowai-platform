@@ -122,3 +122,10 @@ Configuration is workspace-admin-only and responses omit credentials. LINE
 validates `X-Line-Signature`. Facebook performs its GET verification handshake
 and validates POST `X-Hub-Signature-256`. Webhooks cannot choose a workspace or
 supply trusted provider credentials.
+# Billing API
+
+Billing endpoints are authenticated and scoped to the current Workspace:
+`GET /billing/plans`, `/billing/subscription`, `/billing/entitlements`, and
+`/billing/usage`. There is no public mutation, checkout, or self-upgrade API.
+Quota failures use `ENTITLEMENT_QUOTA_EXCEEDED`; unavailable subscriptions and
+capabilities use structured subscription/entitlement errors.

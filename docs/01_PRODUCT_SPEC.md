@@ -115,3 +115,9 @@ commercial plan names are not defined here.
 Customer Payment means money paid by a workspace's customer to that workspace.
 OneInFlow SaaS Billing means a workspace paying OneInFlow for a subscription.
 These are separate domains.
+# Sprint 9.2 SaaS Billing
+
+OneInFlow subscription billing is distinct from Workspace Customer Payment.
+Workspaces receive data-driven plan entitlements and billing-period usage.
+Pricing v0.1 remains a working hypothesis. No production checkout or free
+self-upgrade exists.

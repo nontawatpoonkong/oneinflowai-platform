@@ -17,6 +17,7 @@ from app.models.workspace import Workspace
 from app.models.workspace_member import WorkspaceMember, WorkspaceRole
 from app.repositories.workspace import WorkspaceRepository
 from app.repositories.workspace_member import WorkspaceMemberRepository
+from app.services.entitlement import EntitlementService
 from app.utils.slug import RESERVED_SLUGS, generate_unique_slug, slugify
 
 
@@ -46,6 +47,9 @@ class WorkspaceService:
             role=WorkspaceRole.OWNER,
         )
         await self.members.add(membership)
+        await EntitlementService(self.session).provision_reference_subscription(
+            workspace.id
+        )
         return workspace
 
     async def create_workspace(self, *, owner_id: uuid.UUID, name: str) -> Workspace:

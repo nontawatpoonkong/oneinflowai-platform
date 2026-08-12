@@ -101,13 +101,23 @@ __all__ = [
     "PaymentEvidence",
     "PaymentStatus",
     "PaymentVerification",
+    "PlanEntitlement",
     "VerificationStatus",
     "SenderType",
+    "SaaSPlan",
+    "SaaSUsageRecord",
     "User",
     "VerificationChallenge",
     "VerificationPurpose",
     "Workspace",
     "WorkspaceMember",
     "WorkspaceRole",
+    "WorkspaceSubscription",
     "WebChatSession",
 ]
+from app.models.billing import (
+    PlanEntitlement,
+    SaaSPlan,
+    SaaSUsageRecord,
+    WorkspaceSubscription,
+)
