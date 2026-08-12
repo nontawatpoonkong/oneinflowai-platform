@@ -76,6 +76,12 @@ Provider/model output is untrusted. Knowledge cannot override system authority;
 Action creation requires deterministic validation and explicit confirmation;
 AI cannot mark a Customer Payment `VERIFIED`.
 
+Sprint 9.3 adds an isolated EasySlip API v2 adapter. Validated evidence bytes
+are sent with a bounded timeout and mapped to normalized fields only. Before the
+call, `EntitlementService` reserves `payments.slip_verification` usage under an
+advisory transaction lock. `PaymentVerificationService` independently checks
+amount, currency, receiver and duplicates and remains the final authority.
+
 ## Security boundaries
 
 - Authenticated workspace context scopes staff operations; assignment targets

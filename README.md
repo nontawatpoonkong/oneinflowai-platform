@@ -113,11 +113,11 @@ provider-reported tokens. Pricing v0.1 is provisional reference data. Production
 checkout, plan mutation, automatic overage charging, and a verified billing
 provider are not implemented. See [SaaS Billing](docs/12_SAAS_BILLING.md).
 
-Customer Payment records money a customer pays directly to a workspace business; it is separate from money a workspace may later pay OneInFlow for SaaS Billing. The implemented flow is Customer → workspace payment destination → evidence upload → provider-neutral SlipVerificationProvider → PaymentVerificationService → verified or safely rejected/duplicate/expired state → linked Action remains available for human fulfillment.
+Customer Payment records money a customer pays directly to a workspace business; it is separate from OneInFlow SaaS Billing. The production flow uses EasySlip API v2 behind the provider-neutral `SlipVerificationProvider`, followed by deterministic `PaymentVerificationService` validation. The linked Action remains available for human fulfillment.
 
-Evidence is limited to signature-validated JPEG/PNG files in opaque storage. Amounts use exact decimal NUMERIC values, receiver and amount matches are mandatory, and reused evidence or transaction references cannot verify multiple workspace payments. AI has no route that can mark a payment verified. The deterministic provider is development/test-only; no authoritative bank provider or OCR-only verification is claimed. SaaS subscription billing remains separate and planned.
+Evidence is limited to signature-validated JPEG/PNG files in opaque storage. Amount, currency, receiver, evidence hash, and transaction reference are checked by OneInFlow; EasySlip cannot directly mark a Payment verified. Raw provider responses and full account data are not persisted.
 
-Slip Verification is not included in Plan 1. Plan 2 and higher include a monthly verification quota. The SaaS Billing/Entitlement system planned for Sprint 9.2 owns quota definitions and subscription-policy behavior when a quota is exceeded. Sprint 8.8 intentionally contains no plan, subscription, or entitlement checks: the Customer Payment domain records and verifies business transactions independently of OneInFlow SaaS billing.
+Slip Verification availability and quota come only from configured `PlanEntitlement` data. Usage is reserved safely before a production provider attempt; unavailable or exhausted entitlements are denied first. Provider pricing is external and is not hard-coded. See [Production Slip Verification](docs/13_SLIP_VERIFICATION.md).
 
 ## AI-assisted action collection and confirmation
 
@@ -272,8 +272,6 @@ In development:
 
 Planned:
 
-- Sprint 9.2: OneInFlow SaaS Billing, plans, entitlements, and Slip Verification quota enforcement, separate from Customer Payment.
-- Sprint 9.3: authoritative production Slip Verification.
 - Sprint 9.4: Analytics and Insights.
 - Sprint 9.5: MVP Hardening and Pilot.
 - Automatic external action execution.
@@ -290,7 +288,7 @@ Planned:
 
 ## MVP scope
 
-The MVP provides a secure workspace-based conversation and operations foundation with implemented WebChat, LINE OA, Facebook Page Messenger, grounded AI, Action workflows, Customer Payment foundations, and human collaboration. It does not yet provide Instagram, external notification delivery, SaaS billing/entitlement enforcement, production bank slip verification, Analytics, or a production hosted-service guarantee.
+The MVP provides WebChat, LINE OA and Facebook text messaging, grounded AI, Actions, Customer Payment with EasySlip v2 verification, SaaS entitlements, and human collaboration. It does not yet provide Instagram, LINE/Facebook media ingestion, Analytics, production subscription checkout, or a production hosted-service guarantee.
 
 ## Documentation
 

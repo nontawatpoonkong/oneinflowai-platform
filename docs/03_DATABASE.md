@@ -71,6 +71,11 @@ Defined notification types are `CONVERSATION_HANDOFF`,
 - Payment evidence and verification tables retain their model-defined duplicate
   protections; they are independent from OneInFlow SaaS Billing.
 
+Sprint 9.3 requires no migration. Normalized EasySlip results fit the existing
+`payment_verifications` fields, and provider attempts use the existing
+`saas_usage_records` meter. Raw responses and full account details are not
+persisted.
+
 ## Sprint 9.0 channel schema
 
 `channel_connections` is workspace-owned and unique by workspace, provider, and

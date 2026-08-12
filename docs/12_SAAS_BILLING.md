@@ -4,6 +4,10 @@ Sprint 9.2 implements OneInFlow subscription foundations for a Workspace paying
 OneInFlow. This is a separate domain from Customer Payment, where an end
 customer pays a hotel, shop, clinic, or other Workspace business.
 
+Sprint 9.3 consumes the configured `payments.slip_verification` entitlement and
+records production provider attempts in `saas_usage_records`. Quota values and
+provider pricing remain data/configuration, never Customer Payment logic.
+
 ## Architecture
 
 `SaaSPlan → PlanEntitlement → WorkspaceSubscription → EntitlementService → product service`

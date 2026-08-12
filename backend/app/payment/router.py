@@ -126,6 +126,20 @@ async def submit_evidence(
     )
 
 
+@router.get("/{payment_id}/evidence")
+async def get_evidence(
+    payment_id: uuid.UUID,
+    workspace: Workspace = Depends(get_current_workspace),
+    session: AsyncSession = Depends(get_db),
+):
+    evidence = await PaymentService(session).get_evidence(workspace.id, payment_id)
+    return success_response(
+        PaymentEvidenceResponse.model_validate(
+            evidence, from_attributes=True
+        ).model_dump(mode="json")
+    )
+
+
 @router.post("/{payment_id}/verify")
 async def verify_payment(
     payment_id: uuid.UUID,

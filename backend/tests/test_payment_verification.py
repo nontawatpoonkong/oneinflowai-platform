@@ -28,7 +28,7 @@ def payment_storage(tmp_path: Path, monkeypatch):
 
 
 class FixtureProvider:
-    name = "fixture"
+    name = "development"
 
     def __init__(self, result=None, failure=None):
         self.result = result
@@ -49,7 +49,10 @@ def _result(**overrides):
         "currency": "THB",
         "transfer_reference": "transfer-ref",
         "transferred_at": datetime.now(UTC),
-        "receiver_match": True,
+        "receiver_name": "OneInFlow Shop",
+        "receiver_account_masked": "xxx-x-x1234-x",
+        "receiver_bank": None,
+        "duplicate_reference_signal": False,
     }
     values.update(overrides)
     return SlipVerificationResult(**values)
@@ -63,7 +66,18 @@ def _use_provider(monkeypatch, provider):
 
 @pytest.mark.asyncio
 async def test_development_provider_is_deterministic_without_network() -> None:
-    request = SlipVerificationRequest("a" * 64, Decimal("100.00"), "THB", "destination")
+    request = SlipVerificationRequest(
+        content_hash="a" * 64,
+        content=b"test",
+        mime_type="image/jpeg",
+        expected_amount=Decimal("100.00"),
+        currency="THB",
+        destination_bank_code=None,
+        destination_bank_name=None,
+        destination_account_name="OneInFlow Shop",
+        destination_account_masked="xxx-x-x1234-x",
+        destination_promptpay_last4=None,
+    )
     provider = DevelopmentSlipVerificationProvider()
     first = await provider.verify(request)
     second = await provider.verify(request)
@@ -134,7 +148,7 @@ def test_expired_payment_never_verifies(client_db: TestClient) -> None:
     "result",
     [
         _result(amount=Decimal("1234.49")),
-        _result(receiver_match=False),
+        _result(receiver_name="Wrong Receiver", receiver_account_masked="xxx9999"),
         _result(is_valid=False),
     ],
     ids=["amount-mismatch", "receiver-mismatch", "provider-invalid"],

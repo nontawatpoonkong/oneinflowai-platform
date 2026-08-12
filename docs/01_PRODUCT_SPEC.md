@@ -56,9 +56,8 @@ OneInFlow remains an MVP-stage AI-first Customer Operations Platform.
 - Workspace payment destinations, Customer Payment records, evidence upload,
   duplicate controls, provider-neutral slip verification, verification history,
   and optional Action linkage.
-- The deterministic verification provider is for development/tests. The product
-  does not claim authoritative production bank verification, supported banks,
-  accuracy, or OCR-only verification.
+- EasySlip API v2 supplies production transaction evidence while OneInFlow
+  remains authoritative for amount, currency, receiver and duplicate checks.
 
 ### Human operations
 
@@ -81,9 +80,9 @@ OneInFlow remains an MVP-stage AI-first Customer Operations Platform.
   messages, and advanced provider templates are not implemented.
 - No email notification delivery, SMS, browser Web Push, mobile push, external
   notification channel, or background notification worker exists.
-- No SaaS subscription billing, plan entitlement enforcement, or quota
-  enforcement exists.
-- No production slip-verification provider is claimed.
+- SaaS plan entitlements and quota enforcement are implemented; production
+  subscription checkout is not.
+- EasySlip API v2 is the approved production slip-verification provider.
 - Analytics is planned.
 
 ## Sprint 9.1 operational surface

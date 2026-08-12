@@ -32,6 +32,7 @@ ACTION_TYPES = "actions.types"
 KNOWLEDGE_DOCUMENTS = "knowledge.documents"
 AI_REQUESTS = "ai.requests"
 AI_TOKENS = "ai.tokens"
+SLIP_VERIFICATIONS = "payments.slip_verification"
 
 _REFERENCE_ENTITLEMENTS = {
     "channels.webchat": (EntitlementKind.BOOLEAN, True, None),
@@ -45,7 +46,7 @@ _REFERENCE_ENTITLEMENTS = {
     ACTION_TYPES: (EntitlementKind.LIMITED, True, 100),
     TEAM_MEMBERS: (EntitlementKind.LIMITED, True, 20),
     "payments.customer": (EntitlementKind.BOOLEAN, True, None),
-    "payments.slip_verification": (EntitlementKind.BOOLEAN, False, None),
+    SLIP_VERIFICATIONS: (EntitlementKind.BOOLEAN, False, None),
 }
 
 

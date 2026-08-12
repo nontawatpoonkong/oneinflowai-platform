@@ -93,6 +93,11 @@ Sequential and concurrent duplicate requests recover their persisted result.
 
 ## Customer Payment
 
+`POST /payments/{payment_id}/verify` returns normalized Payment and verification
+fields only. `GET /payments/{payment_id}/evidence` returns safe evidence metadata
+without storage keys or file content. EasySlip credentials and raw responses are
+never part of the public contract.
+
 - `POST|GET /payments/destinations`
 - `PATCH /payments/destinations/{destination_id}`
 - `POST|GET /payments`, `GET /payments/{payment_id}`

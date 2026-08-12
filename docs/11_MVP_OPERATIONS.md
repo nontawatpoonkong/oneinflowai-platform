@@ -17,8 +17,9 @@ API.
   members see a read-only list.
 - **Knowledge**: uploads, extraction/chunk status, vector-index status,
   transaction-safe rechunk retry, indexing, and deletion.
-- **Payments**: Customer Payment records, verification result, amount, masked
-  destination, and timestamps. SaaS Billing policy is not implemented here.
+- **Payments**: Customer Payment records, safe evidence metadata, normalized
+  EasySlip result, amount, masked destination, and timestamps. SaaS Billing is
+  a separate domain.
 - **Channels**: WebChat availability and LINE/Facebook connection status;
   owner/admin configuration with write-only secrets and text-only limitations.
 - **Notifications**: recipient-scoped operational notifications with safe deep
@@ -65,6 +66,5 @@ invent an Action schema when no applicable active definition exists.
 ## Known limitations
 
 Analytics is planned for Sprint 9.4. There is no Instagram, media messaging,
-channel read receipt, automatic outbound retry, production Slip Verification,
-SaaS Billing entitlement enforcement, WebSocket, or background channel
+channel read receipt, automatic outbound retry, WebSocket, or background channel
 processing in this sprint. Polling remains the current refresh mechanism.

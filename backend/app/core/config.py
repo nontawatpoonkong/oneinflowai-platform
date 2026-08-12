@@ -60,6 +60,8 @@ class Settings(BaseSettings):
     RAG_MAX_SOURCES: int = 8
     PAYMENT_EVIDENCE_MAX_FILE_SIZE_BYTES: int = 5 * 1024 * 1024
     SLIP_VERIFICATION_PROVIDER: str = "development"
+    EASYSLIP_API_KEY: str | None = None
+    SLIP_VERIFICATION_TIMEOUT_SECONDS: float = 10.0
     ACTION_COLLECTION_PROVIDER: str = "development"
     ACTION_COLLECTION_SESSION_TTL_MINUTES: int = 30
 
@@ -110,6 +112,8 @@ class Settings(BaseSettings):
             raise ValueError("PAYMENT_EVIDENCE_MAX_FILE_SIZE_BYTES must be positive")
         if not self.SLIP_VERIFICATION_PROVIDER.strip():
             raise ValueError("SLIP_VERIFICATION_PROVIDER must not be empty")
+        if self.SLIP_VERIFICATION_TIMEOUT_SECONDS <= 0:
+            raise ValueError("SLIP_VERIFICATION_TIMEOUT_SECONDS must be positive")
         if not self.ACTION_COLLECTION_PROVIDER.strip():
             raise ValueError("ACTION_COLLECTION_PROVIDER must not be empty")
         if self.ACTION_COLLECTION_SESSION_TTL_MINUTES <= 0:

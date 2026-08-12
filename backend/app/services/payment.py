@@ -1,6 +1,7 @@
 """Customer payment creation, hardened evidence storage, and verification."""
 
 import hashlib
+import re
 import uuid
 from contextlib import suppress
 from datetime import UTC, datetime
@@ -20,6 +21,7 @@ from app.core.exceptions import (
 )
 from app.integrations.slip_verification import (
     SlipVerificationProvider,
+    SlipVerificationProviderError,
     SlipVerificationRequest,
 )
 from app.models.action import ActionRequest
@@ -45,6 +47,7 @@ from app.schemas.payment import (
     PaymentDestinationCreate,
     PaymentDestinationUpdate,
 )
+from app.services.entitlement import SLIP_VERIFICATIONS, EntitlementService
 from app.services.notification import NotificationService
 from app.storage import StorageProvider, create_storage_provider
 
@@ -180,6 +183,13 @@ class PaymentService:
             raise
         return evidence
 
+    async def get_evidence(self, workspace_id, payment_id):
+        await self.get(workspace_id, payment_id)
+        evidence = await self.evidence.get_for_payment(workspace_id, payment_id)
+        if not evidence:
+            raise PaymentEvidenceError("Payment evidence not found")
+        return evidence
+
     async def _read_limited(self, file):
         maximum = self.settings.PAYMENT_EVIDENCE_MAX_FILE_SIZE_BYTES
         data = bytearray()
@@ -212,10 +222,12 @@ class PaymentVerificationService:
         provider: SlipVerificationProvider,
         *,
         settings: Settings | None = None,
+        storage: StorageProvider | None = None,
     ):
         self.session = session
         self.provider = provider
         self.settings = settings or get_settings()
+        self.storage = storage or create_storage_provider(self.settings)
         self.payments = PaymentRepository(session)
         self.destinations = PaymentDestinationRepository(session)
         self.evidence = PaymentEvidenceRepository(session)
@@ -225,6 +237,8 @@ class PaymentVerificationService:
         payment = await self.payments.get(workspace_id, payment_id)
         if not payment:
             raise PaymentNotFoundError()
+        if payment.status == PaymentStatus.VERIFIED:
+            return payment, await self.verifications.latest(workspace_id, payment.id)
         if payment.expires_at and payment.expires_at <= datetime.now(UTC):
             payment.status = PaymentStatus.EXPIRED
             await self.session.commit()
@@ -236,29 +250,50 @@ class PaymentVerificationService:
         destination = await self.destinations.get(
             workspace_id, payment.payment_destination_id
         )
+        content = await self.storage.read(key=evidence.storage_key)
+        if (
+            len(content) != evidence.file_size
+            or hashlib.sha256(content).hexdigest() != evidence.content_hash
+        ):
+            raise PaymentEvidenceError()
+        if self.provider.name == "easyslip_v2" and len(content) > 4 * 1024 * 1024:
+            raise PaymentEvidenceTooLargeError()
+        if self.provider.name != "development":
+            entitlements = EntitlementService(self.session)
+            await entitlements.require_capacity(workspace_id, SLIP_VERIFICATIONS)
+            await entitlements.record(
+                workspace_id, SLIP_VERIFICATIONS, 1, provider=self.provider.name
+            )
+            # Commit the reservation while the advisory transaction lock is held,
+            # then release it before the bounded external request.
+            await self.session.commit()
         payment.status = PaymentStatus.VERIFYING
         await self.session.commit()
         try:
             result = await self.provider.verify(
                 SlipVerificationRequest(
-                    evidence.content_hash,
-                    payment.expected_amount,
-                    payment.currency,
-                    str(destination.id),
+                    content_hash=evidence.content_hash,
+                    content=content,
+                    mime_type=evidence.mime_type,
+                    expected_amount=payment.expected_amount,
+                    currency=payment.currency,
+                    destination_bank_code=destination.bank_code,
+                    destination_bank_name=destination.bank_name,
+                    destination_account_name=destination.account_name,
+                    destination_account_masked=destination.account_number_masked,
+                    destination_promptpay_last4=destination.promptpay_identifier_last4,
                 )
             )
+        except SlipVerificationProviderError as exc:
+            await self._record_provider_error(workspace_id, payment, evidence, exc.code)
+            raise PaymentVerificationProviderError() from exc
         except Exception as exc:
-            payment.status = PaymentStatus.PENDING
-            verification = PaymentVerification(
-                workspace_id=workspace_id,
-                payment_id=payment.id,
-                evidence_id=evidence.id,
-                provider=self.provider.name,
-                status=VerificationStatus.ERROR,
-                error_code="PROVIDER_ERROR",
+            await self._record_provider_error(
+                workspace_id,
+                payment,
+                evidence,
+                "PROVIDER_ERROR",
             )
-            await self.verifications.add(verification)
-            await self.session.commit()
             raise PaymentVerificationProviderError() from exc
         duplicate = result.transfer_reference and await self.verifications.get_transfer(
             workspace_id, result.provider, result.transfer_reference
@@ -267,8 +302,15 @@ class PaymentVerificationService:
             result.amount == payment.expected_amount
             and result.currency == payment.currency
         )
-        receiver_match = result.receiver_match is True
-        valid = result.is_valid and amount_match and receiver_match and not duplicate
+        receiver_match = self._receiver_matches(destination, result)
+        provider_duplicate = result.duplicate_reference_signal is True
+        valid = (
+            result.is_valid
+            and amount_match
+            and receiver_match
+            and not duplicate
+            and not provider_duplicate
+        )
         status = VerificationStatus.VALID if valid else VerificationStatus.INVALID
         verification = PaymentVerification(
             workspace_id=workspace_id,
@@ -279,18 +321,15 @@ class PaymentVerificationService:
             status=status,
             reported_amount=result.amount,
             currency=result.currency,
-            # The unique transfer reference belongs to the first verification.
-            # A duplicate attempt records the outcome without trying to claim
-            # the same reference again.
             transfer_reference=None if duplicate else result.transfer_reference,
             transferred_at=result.transferred_at,
-            receiver_match=result.receiver_match,
+            receiver_match=receiver_match,
             amount_match=amount_match,
-            error_code="DUPLICATE" if duplicate else None,
+            error_code="DUPLICATE" if duplicate or provider_duplicate else None,
             verified_at=datetime.now(UTC) if valid else None,
         )
         await self.verifications.add(verification)
-        if duplicate:
+        if duplicate or provider_duplicate:
             payment.status = PaymentStatus.DUPLICATE
         elif valid:
             payment.status = PaymentStatus.VERIFIED
@@ -323,6 +362,48 @@ class PaymentVerificationService:
         await self.session.refresh(payment)
         await self.session.refresh(verification)
         return payment, verification
+
+    async def _record_provider_error(self, workspace_id, payment, evidence, code):
+            payment.status = PaymentStatus.PENDING
+            verification = PaymentVerification(
+                workspace_id=workspace_id,
+                payment_id=payment.id,
+                evidence_id=evidence.id,
+                provider=self.provider.name,
+                status=VerificationStatus.ERROR,
+                error_code=code,
+            )
+            await self.verifications.add(verification)
+            await self.session.commit()
+
+    @staticmethod
+    def _receiver_matches(destination, result) -> bool:
+        def normalized(value):
+            return re.sub(r"[^0-9a-zก-๙]", "", (value or "").casefold())
+
+        expected_bank = normalized(destination.bank_code or destination.bank_name)
+        actual_bank = normalized(result.receiver_bank)
+        if expected_bank and actual_bank and expected_bank != actual_bank:
+            return False
+        expected_account = normalized(
+            destination.account_number_masked or destination.promptpay_identifier_last4
+        )
+        actual_account = normalized(result.receiver_account_masked)
+        visible_expected = expected_account.replace("x", "")
+        visible_actual = actual_account.replace("x", "")
+        account_match = bool(
+            visible_expected
+            and visible_actual
+            and (
+                visible_expected.endswith(visible_actual)
+                or visible_actual.endswith(visible_expected)
+            )
+        )
+        name_match = bool(
+            normalized(destination.account_name)
+            and normalized(destination.account_name) == normalized(result.receiver_name)
+        )
+        return account_match or name_match
 
     async def list(self, workspace_id, payment_id):
         if not await self.payments.get(workspace_id, payment_id):

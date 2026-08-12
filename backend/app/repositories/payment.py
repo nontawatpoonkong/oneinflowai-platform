@@ -113,3 +113,14 @@ class PaymentVerificationRepository(BaseRepository[PaymentVerification]):
             .order_by(PaymentVerification.created_at)
         )
         return list(result.scalars())
+
+    async def latest(self, workspace_id, payment_id):
+        return await self.session.scalar(
+            select(PaymentVerification)
+            .where(
+                PaymentVerification.workspace_id == workspace_id,
+                PaymentVerification.payment_id == payment_id,
+            )
+            .order_by(PaymentVerification.created_at.desc())
+            .limit(1)
+        )

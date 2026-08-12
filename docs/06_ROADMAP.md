@@ -42,8 +42,9 @@ amounts, and quota-exceeded policy are not yet defined in implementation.
 
 ### Sprint 9.3 - Production Slip Verification
 
-Planned authoritative provider integration and production hardening. Current
-deterministic verification is development/test infrastructure only.
+Implemented EasySlip API v2 integration, deterministic OneInFlow authority,
+entitlement/quota enforcement, concurrency-safe usage reservation, sanitized
+failures, Payment UX, tests, and documentation.
 
 ### Sprint 9.4 - Analytics + Insights
 

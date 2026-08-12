@@ -68,9 +68,10 @@ product.
 
 ## Billing truth
 
-Customer Payment is an implemented foundation for money paid to a workspace
-business. OneInFlow SaaS Billing, plans, entitlements, and quotas are planned for
-Sprint 9.2. Production Slip Verification is planned for Sprint 9.3.
+Customer Payment is implemented for money paid to a workspace business.
+EasySlip API v2 production verification is isolated behind the provider-neutral
+contract; `PaymentVerificationService` remains authoritative. SaaS plans,
+entitlements, quota locking, and usage metering are implemented separately.
 # SaaS billing context
 
 Never infer capabilities from a plan key. Use `EntitlementService`. Authorization
