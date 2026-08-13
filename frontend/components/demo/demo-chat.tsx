@@ -7,7 +7,40 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/services/api/errors";
 import { sendDemoMessage } from "@/services/demo/demo-chat.service";
-import type { DemoChatMessage } from "@/types/demo-chat";
+import type { DemoChatMessage, DemoLanguage } from "@/types/demo-chat";
+
+const languageCommands: Record<DemoLanguage, Set<string>> = {
+  th: new Set([
+    "ตอบเป็นภาษาไทย",
+    "ขอภาษาไทย",
+    "ใช้ภาษาไทย",
+    "คุยภาษาไทย",
+    "ภาษาไทย",
+    "please reply in thai",
+    "answer in thai",
+    "need thai language",
+  ]),
+  en: new Set([
+    "ตอบเป็นภาษาอังกฤษ",
+    "ขอภาษาอังกฤษ",
+    "use english",
+    "reply in english",
+    "answer in english",
+  ]),
+};
+
+function detectLanguagePreference(message: string): DemoLanguage | null {
+  const normalized = message
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/[.!?]+$/, "")
+    .replace(/\s+/g, " ");
+  return (
+    (Object.entries(languageCommands).find(([, commands]) =>
+      commands.has(normalized),
+    )?.[0] as DemoLanguage | undefined) ?? null
+  );
+}
 
 export function DemoChat() {
   const t = useTranslations("demoChat");
@@ -16,6 +49,7 @@ export function DemoChat() {
   const [messages, setMessages] = useState<DemoChatMessage[]>([]);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const [preferredLanguage, setPreferredLanguage] = useState<DemoLanguage | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   async function submit(event: FormEvent) {
@@ -28,7 +62,13 @@ export function DemoChat() {
     setError("");
     setPending(true);
     try {
-      const result = await sendDemoMessage(content, messages);
+      const requestedLanguage = detectLanguagePreference(content);
+      const result = await sendDemoMessage(
+        content,
+        messages,
+        requestedLanguage ?? preferredLanguage,
+      );
+      if (requestedLanguage) setPreferredLanguage(requestedLanguage);
       setMessages((current) => [...current, { id: crypto.randomUUID(), role: "assistant", content: result.answer, citations: result.citations }]);
     } catch (requestError) {
       const code = requestError instanceof ApiError ? requestError.code : "";

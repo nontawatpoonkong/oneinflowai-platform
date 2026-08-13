@@ -14,3 +14,5 @@ export interface DemoChatResponse {
   answer: string;
   citations: DemoCitation[];
 }
+
+export type DemoLanguage = "th" | "en";
