@@ -60,6 +60,11 @@ _FOLLOW_UP_MARKERS = (
     "it cost",
 )
 _PRICING_TERMS = {"ราคา", "ค่าบริการ", "คิดเงิน", "pricing", "price", "cost"}
+_DEMO_PRODUCT_REFERENCE_QUERIES = {
+    "ทำอะไรได้บ้าง": "OneInFlow ทำอะไรได้บ้าง",
+    "คุณทำอะไรได้บ้าง": "OneInFlow ทำอะไรได้บ้าง",
+    "what can you do": "What can OneInFlow do?",
+}
 
 
 def detect_language_preference(message: str) -> str | None:
@@ -165,12 +170,14 @@ class DemoChatService:
 
     @classmethod
     def _retrieval_query(cls, request: DemoChatRequest) -> str:
+        normalized = " ".join(request.message.casefold().strip().split()).rstrip(".!?")
+        product_query = _DEMO_PRODUCT_REFERENCE_QUERIES.get(normalized, request.message)
         if not request.history or not cls._is_follow_up(request.message):
-            return request.message
+            return product_query
         prior_user_messages = [
             item.content for item in request.history if item.role == "user"
         ][-3:]
-        return " ".join([*prior_user_messages, request.message])
+        return " ".join([*prior_user_messages, product_query])
 
     @staticmethod
     def _is_pricing_question(message: str) -> bool:

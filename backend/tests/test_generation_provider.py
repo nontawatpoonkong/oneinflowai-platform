@@ -12,6 +12,7 @@ from openai import (
     RateLimitError,
 )
 
+import app.integrations.generation.openai as openai_module
 from app.core.config import Settings
 from app.core.exceptions import (
     GenerationAuthenticationError,
@@ -54,6 +55,25 @@ def _provider(
         timeout_seconds=45,
         client=SimpleNamespace(responses=api),
     )
+
+
+def test_openai_client_disables_sdk_retries(monkeypatch) -> None:
+    captured = {}
+
+    def fake_client(**kwargs):
+        captured.update(kwargs)
+        return SimpleNamespace(responses=FakeResponses())
+
+    monkeypatch.setattr(openai_module, "AsyncOpenAI", fake_client)
+
+    OpenAIGenerationProvider(
+        api_key="test",
+        model="gpt-5.6-terra",
+        timeout_seconds=45,
+    )
+
+    assert captured["timeout"] == 45
+    assert captured["max_retries"] == 0
 
 
 @pytest.mark.asyncio
@@ -176,8 +196,10 @@ def _request() -> httpx.Request:
     ],
 )
 async def test_openai_provider_maps_operational_errors(failure, expected) -> None:
+    api = FakeResponses(failure=failure)
     with pytest.raises(expected) as captured:
-        await _provider(FakeResponses(failure=failure)).generate(PROMPT)
+        await _provider(api).generate(PROMPT)
+    assert len(api.calls) == 1
     assert "api" not in str(captured.value).lower()
 
 

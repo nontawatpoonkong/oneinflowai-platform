@@ -46,7 +46,11 @@ class OpenAIGenerationProvider:
             raise ValueError("valid OpenAI generation configuration is required")
         self.model = model
         self.timeout_seconds = timeout_seconds
-        self.client = client or AsyncOpenAI(api_key=api_key, timeout=timeout_seconds)
+        self.client = client or AsyncOpenAI(
+            api_key=api_key,
+            timeout=timeout_seconds,
+            max_retries=0,
+        )
 
     async def generate(self, prompt: GenerationRequest) -> GenerationResult:
         request: dict[str, Any] = {

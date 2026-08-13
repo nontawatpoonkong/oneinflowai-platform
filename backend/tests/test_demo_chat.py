@@ -188,6 +188,78 @@ def test_self_contained_retrieval_query_ignores_history():
     assert DemoChatService._retrieval_query(request) == request.message
 
 
+@pytest.mark.parametrize(
+    ("message", "expected"),
+    [
+        ("ทำอะไรได้บ้าง", "OneInFlow ทำอะไรได้บ้าง"),
+        ("คุณทำอะไรได้บ้าง", "OneInFlow ทำอะไรได้บ้าง"),
+        ("OneInFlow ทำอะไรได้บ้าง", "OneInFlow ทำอะไรได้บ้าง"),
+        ("What can you do?", "What can OneInFlow do?"),
+    ],
+)
+def test_fresh_demo_product_reference_is_normalized_for_retrieval(message, expected):
+    request = DemoChatRequest(message=message)
+
+    assert DemoChatService._retrieval_query(request) == expected
+
+
+def test_demo_product_normalization_does_not_rewrite_unrelated_queries():
+    message = "คุณรองรับการคืนเงินหรือไม่"
+
+    assert DemoChatService._retrieval_query(DemoChatRequest(message=message)) == message
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "message",
+    [
+        "ทำอะไรได้บ้าง",
+        "คุณทำอะไรได้บ้าง",
+        "OneInFlow ทำอะไรได้บ้าง",
+        "What can you do?",
+    ],
+)
+async def test_fresh_demo_product_question_reaches_grounded_generation(corpus, message):
+    provider = RecordingProvider("OneInFlow supports customer operations. [S1]")
+
+    result = await DemoChatService(provider, corpus_path=corpus).answer(
+        DemoChatRequest(message=message)
+    )
+
+    assert len(provider.calls) == 1
+    assert len(result.citations) == 1
+    assert result.citations[0].label == "S1"
+    assert result.citations[0].source == "README.md"
+
+
+def test_normalized_product_query_retrieves_only_allowlisted_repository_sources():
+    service = DemoChatService(RecordingProvider())
+    query = service._retrieval_query(DemoChatRequest(message="คุณทำอะไรได้บ้าง"))
+
+    sections = service._retrieve(query)
+
+    assert sections
+    assert {section.source for section in sections} <= set(PUBLIC_DEMO_FILES)
+
+
+@pytest.mark.asyncio
+async def test_product_follow_up_still_retrieves_grounded_facebook_evidence():
+    provider = RecordingProvider("Facebook Page Messenger is implemented. [S1]")
+    request = DemoChatRequest(
+        message="แล้ว Facebook ล่ะ",
+        history=[
+            {"role": "user", "content": "OneInFlow ทำอะไรได้บ้าง"},
+            {"role": "assistant", "content": "Prior answer is context, not evidence."},
+        ],
+    )
+
+    result = await DemoChatService(provider).answer(request)
+
+    assert len(provider.calls) == 1
+    assert result.citations
+    assert result.citations[0].source in PUBLIC_DEMO_FILES
+
+
 @pytest.mark.asyncio
 async def test_pricing_follow_up_fails_closed_without_public_pricing(corpus):
     provider = RecordingProvider("Invented price 99 baht. [S1]")
