@@ -3,8 +3,11 @@
 import time
 import uuid
 
+from sqlalchemy import select
+
 from app.core.config import Settings, get_settings
 from app.core.logging import get_logger
+from app.models.workspace import Workspace
 from app.rag import RAGContextAssembler, RAGPromptBuilder, RAGPromptPackage
 from app.services.knowledge_retrieval import KnowledgeRetrievalService
 
@@ -44,7 +47,17 @@ class RAGPreparationService:
             document_id=document_id,
         )
         context = self.assembler.assemble(retrieval.query, retrieval.results)
-        package = self.prompt_builder.build(query=retrieval.query, context=context)
+        instructions = None
+        session = getattr(self.retrieval, "session", None)
+        if session is not None:
+            instructions = await session.scalar(
+                select(Workspace.ai_instructions).where(Workspace.id == workspace_id)
+            )
+        package = self.prompt_builder.build(
+            query=retrieval.query,
+            context=context,
+            safe_system_instructions=instructions,
+        )
         logger.info(
             "rag_preparation_completed",
             extra={

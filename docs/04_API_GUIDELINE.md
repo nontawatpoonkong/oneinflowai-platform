@@ -31,6 +31,8 @@ ActionDefinition management authorization:
 - `GET|POST /workspaces`, `GET /workspaces/me`
 - `GET /workspaces/{slug}` (public lookup)
 - `GET /workspaces/{workspace_id}/members`
+- `GET|PUT /workspaces/{workspace_id}/ai-instructions` (members may read;
+  owner/admin may update)
 - `PATCH /workspaces/{workspace_id}`
 - `GET|POST /customers`, `GET|PATCH|DELETE /customers/{customer_id}`
 

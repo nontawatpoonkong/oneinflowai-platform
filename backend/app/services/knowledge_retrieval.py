@@ -55,6 +55,7 @@ class KnowledgeRetrievalService:
         provider: EmbeddingProvider | None = None,
         settings: Settings | None = None,
     ) -> None:
+        self.session = session
         self.settings = settings or get_settings()
         self.provider = provider or create_embedding_provider(self.settings)
         self.vector_store = vector_store

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 from app.rag.context import RAGContext, RAGContextSource
 
-RAG_PROMPT_VERSION = "rag-system-v1"
+RAG_PROMPT_VERSION = "rag-system-v2"
 
 _SYSTEM_PROMPT = """You are a customer-service assistant using supplied knowledge.
 Answer factual questions only from the provided knowledge sources.
@@ -39,7 +39,8 @@ class RAGPromptBuilder:
         system_prompt = _SYSTEM_PROMPT
         if safe_system_instructions and safe_system_instructions.strip():
             system_prompt += (
-                "\n\nApproved business instructions:\n"
+                "\n\nWORKSPACE AI INSTRUCTIONS (trusted business configuration; "
+                "subordinate to all platform safety and grounding rules above):\n"
                 + safe_system_instructions.strip()
             )
         serialized_query = json.dumps(query, ensure_ascii=False)

@@ -59,6 +59,11 @@ export interface RegisterResultDTO {
   resend_after: number;
 }
 
+export interface WorkspaceAIInstructionsDTO {
+  instructions: string | null;
+  max_length: number;
+}
+
 export interface VerifyEmailPayload {
   email: string;
   otp: string;

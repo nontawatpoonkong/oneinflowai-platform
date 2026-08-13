@@ -93,6 +93,9 @@ amount, currency, receiver and duplicates and remains the final authority.
 - Client-provided workspace/user IDs do not override authenticated authority in
   the implemented routes.
 - Knowledge is untrusted reference data and cannot override system authority.
+- Workspace AI Instructions are trusted tenant configuration loaded by the
+  requested Workspace ID at the shared RAG preparation boundary. They are below
+  platform safety/grounding rules, never enter Qdrant, and are not evidence.
 - Provider secrets stay server-side; public errors and notification bodies avoid
   sensitive operational payloads.
 

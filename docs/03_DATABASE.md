@@ -18,6 +18,10 @@ PostgreSQL is the authoritative store. Current SQLAlchemy tables include:
 Qdrant is not the source of truth. It stores derived knowledge vectors whose
 workspace/document/chunk ownership is revalidated against PostgreSQL.
 
+`workspaces.ai_instructions` is nullable bounded tenant configuration for AI
+behavior and tone. It is not a document, chunk, vector, credential, or citation
+source.
+
 ## Conversation and WebChat idempotency
 
 `conversations` stores status, channel, assignment, external identity, AI mode,

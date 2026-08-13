@@ -40,7 +40,8 @@ The implemented pipeline is:
 4. Generate embeddings through a provider-neutral interface and index vectors.
 5. Retrieve workspace-filtered candidates and validate them against PostgreSQL.
 6. Assemble a bounded, deterministic context with stable source labels.
-7. Build a provider-neutral prompt package that treats queries and sources as untrusted data.
+7. Build a provider-neutral prompt package with bounded Workspace AI Instructions
+   below platform rules, while treating queries and sources as untrusted data.
 8. Generate a bounded response through the configured provider.
 9. Validate every citation against trusted RAG sources before returning a grounded answer.
 
@@ -57,6 +58,12 @@ The RAG preview API exposes the prepared context and user prompt for development
 ## Authentication
 
 The backend includes registration, email OTP verification, login, token-based protected routes, and password-reset flows. Verification codes are delivered through an email-provider abstraction and are not returned as authentication credentials. Workspace and user dependencies enforce access at the API boundary.
+
+Workspace AI Instructions are nullable, owner/admin-managed behavioral guidance
+shared by WebChat, LINE, and Facebook through the common grounded-generation
+path. They are separate from Knowledge, are never embedded or citation-eligible,
+and cannot override platform grounding, Action validation, or Human Handoff
+authority.
 
 ## Conversation platform
 

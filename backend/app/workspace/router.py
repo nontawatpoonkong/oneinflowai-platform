@@ -19,6 +19,8 @@ from app.models.workspace import Workspace
 from app.models.workspace_member import WorkspaceMember
 from app.schemas.response import success_response
 from app.schemas.workspace import (
+    WorkspaceAIInstructionsResponse,
+    WorkspaceAIInstructionsUpdate,
     WorkspaceCreateRequest,
     WorkspaceMemberResponse,
     WorkspaceResponse,
@@ -76,6 +78,38 @@ async def get_my_workspace(
 ) -> dict:
     workspace = await WorkspaceService(session).get_primary_workspace(user.id)
     return success_response(data=_workspace_data(workspace), message="OK")
+
+
+@router.get(
+    "/{workspace_id}/ai-instructions", summary="Get Workspace AI instructions"
+)
+async def get_ai_instructions(
+    workspace_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    instructions = await WorkspaceService(session).get_ai_instructions(
+        workspace_id, user.id
+    )
+    data = WorkspaceAIInstructionsResponse(instructions=instructions)
+    return success_response(data=data.model_dump(), message="OK")
+
+
+@router.put(
+    "/{workspace_id}/ai-instructions", summary="Update Workspace AI instructions"
+)
+async def update_ai_instructions(
+    workspace_id: uuid.UUID,
+    payload: WorkspaceAIInstructionsUpdate,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    service = WorkspaceService(session)
+    instructions = await service.update_ai_instructions(
+        workspace_id, user.id, payload.instructions
+    )
+    data = WorkspaceAIInstructionsResponse(instructions=instructions)
+    return success_response(data=data.model_dump(), message="AI instructions updated")
 
 
 @router.get("/{slug}", summary="Public workspace lookup by slug")

@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 from app.models.workspace_member import WorkspaceRole
 
 _NAME_MAX_LENGTH = 100
+AI_INSTRUCTIONS_MAX_LENGTH = 8_000
 
 
 class WorkspaceCreateRequest(BaseModel):
@@ -40,6 +41,25 @@ class WorkspaceResponse(BaseModel):
     owner_id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+
+
+class WorkspaceAIInstructionsUpdate(BaseModel):
+    instructions: str | None = Field(
+        default=None, max_length=AI_INSTRUCTIONS_MAX_LENGTH
+    )
+
+    @field_validator("instructions")
+    @classmethod
+    def normalize_instructions(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        return normalized or None
+
+
+class WorkspaceAIInstructionsResponse(BaseModel):
+    instructions: str | None
+    max_length: int = AI_INSTRUCTIONS_MAX_LENGTH
 
 
 class WorkspaceMemberResponse(BaseModel):

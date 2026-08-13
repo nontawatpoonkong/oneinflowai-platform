@@ -26,6 +26,7 @@ from app.services.demo_chat import (
     detect_language_preference,
 )
 from app.services.public_rate_limit import PublicRateLimitService
+from app.services.workspace import WorkspaceService
 
 
 class RecordingProvider:
@@ -120,6 +121,27 @@ async def test_demo_chat_is_stateless_and_returns_allowlisted_citation(corpus):
 
     assert result.answer == "OneInFlow supports WebChat. [S1]"
     assert result.citations[0].source == "README.md"
+
+
+@pytest.mark.asyncio
+async def test_public_demo_never_loads_workspace_ai_instructions(
+    corpus, monkeypatch
+):
+    async def forbidden_workspace_lookup(*args, **kwargs):
+        raise AssertionError("Public Demo must not load Workspace configuration")
+
+    monkeypatch.setattr(
+        WorkspaceService,
+        "get_ai_instructions",
+        forbidden_workspace_lookup,
+    )
+    provider = RecordingProvider()
+
+    result = await DemoChatService(provider, corpus_path=corpus).answer(
+        DemoChatRequest(message="What does OneInFlow support?")
+    )
+
+    assert result.answer == "OneInFlow supports WebChat. [S1]"
     assert len(provider.calls) == 1
 
 

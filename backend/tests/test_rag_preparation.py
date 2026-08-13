@@ -13,10 +13,11 @@ from tests.test_rag_context import _result
 
 
 class FakeRetrieval:
-    def __init__(self, results=None, failure=None):
+    def __init__(self, results=None, failure=None, session=None):
         self.results = results or []
         self.failure = failure
         self.calls = []
+        self.session = session
 
     async def search(self, **kwargs):
         self.calls.append(kwargs)
@@ -56,6 +57,55 @@ def test_preparation_propagates_retrieval_failure() -> None:
         assert str(exc) == "failed"
     else:
         raise AssertionError("retrieval failure was swallowed")
+
+
+def test_preparation_loads_only_the_requested_workspace_instructions() -> None:
+    workspace_a, workspace_b = uuid.uuid4(), uuid.uuid4()
+
+    class InstructionSession:
+        async def scalar(self, statement):
+            workspace_id = next(iter(statement.compile().params.values()))
+            return {
+                workspace_a: "Answer politely for Workspace A.",
+                workspace_b: "Answer briefly for Workspace B.",
+            }[workspace_id]
+
+    async def prepare(workspace_id):
+        retrieval = FakeRetrieval(
+            [_result("Room price is 1,500 THB/night.", 1)],
+            session=InstructionSession(),
+        )
+        return await RAGPreparationService(
+            retrieval, settings=Settings(_env_file=None)
+        ).prepare(workspace_id=workspace_id, query="Room price?")
+
+    package_a = asyncio.run(prepare(workspace_a))
+    package_b = asyncio.run(prepare(workspace_b))
+
+    assert "Answer politely for Workspace A." in package_a.system_prompt
+    assert "Answer briefly for Workspace B." not in package_a.system_prompt
+    assert "Answer briefly for Workspace B." in package_b.system_prompt
+    assert "Answer politely for Workspace A." not in package_b.system_prompt
+    assert package_a.sources[0].text == "Room price is 1,500 THB/night."
+
+
+def test_preparation_without_workspace_instructions_works_normally() -> None:
+    class EmptyInstructionSession:
+        async def scalar(self, statement):
+            return None
+
+    package = asyncio.run(
+        RAGPreparationService(
+            FakeRetrieval(
+                [_result("Check-in is 14:00.", 1)],
+                session=EmptyInstructionSession(),
+            ),
+            settings=Settings(_env_file=None),
+        ).prepare(workspace_id=uuid.uuid4(), query="Check-in time?")
+    )
+
+    assert "WORKSPACE AI INSTRUCTIONS" not in package.system_prompt
+    assert package.sources[0].text == "Check-in is 14:00."
 
 
 def test_rag_preview_requires_authentication(client_db: TestClient) -> None:

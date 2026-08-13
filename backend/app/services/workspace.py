@@ -110,3 +110,34 @@ class WorkspaceService:
             await self.session.refresh(workspace)
 
         return workspace
+
+    async def get_ai_instructions(
+        self, workspace_id: uuid.UUID, requester_id: uuid.UUID
+    ) -> str | None:
+        workspace = await self.workspaces.get_by_id(workspace_id)
+        if workspace is None:
+            raise WorkspaceNotFoundError()
+        if await self.members.get_membership(workspace_id, requester_id) is None:
+            raise WorkspaceNotFoundError()
+        return workspace.ai_instructions
+
+    async def update_ai_instructions(
+        self,
+        workspace_id: uuid.UUID,
+        requester_id: uuid.UUID,
+        instructions: str | None,
+    ) -> str | None:
+        workspace = await self.workspaces.get_by_id(workspace_id)
+        if workspace is None:
+            raise WorkspaceNotFoundError()
+        membership = await self.members.get_membership(workspace_id, requester_id)
+        if membership is None:
+            raise WorkspaceNotFoundError()
+        if membership.role not in {WorkspaceRole.OWNER, WorkspaceRole.ADMIN}:
+            raise WorkspaceAccessDeniedError(
+                "Only workspace owners and admins can update AI instructions"
+            )
+        workspace.ai_instructions = instructions
+        await self.session.commit()
+        await self.session.refresh(workspace)
+        return workspace.ai_instructions

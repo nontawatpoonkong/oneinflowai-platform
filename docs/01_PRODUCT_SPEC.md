@@ -40,6 +40,8 @@ OneInFlow remains an MVP-stage AI-first Customer Operations Platform.
   deterministic prompt packaging.
 - Provider-neutral grounded generation, zero-knowledge short circuiting, and
   citation validation against trusted sources.
+- Nullable Workspace AI Instructions let owners/admins control tone and response
+  policy. They remain below platform rules and are not Knowledge or evidence.
 
 ### Actions and fulfillment
 

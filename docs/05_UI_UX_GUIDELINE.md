@@ -43,6 +43,11 @@ Sprint 9.1 Operations Rule
     collapse without losing access on narrow screens.
     Analytics remains a Sprint 9.4 placeholder, not an operational feature.
 
+Knowledge Configuration Rule
+    Keep Knowledge and AI Instructions as separate tabs. Knowledge supplies
+    factual evidence and citations; AI Instructions configure tone and behavior
+    and must never be presented as a developer console or evidence source.
+
     Never show
 
     CPU
