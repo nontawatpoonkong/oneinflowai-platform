@@ -1,20 +1,30 @@
 """Focused public WebChat API tests."""
 
+import asyncio
+import uuid
+
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
+from app.models.conversation import Conversation
+from tests.conftest import TestSessionLocal, register_verify_and_login
 from tests.test_webchat_ai import _install_fake_grounded
 
 WEBCHAT_URL = "/api/v1/webchat/sessions"
 
 
-def _workspace_key(client: TestClient, email: str = "webchat@acme.com") -> str:
-    response = client.post(
-        "/api/v1/auth/register",
-        json={"email": email, "password": "supersecret123", "full_name": "Owner"},
-    )
-    assert response.status_code == 201
-    return response.json()["data"]["workspace"]["slug"]
+def _workspace_key(
+    client: TestClient, email: str = "webchat@acme.com", *, connect: bool = True
+) -> str:
+    registered, token = register_verify_and_login(client, email=email)
+    if connect:
+        response = client.post(
+            "/api/v1/channels/webchat",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 200
+    return registered["workspace"]["slug"]
 
 
 def _session(client: TestClient, key: str) -> dict[str, str]:
@@ -82,6 +92,37 @@ def test_workspace_key_not_found(client_db: TestClient) -> None:
         json={"workspace_key": "missing-workspace", "name": "Visitor"},
     )
     assert response.status_code == 404
+
+
+def test_unconnected_workspace_cannot_create_webchat_session(
+    client_db: TestClient,
+) -> None:
+    key = _workspace_key(client_db, connect=False)
+    response = client_db.post(
+        WEBCHAT_URL,
+        json={"workspace_key": key, "name": "Visitor"},
+    )
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "WEBCHAT_NOT_CONNECTED"
+
+
+def test_webchat_conversation_uses_trusted_workspace_connection(
+    client_db: TestClient,
+) -> None:
+    created = _session(client_db, _workspace_key(client_db))
+
+    async def _load() -> Conversation:
+        async with TestSessionLocal() as db:
+            item = await db.scalar(
+                select(Conversation).where(
+                    Conversation.id == uuid.UUID(created["conversation_id"])
+                )
+            )
+            assert item is not None
+            return item
+
+    conversation = asyncio.run(_load())
+    assert conversation.channel_connection_id is not None
 
 
 def test_empty_message_is_rejected(client_db: TestClient) -> None:

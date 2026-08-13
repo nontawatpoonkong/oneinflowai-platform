@@ -3,7 +3,7 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.channels import ChannelType
@@ -69,6 +69,52 @@ class ChannelConnectionService:
         connection.credential_nonce = encrypted.nonce
         connection.credential_key_version = encrypted.key_version
         self.session.add(connection)
+        await self.session.commit()
+        await self.session.refresh(connection)
+        return connection
+
+    async def get_web(self, workspace_id):
+        return await self.session.scalar(
+            select(ChannelConnection)
+            .where(
+                ChannelConnection.workspace_id == workspace_id,
+                ChannelConnection.provider == ChannelType.WEB,
+            )
+            .order_by(ChannelConnection.created_at, ChannelConnection.id)
+        )
+
+    async def connect_web(self, workspace_id, user_id):
+        """Explicitly activate the credential-free WebChat connection."""
+        await self.require_admin(workspace_id, user_id)
+        await EntitlementService(self.session).require(workspace_id, "channels.webchat")
+        # Serialize first activation as well as reconnects for this Workspace.
+        await self.session.execute(
+            text("SELECT pg_advisory_xact_lock(:key)"),
+            {"key": workspace_id.int % (2**63)},
+        )
+        connection = await self.get_web(workspace_id)
+        now = datetime.now(UTC)
+        if connection is None:
+            connection = ChannelConnection(
+                id=uuid.uuid4(),
+                workspace_id=workspace_id,
+                provider=ChannelType.WEB,
+                display_name="WebChat",
+                external_account_id=str(workspace_id),
+                external_account_name=None,
+                status=ChannelConnectionStatus.CONNECTED,
+                credential_ciphertext=b"",
+                credential_nonce=b"",
+                credential_key_version="none",
+                connected_at=now,
+            )
+            self.session.add(connection)
+        elif connection.status is not ChannelConnectionStatus.CONNECTED:
+            connection.status = ChannelConnectionStatus.CONNECTED
+            connection.connected_at = now
+            connection.last_error_code = None
+        else:
+            return connection
         await self.session.commit()
         await self.session.refresh(connection)
         return connection

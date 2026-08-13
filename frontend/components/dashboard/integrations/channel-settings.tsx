@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useChannelOperations, useChannels } from "@/hooks/api/use-channels";
 import { useAuth } from "@/hooks/use-auth";
 import { useMyWorkspace, useWorkspaceMembers } from "@/hooks/api/use-workspace";
+import type { ChannelConnectionStatus } from "@/types/channel";
 
 type Provider = "line" | "facebook";
 
@@ -44,7 +45,12 @@ export function ChannelSettings() {
     setProvider(null);
   }
 
-  const connection = (name: Provider) => data.find((item) => item.provider === name);
+  const connection = (name: Provider | "web") =>
+    data.find((item) => item.provider === name);
+  const webchat = connection("web");
+  const webchatUrl = workspace.data?.slug
+    ? `/webchat/${workspace.data.slug}`
+    : undefined;
   return (
     <div className="space-y-6">
       <div>
@@ -53,7 +59,32 @@ export function ChannelSettings() {
         <p className="mt-2 text-xs text-muted-foreground">{t("textOnly")}</p>
       </div>
       <div className="grid gap-4 lg:grid-cols-3">
-        <ChannelCard name="WebChat" status="CONNECTED" detail={t("available")} />
+        <ChannelCard
+          name="WebChat"
+          status={webchat?.status || "DISCONNECTED"}
+          detail={
+            webchat?.status === "CONNECTED" && webchatUrl
+              ? t("webchatConnected")
+              : t("webchatSetup")
+          }
+          webchatUrl={webchat?.status === "CONNECTED" ? webchatUrl : undefined}
+          connectLabel={t("connectWebchat")}
+          onConnect={
+            canManage && !webchat
+              ? () => operations.connectWebChat.mutate()
+              : canManage && webchat?.status === "DISCONNECTED"
+                ? () => operations.connectWebChat.mutate()
+                : undefined
+          }
+          onDisconnect={
+            canManage && webchat?.status === "CONNECTED"
+              ? () => operations.disconnect.mutate(webchat.id)
+              : undefined
+          }
+          pending={
+            operations.connectWebChat.isPending || operations.disconnect.isPending
+          }
+        />
         {(["line", "facebook"] as const).map((name) => {
           const item = connection(name);
           return (
@@ -110,7 +141,7 @@ function fields(provider: Provider) {
     : [...shared, "page_access_token", "app_secret", "verify_token"];
 }
 
-function ChannelCard({ name, status, detail, webhook, onConnect, onDisconnect }: { name: string; status: string; detail: string; webhook?: string; onConnect?: () => void; onDisconnect?: () => void }) {
+function ChannelCard({ name, status, detail, webhook, webchatUrl, connectLabel, onConnect, onDisconnect, pending = false }: { name: string; status: ChannelConnectionStatus; detail: string; webhook?: string; webchatUrl?: string; connectLabel?: string; onConnect?: () => void; onDisconnect?: () => void; pending?: boolean }) {
   const t = useTranslations("dashboard.integrations");
-  return <section className="rounded-2xl border border-border bg-card p-5"><div className="flex items-center justify-between"><h2 className="font-semibold">{name}</h2><span className={status === "ERROR" ? "text-xs font-medium text-destructive" : "text-xs font-medium"}>{status}</span></div><p className="mt-2 min-h-10 text-sm text-muted-foreground">{detail}</p>{status === "ERROR" ? <p className="text-xs text-destructive">{t("connectionError")}</p> : null}{webhook ? <code className="mt-2 block break-all rounded-lg bg-muted px-2 py-1 text-xs">{webhook}</code> : null}{onConnect && !onDisconnect ? <button onClick={onConnect} className="mt-4 text-sm font-medium text-primary">{t("configure")}</button> : null}{onDisconnect ? <button onClick={onDisconnect} className="mt-4 text-sm font-medium text-destructive">{t("disconnect")}</button> : null}</section>;
+  return <section className="rounded-2xl border border-border bg-card p-5"><div className="flex items-center justify-between"><h2 className="font-semibold">{name}</h2><span className={status === "ERROR" ? "text-xs font-medium text-destructive" : "text-xs font-medium"}>{t(`statuses.${status}`)}</span></div><p className="mt-2 min-h-10 text-sm text-muted-foreground">{detail}</p>{status === "ERROR" ? <p className="text-xs text-destructive">{t("connectionError")}</p> : null}{webhook ? <code className="mt-2 block break-all rounded-lg bg-muted px-2 py-1 text-xs">{webhook}</code> : null}{webchatUrl ? <a className="mt-2 block break-all text-xs text-primary underline" href={webchatUrl} target="_blank" rel="noreferrer">{webchatUrl}</a> : null}{onConnect && !onDisconnect ? <button disabled={pending} onClick={onConnect} className="mt-4 text-sm font-medium text-primary disabled:opacity-50">{connectLabel || t("configure")}</button> : null}{onDisconnect ? <button disabled={pending} onClick={onDisconnect} className="mt-4 text-sm font-medium text-destructive disabled:opacity-50">{t("disconnect")}</button> : null}</section>;
 }

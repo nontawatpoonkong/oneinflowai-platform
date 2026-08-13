@@ -84,6 +84,16 @@ async def create_line(
     return success_response(_data(item))
 
 
+@router.post("/webchat")
+async def connect_webchat(
+    workspace: Workspace = Depends(get_current_workspace),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+):
+    item = await ChannelConnectionService(session).connect_web(workspace.id, user.id)
+    return success_response(_data(item))
+
+
 @router.post("/facebook", status_code=status.HTTP_201_CREATED)
 async def create_facebook(
     payload: FacebookConnectionCreate,

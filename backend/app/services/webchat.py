@@ -10,7 +10,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.channels import ChannelType
 from app.core.config import get_settings
-from app.core.exceptions import AuthenticationError, NotFoundError
+from app.core.exceptions import (
+    AuthenticationError,
+    NotFoundError,
+    WebChatNotConnectedError,
+)
+from app.models.channel import ChannelConnectionStatus
 from app.models.message import Message, SenderType
 from app.models.webchat_session import WebChatSession
 from app.repositories.webchat_session import WebChatSessionRepository
@@ -19,6 +24,7 @@ from app.schemas.conversation import ConversationCreate
 from app.schemas.customer import CustomerCreate
 from app.schemas.message import MessageCreate
 from app.schemas.webchat import WebChatSessionCreate
+from app.services.channel_connection import ChannelConnectionService
 from app.services.conversation import ConversationService
 from app.services.customer import CustomerService
 from app.services.entitlement import EntitlementService
@@ -56,9 +62,13 @@ class WebChatService:
         workspace = await self.workspaces.get_by_slug(data.workspace_key)
         if workspace is None:
             raise NotFoundError("Workspace not found")
-        await EntitlementService(self.session).require(
-            workspace.id, "channels.webchat"
-        )
+        await EntitlementService(self.session).require(workspace.id, "channels.webchat")
+        connection = await ChannelConnectionService(self.session).get_web(workspace.id)
+        if (
+            connection is None
+            or connection.status is not ChannelConnectionStatus.CONNECTED
+        ):
+            raise WebChatNotConnectedError()
 
         # TODO: When verified visitor identity exists, use this flag to enable a
         # carefully scoped merge implementation. Public email/phone is unverified.
@@ -73,7 +83,11 @@ class WebChatService:
         )
         conversation = await ConversationService(self.session).create_conversation(
             workspace.id,
-            ConversationCreate(customer_id=customer.id, channel=ChannelType.WEB),
+            ConversationCreate(
+                customer_id=customer.id,
+                channel=ChannelType.WEB,
+                channel_connection_id=connection.id,
+            ),
         )
         raw_token = secrets.token_urlsafe(32)
         webchat_session = WebChatSession(

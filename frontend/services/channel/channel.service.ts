@@ -12,6 +12,13 @@ export const channelService = {
       await api.get<ApiEnvelope<ChannelConnectionDTO[]>>("/channels"),
     );
   },
+  async connectWebChat() {
+    return unwrap(
+      await api.post<ApiEnvelope<ChannelConnectionDTO>>(
+        "/channels/webchat",
+      ),
+    );
+  },
   async connectLine(input: LineConnectionInput) {
     return unwrap(
       await api.post<ApiEnvelope<ChannelConnectionDTO>>(

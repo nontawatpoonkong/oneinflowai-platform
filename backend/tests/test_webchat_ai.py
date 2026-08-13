@@ -47,7 +47,10 @@ class FakeGroundedGeneration:
 
 def _workspace(client: TestClient, email: str) -> tuple[str, dict[str, str]]:
     data, token = register_verify_and_login(client, email=email)
-    return data["workspace"]["slug"], {"Authorization": f"Bearer {token}"}
+    headers = {"Authorization": f"Bearer {token}"}
+    connected = client.post("/api/v1/channels/webchat", headers=headers)
+    assert connected.status_code == 200
+    return data["workspace"]["slug"], headers
 
 
 def _session(client: TestClient, workspace_key: str) -> dict[str, str]:

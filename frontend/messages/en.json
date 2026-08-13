@@ -513,6 +513,15 @@
       "description": "Connect customer messaging channels to the shared OneInFlow conversation layer.",
       "available": "Available for this workspace",
       "notConnected": "Not connected",
+      "webchatSetup": "Connect WebChat to add customer chat to your website.",
+      "webchatConnected": "Customer chat is active for this workspace.",
+      "connectWebchat": "Connect WebChat",
+      "statuses": {
+        "DISCONNECTED": "Not Connected",
+        "PENDING": "Pending",
+        "CONNECTED": "Connected",
+        "ERROR": "Error"
+      },
       "connect": "Connect {provider}",
       "secretNote": "Credentials are encrypted after saving and are never displayed again.",
       "display_name": "Connection name",

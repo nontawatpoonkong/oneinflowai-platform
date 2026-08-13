@@ -14,6 +14,10 @@ export function useChannelOperations() {
   const client = useQueryClient();
   const refresh = () => client.invalidateQueries({ queryKey: key });
   return {
+    connectWebChat: useMutation({
+      mutationFn: channelService.connectWebChat,
+      onSuccess: refresh,
+    }),
     connectLine: useMutation({
       mutationFn: channelService.connectLine,
       onSuccess: refresh,

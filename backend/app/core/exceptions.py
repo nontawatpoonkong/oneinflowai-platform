@@ -269,6 +269,12 @@ class EntitlementQuotaExceededError(AppError):
     message = "The current plan limit has been reached"
 
 
+class WebChatNotConnectedError(AppError):
+    status_code = 409
+    code = "WEBCHAT_NOT_CONNECTED"
+    message = "WebChat is not connected for this workspace"
+
+
 class ActionNotFoundError(AppError):
     status_code = 404
     code = "ACTION_NOT_FOUND"

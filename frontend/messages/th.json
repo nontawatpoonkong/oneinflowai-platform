@@ -513,6 +513,15 @@
       "description": "เชื่อมต่อช่องทางลูกค้าเข้ากับระบบสนทนากลางของ OneInFlow",
       "available": "พร้อมใช้งานสำหรับ Workspace นี้",
       "notConnected": "ยังไม่ได้เชื่อมต่อ",
+      "webchatSetup": "เชื่อม WebChat เพื่อเปิดช่องทางแชทบนเว็บไซต์ของธุรกิจคุณ",
+      "webchatConnected": "ช่องทางแชทของ Workspace นี้พร้อมใช้งานแล้ว",
+      "connectWebchat": "เชื่อม WebChat",
+      "statuses": {
+        "DISCONNECTED": "ยังไม่ได้เชื่อมต่อ",
+        "PENDING": "กำลังดำเนินการ",
+        "CONNECTED": "เชื่อมต่อแล้ว",
+        "ERROR": "เกิดข้อผิดพลาด"
+      },
       "connect": "เชื่อมต่อ {provider}",
       "secretNote": "ข้อมูลลับจะถูกเข้ารหัสหลังบันทึกและจะไม่แสดงอีกครั้ง",
       "display_name": "ชื่อการเชื่อมต่อ",
