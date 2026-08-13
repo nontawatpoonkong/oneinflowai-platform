@@ -428,8 +428,36 @@ async def test_pricing_follow_up_fails_closed_without_public_pricing(corpus):
 
 
 @pytest.mark.asyncio
-async def test_fresh_pricing_question_is_in_scope_but_evidence_gate_stays_authoritative(
-    corpus, monkeypatch
+@pytest.mark.parametrize(
+    ("message", "preferred_language", "expected"),
+    [
+        (
+            "ราคา",
+            None,
+            "ขณะนี้ OneInFlow ยังไม่มีข้อมูลราคาแพ็กเกจที่ประกาศอย่างเป็นทางการ"
+            "ในเอกสารสาธารณะ หากต้องการสอบถามราคา กรุณาติดต่อทีม OneInFlow",
+        ),
+        ("ราคาเท่าไหร่", None, None),
+        ("คิดราคายังไง", None, None),
+        ("มีแพ็กเกจอะไรบ้าง", None, None),
+        ("ค่าบริการเท่าไหร่", None, None),
+        ("เสียเงินไหม", None, None),
+        (
+            "price",
+            None,
+            "OneInFlow does not currently have officially published package pricing "
+            "in the public documentation. Please contact the OneInFlow team for "
+            "pricing information.",
+        ),
+        ("pricing", None, None),
+        ("how much is it", None, None),
+        ("how much does OneInFlow cost", None, None),
+        ("what plans do you have", None, None),
+        ("is OneInFlow free", None, None),
+    ],
+)
+async def test_pricing_variants_use_deterministic_fallback_without_generation(
+    corpus, monkeypatch, message, preferred_language, expected
 ):
     provider = RecordingProvider("Invented price 99 baht. [S1]")
     service = DemoChatService(provider, corpus_path=corpus)
@@ -442,7 +470,9 @@ async def test_fresh_pricing_question_is_in_scope_but_evidence_gate_stays_author
         return retrieve(query)
 
     monkeypatch.setattr(service, "_retrieve", tracked_retrieve)
-    request = DemoChatRequest(message="คิดราคายังไง")
+    request = DemoChatRequest(
+        message=message, preferred_language=preferred_language
+    )
 
     result = await service.answer(request)
 
@@ -450,9 +480,40 @@ async def test_fresh_pricing_question_is_in_scope_but_evidence_gate_stays_author
     assert retrieval_calls == 1
     assert result.citations == []
     assert provider.calls == []
-    assert result.answer != (
-        "กรุณาถามเฉพาะคำถามที่เกี่ยวข้องกับ OneInFlow และการใช้งานระบบของเรา"
+    if expected is None:
+        thai_fallback = (
+            "ขณะนี้ OneInFlow ยังไม่มีข้อมูลราคาแพ็กเกจที่ประกาศอย่างเป็นทางการ"
+            "ในเอกสารสาธารณะ หากต้องการสอบถามราคา กรุณาติดต่อทีม OneInFlow"
+        )
+        english_fallback = (
+            "OneInFlow does not currently have officially published package pricing "
+            "in the public documentation. Please contact the OneInFlow team for "
+            "pricing information."
+        )
+        expected = (
+            thai_fallback
+            if any("ก" <= character <= "๛" for character in message)
+            else english_fallback
+        )
+    assert result.answer == expected
+    assert not any(character.isdigit() for character in result.answer)
+
+
+@pytest.mark.asyncio
+async def test_approved_pricing_evidence_can_reach_generation(tmp_path):
+    pricing_corpus = tmp_path / "pricing.md"
+    pricing_corpus.write_text(
+        "Source: README.md\n\nOfficial OneInFlow pricing: Pilot plan details.",
+        encoding="utf-8",
     )
+    provider = RecordingProvider("Official pricing details are published. [S1]")
+
+    result = await DemoChatService(provider, corpus_path=pricing_corpus).answer(
+        DemoChatRequest(message="What plans do you have?")
+    )
+
+    assert len(provider.calls) == 1
+    assert result.citations[0].source == "README.md"
 
 
 @pytest.mark.parametrize(

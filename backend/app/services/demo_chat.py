@@ -59,10 +59,42 @@ _FOLLOW_UP_MARKERS = (
     "that too",
     "it cost",
 )
-_PRICING_TERMS = {"ราคา", "ค่าบริการ", "คิดเงิน", "pricing", "price", "cost"}
+_PRICING_TERMS = {
+    "ราคา",
+    "ค่าบริการ",
+    "คิดเงิน",
+    "แพ็กเกจ",
+    "เสียเงิน",
+    "pricing",
+    "price",
+    "cost",
+    "plan",
+    "free",
+    "how much",
+}
+_PRICING_EVIDENCE_TERMS = {
+    "ราคา",
+    "ค่าบริการ",
+    "คิดเงิน",
+    "แพ็กเกจ",
+    "pricing",
+    "price",
+    "cost",
+}
 _SCOPE_WARNING = {
     "th": "กรุณาถามเฉพาะคำถามที่เกี่ยวข้องกับ OneInFlow และการใช้งานระบบของเรา",
     "en": "Please ask only questions related to OneInFlow and how our platform works.",
+}
+_PRICING_FALLBACK = {
+    "th": (
+        "ขณะนี้ OneInFlow ยังไม่มีข้อมูลราคาแพ็กเกจที่ประกาศอย่างเป็นทางการ"
+        "ในเอกสารสาธารณะ หากต้องการสอบถามราคา กรุณาติดต่อทีม OneInFlow"
+    ),
+    "en": (
+        "OneInFlow does not currently have officially published package pricing "
+        "in the public documentation. Please contact the OneInFlow team for "
+        "pricing information."
+    ),
 }
 _PRODUCT_TERMS = (
     "oneinflow",
@@ -119,6 +151,8 @@ _PRODUCT_CAPABILITY_TERMS = (
     "คิดราคา",
     "ราคา",
     "ค่าบริการ",
+    "แพ็กเกจ",
+    "เสียเงิน",
     "what can",
     "what do",
     "how can",
@@ -130,6 +164,9 @@ _PRODUCT_CAPABILITY_TERMS = (
     "pricing",
     "price",
     "cost",
+    "how much",
+    "plan",
+    "free",
 )
 _OUT_OF_SCOPE_TERMS = (
     "อากาศ",
@@ -201,10 +238,14 @@ class DemoChatService:
             return DemoChatResponse(answer=_SCOPE_WARNING[language], citations=[])
         retrieval_query = self._retrieval_query(request)
         sections = self._retrieve(retrieval_query)
-        if self._is_pricing_question(request.message) and not any(
+        pricing_question = self._is_pricing_question(request.message)
+        if pricing_question and not any(
             self._has_pricing_evidence(section) for section in sections
         ):
-            sections = []
+            language = request.preferred_language or self._message_language(
+                request.message
+            )
+            return DemoChatResponse(answer=_PRICING_FALLBACK[language], citations=[])
         if not sections:
             return DemoChatResponse(
                 answer="ไม่พบข้อมูลนี้ในเอกสารสาธารณะของ OneInFlow",
@@ -317,7 +358,7 @@ class DemoChatService:
     @staticmethod
     def _has_pricing_evidence(section: PublicSection) -> bool:
         normalized = section.text.casefold()
-        return any(term in normalized for term in _PRICING_TERMS)
+        return any(term in normalized for term in _PRICING_EVIDENCE_TERMS)
 
     def _retrieve(self, query: str) -> list[PublicSection]:
         query_terms = set(_WORD.findall(query.lower()))
