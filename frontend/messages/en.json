@@ -667,6 +667,8 @@
     "allChannels": "All channels",
     "allModes": "All modes",
     "mode": "Conversation mode",
+    "modes": {"auto":"Auto","copilot":"Copilot","human":"Human"},
+    "modeChangeFailed": "Unable to change the conversation mode.",
     "sendFailed": "Unable to send the message.",
     "messageError": "Unable to load messages.",
     "conversationError": "Unable to load conversations.",

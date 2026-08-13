@@ -46,6 +46,20 @@ _LANGUAGE_INSTRUCTIONS = {
     "th": "Respond in Thai.",
     "en": "Respond in English.",
 }
+_FOLLOW_UP_MARKERS = (
+    "แล้ว",
+    "ล่ะ",
+    "แบบนี้",
+    "เท่าไหร่",
+    "ยังไง",
+    "ได้ไหม",
+    "what about",
+    "how much",
+    "does it",
+    "that too",
+    "it cost",
+)
+_PRICING_TERMS = {"ราคา", "ค่าบริการ", "คิดเงิน", "pricing", "price", "cost"}
 
 
 def detect_language_preference(message: str) -> str | None:
@@ -87,7 +101,12 @@ class DemoChatService:
             return DemoChatResponse(
                 answer=_LANGUAGE_ACKNOWLEDGEMENTS[command_language], citations=[]
             )
-        sections = self._retrieve(request.message)
+        retrieval_query = self._retrieval_query(request)
+        sections = self._retrieve(retrieval_query)
+        if self._is_pricing_question(request.message) and not any(
+            self._has_pricing_evidence(section) for section in sections
+        ):
+            sections = []
         if not sections:
             return DemoChatResponse(
                 answer="ไม่พบข้อมูลนี้ในเอกสารสาธารณะของ OneInFlow",
@@ -98,7 +117,7 @@ class DemoChatService:
             for index, section in enumerate(sections, 1)
         )
         history = "\n".join(
-            f"{item.role}: {item.content}" for item in request.history[-8:]
+            f"{item.role}: {item.content}" for item in request.history[-6:]
         )
         language_instruction = (
             _LANGUAGE_INSTRUCTIONS[request.preferred_language]
@@ -136,6 +155,32 @@ class DemoChatService:
                 citations=[],
             )
         return DemoChatResponse(answer=result.text, citations=citations)
+
+    @staticmethod
+    def _is_follow_up(message: str) -> bool:
+        normalized = " ".join(message.casefold().split())
+        return len(normalized) <= 120 and any(
+            marker in normalized for marker in _FOLLOW_UP_MARKERS
+        )
+
+    @classmethod
+    def _retrieval_query(cls, request: DemoChatRequest) -> str:
+        if not request.history or not cls._is_follow_up(request.message):
+            return request.message
+        prior_user_messages = [
+            item.content for item in request.history if item.role == "user"
+        ][-3:]
+        return " ".join([*prior_user_messages, request.message])
+
+    @staticmethod
+    def _is_pricing_question(message: str) -> bool:
+        normalized = message.casefold()
+        return any(term in normalized for term in _PRICING_TERMS)
+
+    @staticmethod
+    def _has_pricing_evidence(section: PublicSection) -> bool:
+        normalized = section.text.casefold()
+        return any(term in normalized for term in _PRICING_TERMS)
 
     def _retrieve(self, query: str) -> list[PublicSection]:
         query_terms = set(_WORD.findall(query.lower()))

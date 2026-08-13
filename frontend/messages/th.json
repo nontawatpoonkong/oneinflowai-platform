@@ -667,6 +667,8 @@
     "allChannels": "ทุกช่องทาง",
     "allModes": "ทุกโหมด",
     "mode": "โหมดบทสนทนา",
+    "modes": {"auto":"อัตโนมัติ","copilot":"ผู้ช่วย","human":"เจ้าหน้าที่"},
+    "modeChangeFailed": "เปลี่ยนโหมดบทสนทนาไม่สำเร็จ",
     "sendFailed": "ส่งข้อความไม่สำเร็จ",
     "messageError": "โหลดข้อความไม่สำเร็จ",
     "conversationError": "โหลดบทสนทนาไม่สำเร็จ",

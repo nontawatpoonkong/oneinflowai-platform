@@ -1,6 +1,12 @@
 "use client";
 
-import { FormEvent, useRef, useState } from "react";
+import {
+  FormEvent,
+  KeyboardEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Bot, Loader2, MessageCircle, Send, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -51,6 +57,11 @@ export function DemoChat() {
   const [error, setError] = useState("");
   const [preferredLanguage, setPreferredLanguage] = useState<DemoLanguage | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, pending]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -65,7 +76,7 @@ export function DemoChat() {
       const requestedLanguage = detectLanguagePreference(content);
       const result = await sendDemoMessage(
         content,
-        messages,
+        messages.slice(-6),
         requestedLanguage ?? preferredLanguage,
       );
       if (requestedLanguage) setPreferredLanguage(requestedLanguage);
@@ -79,6 +90,18 @@ export function DemoChat() {
     }
   }
 
+  function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (
+      event.key !== "Enter" ||
+      event.shiftKey ||
+      event.nativeEvent.isComposing
+    ) {
+      return;
+    }
+    event.preventDefault();
+    event.currentTarget.form?.requestSubmit();
+  }
+
   return (
     <div className="fixed bottom-5 right-5 z-[100]">
       {open ? <section aria-label={t("title")} className="mb-3 flex h-[min(620px,80dvh)] w-[min(390px,calc(100vw-2rem))] flex-col overflow-hidden rounded-3xl border bg-background shadow-2xl">
@@ -87,8 +110,9 @@ export function DemoChat() {
           {!messages.length ? <p className="rounded-2xl bg-muted p-3 text-sm">{t("welcome")}</p> : null}
           {messages.map((message) => <div key={message.id} className={message.role === "user" ? "ml-8 rounded-2xl bg-brand p-3 text-sm text-brand-foreground" : "mr-8 rounded-2xl bg-muted p-3 text-sm"}><p className="whitespace-pre-wrap">{message.content}</p>{message.citations?.length ? <p className="mt-2 text-[11px] text-muted-foreground">{t("sources")}: {message.citations.map((item) => item.source).join(", ")}</p> : null}</div>)}
           {pending ? <Loader2 className="size-5 animate-spin text-brand" /> : null}{error ? <p className="text-sm text-destructive">{error}</p> : null}
+          <div ref={messagesEndRef} />
         </div>
-        <form onSubmit={submit} className="flex gap-2 border-t p-3"><textarea ref={inputRef} value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={1000} rows={1} placeholder={t("placeholder")} className="min-h-10 flex-1 resize-none rounded-xl border bg-background px-3 py-2 text-sm" /><Button type="submit" size="icon" disabled={!draft.trim() || pending} aria-label={t("send")}><Send className="size-4" /></Button></form>
+        <form onSubmit={submit} className="flex gap-2 border-t p-3"><textarea ref={inputRef} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={handleKeyDown} maxLength={1000} rows={1} placeholder={t("placeholder")} className="min-h-10 flex-1 resize-none rounded-xl border bg-background px-3 py-2 text-sm" /><Button type="submit" size="icon" disabled={!draft.trim() || pending} aria-label={t("send")}><Send className="size-4" /></Button></form>
       </section> : null}
       <Button size="lg" className="rounded-full shadow-xl" onClick={() => setOpen((value) => !value)} aria-label={t("open")}><MessageCircle className="size-5" /> {t("launcher")}</Button>
     </div>

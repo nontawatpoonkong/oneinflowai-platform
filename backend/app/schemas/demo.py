@@ -14,7 +14,7 @@ class DemoHistoryMessage(BaseModel):
 
 class DemoChatRequest(BaseModel):
     message: str = Field(min_length=1)
-    history: list[DemoHistoryMessage] = Field(default_factory=list, max_length=8)
+    history: list[DemoHistoryMessage] = Field(default_factory=list, max_length=6)
     preferred_language: Literal["th", "en"] | None = None
 
     @field_validator("message")

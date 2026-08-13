@@ -157,6 +157,9 @@ export function WebChatWidget({
   async function submitMessage() {
     const trimmed = content.trim();
     if (!trimmed || sendMessage.isPending) return;
+    window.requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    });
     pendingMessageId.current ??= crypto.randomUUID();
     const result = await sendMessage.mutateAsync({
       content: trimmed,
@@ -165,6 +168,10 @@ export function WebChatWidget({
     pendingMessageId.current = null;
     setLatestAssistant(result.assistant);
     setContent("");
+    window.requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      composerRef.current?.focus();
+    });
   }
 
   async function submitAction(decision: "confirm" | "cancel") {
@@ -185,7 +192,11 @@ export function WebChatWidget({
   }
 
   function handleComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.key === "Enter" && !event.shiftKey) {
+    if (
+      event.key === "Enter" &&
+      !event.shiftKey &&
+      !event.nativeEvent.isComposing
+    ) {
       event.preventDefault();
       void submitMessage();
     }
