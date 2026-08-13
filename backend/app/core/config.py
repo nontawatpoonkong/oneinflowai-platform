@@ -20,7 +20,7 @@ class Settings(BaseSettings):
 
     # ------------------------------------------------------------- AI
     OPENAI_API_KEY: str | None = None
-    OPENAI_MODEL: str = "gpt-5.5"
+    OPENAI_MODEL: str = "gpt-5.6-terra"
     GENERATION_PROVIDER: str = "openai"
     GENERATION_TEMPERATURE: float = 0.2
     GENERATION_MAX_OUTPUT_TOKENS: int = 800
