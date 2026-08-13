@@ -15,6 +15,11 @@ PostgreSQL is authoritative for tenant and operational state. Qdrant contains
 derived searchable vectors; retrieval revalidates results against trusted
 PostgreSQL rows.
 
+Registration persists only the User and verification challenge. Workspace,
+owner membership, and reference subscription are created atomically only by
+the explicit Workspace creation service. Authenticated users with no membership
+cannot enter tenant-scoped APIs and are routed to Workspace onboarding.
+
 ## Implemented WebChat orchestration
 
 ```mermaid

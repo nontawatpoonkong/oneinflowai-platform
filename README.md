@@ -57,7 +57,7 @@ The RAG preview API exposes the prepared context and user prompt for development
 
 ## Authentication
 
-The backend includes registration, email OTP verification, login, token-based protected routes, and password-reset flows. Verification codes are delivered through an email-provider abstraction and are not returned as authentication credentials. Workspace and user dependencies enforce access at the API boundary.
+The backend includes registration, email OTP verification, login, token-based protected routes, and password-reset flows. Registration creates only a User; an authenticated user with no memberships must explicitly create a Workspace or accept a future invitation. Explicit Workspace creation makes that user the sole owner and provisions Workspace-scoped billing state. Verification codes are delivered through an email-provider abstraction and are not returned as authentication credentials. Workspace and user dependencies enforce access at the API boundary.
 
 Workspace AI Instructions are nullable, owner/admin-managed behavioral guidance
 shared by WebChat, LINE, and Facebook through the common grounded-generation

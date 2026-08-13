@@ -12,6 +12,25 @@ export function useMyWorkspace() {
   });
 }
 
+export function useWorkspaces(enabled = true) {
+  return useQuery({
+    queryKey: ["workspaces"],
+    queryFn: workspaceService.list,
+    enabled,
+  });
+}
+
+export function useCreateWorkspace() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: workspaceService.create,
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: ["workspaces"] });
+      await client.invalidateQueries({ queryKey: queryKeys.workspaceMe });
+    },
+  });
+}
+
 export function useWorkspaceAIInstructions(workspaceId?: string) {
   return useQuery({
     queryKey: ["workspace", workspaceId, "ai-instructions"],

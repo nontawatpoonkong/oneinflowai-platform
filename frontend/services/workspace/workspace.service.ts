@@ -11,6 +11,10 @@ export const workspaceService = {
     const res = await api.get<ApiEnvelope<WorkspaceDTO[]>>("/workspaces");
     return unwrap(res);
   },
+  async create(name: string): Promise<WorkspaceDTO> {
+    const res = await api.post<ApiEnvelope<WorkspaceDTO>>("/workspaces", { name });
+    return unwrap(res);
+  },
   async aiInstructions(workspaceId: string): Promise<WorkspaceAIInstructionsDTO> {
     const res = await api.get<ApiEnvelope<WorkspaceAIInstructionsDTO>>(
       `/workspaces/${encodeURIComponent(workspaceId)}/ai-instructions`,

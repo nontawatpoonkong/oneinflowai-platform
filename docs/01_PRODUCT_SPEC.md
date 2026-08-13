@@ -13,6 +13,9 @@ OneInFlow remains an MVP-stage AI-first Customer Operations Platform.
 - Registration, email verification, login, authenticated user lookup, and
   password-reset flows.
 - Multi-tenant workspaces, workspace membership, and workspace isolation.
+- Registration creates a User only. A zero-membership user completes Workspace
+  onboarding by explicitly creating a Workspace; invitation acceptance is not
+  yet implemented and arbitrary self-join is forbidden.
 - Customers, channel identities, conversations, and persisted messages.
 
 ### WebChat

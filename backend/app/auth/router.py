@@ -23,7 +23,6 @@ from app.schemas.auth import (
 )
 from app.schemas.response import success_response
 from app.schemas.user import UserResponse
-from app.schemas.workspace import WorkspaceResponse
 from app.services.auth import AuthService
 from app.services.email_verification import EmailVerificationService
 from app.services.password_reset import PasswordResetService
@@ -41,14 +40,13 @@ async def register(
     payload: RegisterRequest, session: AsyncSession = Depends(get_db)
 ) -> dict:
     service = AuthService(session)
-    user, workspace = await service.register(
+    user = await service.register(
         email=payload.email,
         password=payload.password,
         full_name=payload.full_name,
     )
     data = RegisterResponse(
         user=UserResponse.model_validate(user),
-        workspace=WorkspaceResponse.model_validate(workspace),
         verification_expires_in=(
             service.verification.settings.EMAIL_VERIFICATION_OTP_TTL_SECONDS
         ),

@@ -1,7 +1,6 @@
 """Authentication service.
 
-Owns registration (User + Workspace + owner WorkspaceMember in one
-transaction), login, token issuance, and user lookup.
+Owns account registration, login, token issuance, and user lookup.
 """
 
 import uuid
@@ -28,12 +27,9 @@ from app.integrations.email import (
     create_email_provider,
 )
 from app.models.user import User
-from app.models.workspace import Workspace
 from app.repositories.user import UserRepository
 from app.schemas.auth import TokenResponse
 from app.services.email_verification import EmailVerificationService
-from app.services.workspace import WorkspaceService
-from app.services.workspace_naming import derive_workspace_naming
 
 settings = get_settings()
 logger = get_logger(__name__)
@@ -48,7 +44,6 @@ class AuthService:
     ) -> None:
         self.session = session
         self.users = UserRepository(session)
-        self.workspaces = WorkspaceService(session)
         self.email_provider = email_provider or create_email_provider()
         self.verification = EmailVerificationService(session)
 
@@ -61,7 +56,7 @@ class AuthService:
 
     async def register(
         self, *, email: str, password: str, full_name: str | None
-    ) -> tuple[User, Workspace]:
+    ) -> User:
         email = email.lower()
         if await self.users.email_exists(email):
             raise EmailAlreadyExistsError()
@@ -73,18 +68,10 @@ class AuthService:
         )
         await self.users.add(user)
 
-        naming = derive_workspace_naming(email=email, full_name=full_name)
-        workspace = await self.workspaces.build_with_owner(
-            owner_id=user.id,
-            name=naming.display_name,
-            slug_source=naming.slug_base,
-        )
-
         pending_email = await self.verification.create_challenge(user)
 
         await self.session.commit()
         await self.session.refresh(user)
-        await self.session.refresh(workspace)
 
         try:
             await self.verification.deliver(self.email_provider, pending_email)
@@ -97,7 +84,7 @@ class AuthService:
                 },
             )
 
-        return user, workspace
+        return user
 
     async def login(self, *, email: str, password: str) -> tuple[User, TokenResponse]:
         user = await self.users.get_by_email(email.lower())

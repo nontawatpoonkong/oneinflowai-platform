@@ -663,6 +663,7 @@
   "units": {
     "seconds": "sec"
   },
+  "workspaceOnboarding": {"title":"Get started with OneInFlow","description":"Create a Workspace or join one through a valid invitation. Registration does not create a Workspace automatically.","createTitle":"Create a new Workspace","createDescription":"Set up a Workspace for your business. You will become its owner.","name":"Workspace name","create":"Create Workspace","created":"Workspace created.","error":"Unable to create Workspace.","joinTitle":"Join a Workspace","joinDescription":"A Workspace owner or admin must invite you. Self-joining by ID is not allowed.","joinPending":"Waiting for an invitation"},
   "inbox": {
     "search": "Search conversations",
     "deliveryFailed": "The reply was saved but could not be sent to the external channel.",

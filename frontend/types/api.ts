@@ -52,7 +52,7 @@ export interface TokenDTO {
 
 export interface RegisterResultDTO {
   user: UserDTO;
-  workspace: WorkspaceDTO;
+  workspace_required: true;
   verification_required: true;
   verification_type: "EMAIL_OTP";
   verification_expires_in: number;

@@ -1,6 +1,14 @@
 """Register / login / current-user API tests (against a real Postgres)."""
 
+import asyncio
+
 from fastapi.testclient import TestClient
+from sqlalchemy import func, select
+
+from app.models.billing import WorkspaceSubscription
+from app.models.workspace import Workspace
+from app.models.workspace_member import WorkspaceMember
+from tests.conftest import TestSessionLocal
 
 REGISTER_URL = "/api/v1/auth/register"
 LOGIN_URL = "/api/v1/auth/login"
@@ -17,7 +25,7 @@ def _register(client: TestClient, **overrides) -> dict:
     return client.post(REGISTER_URL, json=payload)
 
 
-def test_register_creates_user_workspace_and_requires_verification(
+def test_register_creates_user_only_and_requires_workspace_onboarding(
     client_db: TestClient,
 ) -> None:
     response = _register(client_db)
@@ -31,15 +39,28 @@ def test_register_creates_user_workspace_and_requires_verification(
     assert data["user"]["full_name"] == "Alice Example"
     assert "id" in data["user"]
 
-    # Workspace auto-created with the registering user as owner.
-    assert data["workspace"]["owner_id"] == data["user"]["id"]
-    assert data["workspace"]["slug"]
+    assert data["workspace_required"] is True
+    assert "workspace" not in data
 
     assert data["verification_required"] is True
     assert data["verification_type"] == "EMAIL_OTP"
     assert data["verification_expires_in"] == 300
     assert data["resend_after"] == 60
     assert "token" not in data
+
+    async def workspace_counts():
+        async with TestSessionLocal() as session:
+            return (
+                await session.scalar(select(func.count()).select_from(Workspace)),
+                await session.scalar(
+                    select(func.count()).select_from(WorkspaceMember)
+                ),
+                await session.scalar(
+                    select(func.count()).select_from(WorkspaceSubscription)
+                ),
+            )
+
+    assert asyncio.run(workspace_counts()) == (0, 0, 0)
 
 
 def test_register_rejects_duplicate_email(client_db: TestClient) -> None:
@@ -75,6 +96,42 @@ def test_login_succeeds_with_valid_credentials(
     data = response.json()["data"]
     assert data["access_token"]
     assert data["expires_in"] == 1800
+
+    headers = {"Authorization": f"Bearer {data['access_token']}"}
+    assert client_db.get("/api/v1/workspaces", headers=headers).json()["data"] == []
+    required = client_db.get("/api/v1/workspaces/me", headers=headers)
+    assert required.status_code == 404
+    assert required.json()["error"]["code"] == "WORKSPACE_NOT_FOUND"
+    assert client_db.get("/api/v1/channels", headers=headers).status_code == 404
+
+
+def test_zero_workspace_user_explicitly_creates_workspace_as_only_owner(
+    client_db: TestClient, fake_email_provider
+) -> None:
+    registered = _register(client_db).json()["data"]
+    client_db.post(
+        "/api/v1/auth/verify-email",
+        json={"email": "alice@example.com", "otp": fake_email_provider.latest_otp},
+    )
+    token = client_db.post(
+        LOGIN_URL,
+        json={"email": "alice@example.com", "password": "supersecret123"},
+    ).json()["data"]["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    created = client_db.post(
+        "/api/v1/workspaces", headers=headers, json={"name": "ABC Hotel"}
+    )
+
+    assert created.status_code == 201
+    workspace = created.json()["data"]
+    assert workspace["owner_id"] == registered["user"]["id"]
+    members = client_db.get(
+        f"/api/v1/workspaces/{workspace['id']}/members", headers=headers
+    ).json()["data"]
+    assert len(members) == 1
+    assert members[0]["role"] == "owner"
+    assert client_db.get("/api/v1/channels", headers=headers).json()["data"] == []
 
 
 def test_login_is_case_insensitive_on_email(

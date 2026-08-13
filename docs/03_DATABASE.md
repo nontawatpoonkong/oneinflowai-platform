@@ -20,7 +20,8 @@ workspace/document/chunk ownership is revalidated against PostgreSQL.
 
 `workspaces.ai_instructions` is nullable bounded tenant configuration for AI
 behavior and tone. It is not a document, chunk, vector, credential, or citation
-source.
+source. A User may have zero or multiple `workspace_members` rows; registration
+does not create either a Workspace or membership.
 
 ## Conversation and WebChat idempotency
 

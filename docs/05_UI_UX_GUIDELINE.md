@@ -43,6 +43,11 @@ Sprint 9.1 Operations Rule
     collapse without losing access on narrow screens.
     Analytics remains a Sprint 9.4 placeholder, not an operational feature.
 
+Workspace Onboarding Rule
+    Registration does not create a Workspace. An authenticated user with no
+    memberships sees Create Workspace and a truthful invitation-only Join state;
+    the operational dashboard remains unavailable until membership exists.
+
 Knowledge Configuration Rule
     Keep Knowledge and AI Instructions as separate tabs. Knowledge supplies
     factual evidence and citations; AI Instructions configure tone and behavior

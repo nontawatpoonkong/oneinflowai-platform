@@ -150,7 +150,16 @@ def register_verify_and_login(
         json={"email": email, "password": password},
     )
     assert login.status_code == 200
-    return registered.json()["data"], login.json()["data"]["access_token"]
+    token = login.json()["data"]["access_token"]
+    workspace = client.post(
+        "/api/v1/workspaces",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"name": email.rsplit("@", 1)[-1].split(".", 1)[0].title()},
+    )
+    assert workspace.status_code == 201
+    data = registered.json()["data"]
+    data["workspace"] = workspace.json()["data"]
+    return data, token
 
 
 def _fake_external_deps(monkeypatch: pytest.MonkeyPatch) -> None:

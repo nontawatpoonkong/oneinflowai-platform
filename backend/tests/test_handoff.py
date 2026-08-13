@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from app.models.workspace_member import WorkspaceRole
 from tests.conftest import register_verify_and_login
 from tests.test_conversation import _create_conversation, _create_customer
-from tests.test_webchat_ai import _install_fake_grounded, _send, _session
+from tests.test_webchat_ai import _install_fake_grounded, _send, _session, _workspace
 from tests.test_workspace_management import _add_member
 
 
@@ -102,8 +102,8 @@ def test_webchat_explicit_handoff_is_idempotent_and_stops_ai(
     client_db: TestClient, monkeypatch
 ):
     grounded = _install_fake_grounded(monkeypatch)
-    owner, token = register_verify_and_login(client_db, email="handoff-web@example.com")
-    webchat = _session(client_db, owner["workspace"]["slug"])
+    workspace_slug, headers = _workspace(client_db, "handoff-web@example.com")
+    webchat = _session(client_db, workspace_slug)
 
     first = _send(client_db, webchat, "handoff-1", "ขอคุยกับเจ้าหน้าที่")
     retry = _send(client_db, webchat, "handoff-1", "ขอคุยกับเจ้าหน้าที่")
@@ -116,7 +116,7 @@ def test_webchat_explicit_handoff_is_idempotent_and_stops_ai(
     assert later.json()["data"]["assistant"]["type"] == "HUMAN_MODE"
     assert grounded.calls == 0
     notifications = client_db.get(
-        "/api/v1/notifications", headers={"Authorization": f"Bearer {token}"}
+        "/api/v1/notifications", headers=headers
     ).json()["data"]["items"]
     handoffs = [
         item for item in notifications if item["type"] == "CONVERSATION_HANDOFF"

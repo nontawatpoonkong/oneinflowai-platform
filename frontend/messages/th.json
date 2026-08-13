@@ -663,6 +663,7 @@
   "units": {
     "seconds": "วินาที"
   },
+  "workspaceOnboarding": {"title":"เริ่มต้นใช้งาน OneInFlow","description":"สร้าง Workspace หรือเข้าร่วมผ่านคำเชิญที่ถูกต้อง การสมัครบัญชีจะไม่สร้าง Workspace ให้อัตโนมัติ","createTitle":"สร้าง Workspace ใหม่","createDescription":"ตั้งค่า Workspace สำหรับธุรกิจของคุณ โดยคุณจะเป็น Owner","name":"ชื่อ Workspace","create":"สร้าง Workspace","created":"สร้าง Workspace แล้ว","error":"สร้าง Workspace ไม่สำเร็จ","joinTitle":"เข้าร่วม Workspace","joinDescription":"Owner หรือ Admin ต้องส่งคำเชิญให้คุณ ระบบไม่อนุญาตให้เข้าร่วมด้วย Workspace ID เอง","joinPending":"รอคำเชิญจาก Workspace"},
   "inbox": {
     "search": "ค้นหาบทสนทนา",
     "deliveryFailed": "บันทึกข้อความแล้ว แต่ส่งไปยังช่องทางภายนอกไม่สำเร็จ",

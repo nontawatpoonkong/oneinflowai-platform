@@ -5,7 +5,6 @@ from typing import Literal
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
 from app.schemas.user import UserResponse
-from app.schemas.workspace import WorkspaceResponse
 
 
 class RegisterRequest(BaseModel):
@@ -62,7 +61,7 @@ class TokenResponse(BaseModel):
 
 class RegisterResponse(BaseModel):
     user: UserResponse
-    workspace: WorkspaceResponse
+    workspace_required: bool = True
     verification_required: bool = True
     verification_type: Literal["EMAIL_OTP"] = "EMAIL_OTP"
     verification_expires_in: int
