@@ -22,6 +22,11 @@ from app.core.exceptions import (
 from app.integrations.generation.base import GenerationRequest, GenerationResult
 
 
+def _supports_temperature(model: str) -> bool:
+    """Return whether the Responses API accepts temperature for this model."""
+    return model != "gpt-5.5" and not model.startswith("gpt-5.5-")
+
+
 class OpenAIGenerationProvider:
     name = "openai"
 
@@ -44,10 +49,11 @@ class OpenAIGenerationProvider:
             "model": self.model,
             "instructions": prompt.system_prompt,
             "input": prompt.user_prompt,
-            "temperature": prompt.temperature,
             "max_output_tokens": prompt.max_output_tokens,
             "timeout": self.timeout_seconds,
         }
+        if _supports_temperature(self.model):
+            request["temperature"] = prompt.temperature
         if prompt.output_schema is not None:
             request["text"] = {
                 "format": {

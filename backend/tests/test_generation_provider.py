@@ -45,10 +45,12 @@ class FakeResponses:
         return self.response
 
 
-def _provider(api: FakeResponses) -> OpenAIGenerationProvider:
+def _provider(
+    api: FakeResponses, model: str = "gpt-5.5"
+) -> OpenAIGenerationProvider:
     return OpenAIGenerationProvider(
         api_key="test",
-        model="gpt-5.5",
+        model=model,
         timeout_seconds=45,
         client=SimpleNamespace(responses=api),
     )
@@ -76,7 +78,6 @@ async def test_openai_provider_maps_request_and_normalizes_result_and_usage() ->
             "model": "gpt-5.5",
             "instructions": "system",
             "input": "user",
-            "temperature": 0.2,
             "max_output_tokens": 800,
             "timeout": 45,
         }
@@ -88,6 +89,47 @@ async def test_openai_provider_maps_request_and_normalizes_result_and_usage() ->
         14,
     )
     assert result.provider == "openai"
+
+
+@pytest.mark.asyncio
+async def test_openai_temperature_compatible_model_keeps_temperature() -> None:
+    api = FakeResponses(SimpleNamespace(output_text="ok", model="gpt-4o-mini"))
+
+    await _provider(api, model="gpt-4o-mini").generate(PROMPT)
+
+    assert api.calls[0]["temperature"] == 0.2
+    assert api.calls[0]["max_output_tokens"] == 800
+
+
+@pytest.mark.asyncio
+async def test_openai_gpt_5_5_structured_output_omits_temperature() -> None:
+    api = FakeResponses(SimpleNamespace(output_text='{"ok":true}', model="gpt-5.5"))
+    prompt = GenerationRequest(
+        "system",
+        "user",
+        0,
+        16,
+        output_schema={
+            "type": "object",
+            "properties": {"ok": {"type": "boolean"}},
+            "required": ["ok"],
+            "additionalProperties": False,
+        },
+        output_schema_name="compatibility_check",
+    )
+
+    await _provider(api).generate(prompt)
+
+    assert "temperature" not in api.calls[0]
+    assert api.calls[0]["max_output_tokens"] == 16
+    assert api.calls[0]["text"] == {
+        "format": {
+            "type": "json_schema",
+            "name": "compatibility_check",
+            "schema": prompt.output_schema,
+            "strict": True,
+        }
+    }
 
 
 def _request() -> httpx.Request:
