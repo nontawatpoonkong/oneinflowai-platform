@@ -15,7 +15,7 @@ export function Logo({ className }: { className?: string }) {
         <Sparkles className="size-4" />
       </span>
       <span className="text-lg font-semibold tracking-tight">
-        One<span className="text-gradient">Flow</span>AI
+        One<span className="text-gradient">InFlow</span>
       </span>
     </Link>
   );
