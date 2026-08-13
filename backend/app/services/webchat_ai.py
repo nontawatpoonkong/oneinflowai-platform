@@ -16,9 +16,10 @@ from app.integrations.action_intent import (
     ActionIntentOption,
     ActionIntentProvider,
     ActionIntentRequest,
-    DevelopmentActionIntentProvider,
+    create_action_intent_provider,
 )
 from app.integrations.embedding import create_embedding_provider
+from app.integrations.generation import create_generation_provider
 from app.integrations.qdrant_knowledge import QdrantKnowledgeVectorStore
 from app.models.action_collection import ActionCollectionStatus
 from app.models.conversation import ConversationMode, HandoffReason
@@ -45,17 +46,18 @@ class WebChatAIOrchestrator:
         grounded: GroundedGenerationService,
         *,
         intent: ActionIntentProvider | None = None,
+        extraction=None,
     ) -> None:
         self.session = session
         self.grounded = grounded
-        self.intent = intent or DevelopmentActionIntentProvider()
+        self.intent = intent or create_action_intent_provider()
         self.webchat = WebChatService(session)
         self.messages = MessageRepository(session)
         self.message_service = MessageService(session)
         self.collections = ActionCollectionRepository(session)
         self.definitions = ActionDefinitionRepository(session)
         self.collection_service = ActionCollectionService(
-            session, create_action_field_extraction_provider()
+            session, extraction or create_action_field_extraction_provider()
         )
 
     async def process(self, conversation_id, token, client_message_id, content):
@@ -517,6 +519,7 @@ class WebChatAIOrchestrator:
 
 def create_webchat_ai_orchestrator(session, qdrant):
     settings = get_settings()
+    generation = create_generation_provider(settings)
     retrieval = KnowledgeRetrievalService(
         session,
         settings=settings,
@@ -526,6 +529,13 @@ def create_webchat_ai_orchestrator(session, qdrant):
         ),
     )
     grounded = GroundedGenerationService(
-        RAGPreparationService(retrieval, settings=settings), settings=settings
+        RAGPreparationService(retrieval, settings=settings),
+        provider=generation,
+        settings=settings,
     )
-    return WebChatAIOrchestrator(session, grounded)
+    return WebChatAIOrchestrator(
+        session,
+        grounded,
+        intent=create_action_intent_provider(settings, generation),
+        extraction=create_action_field_extraction_provider(settings, generation),
+    )

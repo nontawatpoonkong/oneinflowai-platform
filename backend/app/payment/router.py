@@ -2,7 +2,7 @@
 
 import uuid
 
-from fastapi import APIRouter, Depends, File, UploadFile, status
+from fastapi import APIRouter, Depends, File, Query, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.session import get_db
@@ -89,11 +89,18 @@ async def create_payment(
 
 @router.get("")
 async def list_payments(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=100),
     workspace: Workspace = Depends(get_current_workspace),
     session: AsyncSession = Depends(get_db),
 ):
     return success_response(
-        [_payment(item) for item in await PaymentService(session).list(workspace.id)]
+        [
+            _payment(item)
+            for item in await PaymentService(session).list(
+                workspace.id, page=page, page_size=page_size
+            )
+        ]
     )
 
 
@@ -164,12 +171,14 @@ async def verify_payment(
 @router.get("/{payment_id}/verifications")
 async def list_verifications(
     payment_id: uuid.UUID,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=100),
     workspace: Workspace = Depends(get_current_workspace),
     session: AsyncSession = Depends(get_db),
 ):
     items = await PaymentVerificationService(
         session, create_slip_verification_provider()
-    ).list(workspace.id, payment_id)
+    ).list(workspace.id, payment_id, page=page, page_size=page_size)
     return success_response(
         [
             PaymentVerificationResponse.model_validate(

@@ -1,7 +1,7 @@
 """Provider-neutral generation contracts."""
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol
 
 
 @dataclass(frozen=True, slots=True)
@@ -10,6 +10,8 @@ class GenerationRequest:
     user_prompt: str
     temperature: float
     max_output_tokens: int
+    output_schema: dict[str, Any] | None = None
+    output_schema_name: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

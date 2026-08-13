@@ -21,7 +21,8 @@ product.
   Channels, Notifications, and Workspace/Settings.
 - Overview is composed from existing APIs. There is no `/dashboard/overview`
   backend and no Sprint 9.1 migration.
-- Analytics remains planned for Sprint 9.4.
+- Analytics is implemented for entitled Workspace owners/admins using
+  Workspace-scoped PostgreSQL aggregates.
 - Actions has Queue and Action Types. Existing workspace-scoped
   `ActionDefinition` remains the server source of truth; owner/admin may mutate,
   members may read, keys are immutable, and lifecycle is enable/disable.

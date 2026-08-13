@@ -276,7 +276,17 @@ Planned:
 - Sprint 9.4 operational Analytics is implemented from Workspace-scoped source
   tables with UTC ranges, truthful KPI definitions, and management-only access.
   See [Analytics and Insights](docs/14_ANALYTICS.md).
-- Sprint 9.5: MVP Hardening and Pilot.
+- Sprint 9.5: MVP Hardening and Pilot readiness — COMPLETE.
+- Production configuration now fails closed on unsafe secrets, origins and
+  development providers. Public Demo, WebChat and authentication use shared
+  Redis-backed limits. See [MVP Hardening](docs/15_MVP_HARDENING.md),
+  [Pilot Runbook](docs/16_PILOT_RUNBOOK.md),
+  [Backup/Recovery](docs/17_BACKUP_RECOVERY.md) and the
+  [Release Checklist](docs/18_RELEASE_CHECKLIST.md).
+
+**OneInFlow status: MVP Complete — Pilot Ready.** This is not a claim of
+Commercial Production Readiness; the documented MVP limitations and Pilot
+operating controls still apply.
 - Automatic external action execution.
 - External notification delivery, asynchronous processing, expanded observability, and production deployment guidance.
 
@@ -291,7 +301,11 @@ Planned:
 
 ## MVP scope
 
-The MVP provides WebChat, LINE OA and Facebook text messaging, grounded AI, Actions, Customer Payment with EasySlip v2 verification, SaaS entitlements, and human collaboration. It does not yet provide Instagram, LINE/Facebook media ingestion, Analytics, production subscription checkout, or a production hosted-service guarantee.
+The MVP provides WebChat, LINE OA and Facebook text messaging, grounded AI,
+Actions, Customer Payment with EasySlip v2 verification, SaaS entitlements,
+human collaboration and operational Analytics. It does not provide Instagram,
+LINE/Facebook media ingestion, production subscription checkout, or a
+commercial-production hosted-service guarantee.
 
 ## Documentation
 

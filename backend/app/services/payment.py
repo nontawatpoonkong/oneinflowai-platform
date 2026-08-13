@@ -143,8 +143,10 @@ class PaymentService:
             raise PaymentNotFoundError()
         return payment
 
-    async def list(self, workspace_id):
-        return await self.payments.list(workspace_id)
+    async def list(self, workspace_id, *, page=1, page_size=50):
+        return await self.payments.list(
+            workspace_id, limit=page_size, offset=(page - 1) * page_size
+        )
 
     async def submit_evidence(self, workspace_id, payment_id, file: UploadFile):
         payment = await self.get(workspace_id, payment_id)
@@ -405,7 +407,12 @@ class PaymentVerificationService:
         )
         return account_match or name_match
 
-    async def list(self, workspace_id, payment_id):
+    async def list(self, workspace_id, payment_id, *, page=1, page_size=50):
         if not await self.payments.get(workspace_id, payment_id):
             raise PaymentNotFoundError()
-        return await self.verifications.list(workspace_id, payment_id)
+        return await self.verifications.list(
+            workspace_id,
+            payment_id,
+            limit=page_size,
+            offset=(page - 1) * page_size,
+        )

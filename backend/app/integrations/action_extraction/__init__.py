@@ -9,11 +9,15 @@ from app.integrations.action_extraction.development import (
 from app.integrations.action_extraction.factory import (
     create_action_field_extraction_provider,
 )
+from app.integrations.action_extraction.generation import (
+    GenerationActionFieldExtractionProvider,
+)
 
 __all__ = [
     "ActionFieldExtractionProvider",
     "ActionFieldExtractionRequest",
     "ActionFieldExtractionResult",
     "DevelopmentActionFieldExtractionProvider",
+    "GenerationActionFieldExtractionProvider",
     "create_action_field_extraction_provider",
 ]

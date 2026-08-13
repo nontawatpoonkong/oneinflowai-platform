@@ -22,13 +22,15 @@ class PaymentDestinationRepository(BaseRepository[PaymentDestination]):
             )
         )
 
-    async def list(self, workspace_id):
+    async def list(self, workspace_id, *, limit=100, offset=0):
         result = await self.session.execute(
             select(PaymentDestination)
             .where(PaymentDestination.workspace_id == workspace_id)
             .order_by(
                 PaymentDestination.is_default.desc(), PaymentDestination.created_at
             )
+            .offset(offset)
+            .limit(limit)
         )
         return list(result.scalars())
 
@@ -51,11 +53,13 @@ class PaymentRepository(BaseRepository[Payment]):
             )
         )
 
-    async def list(self, workspace_id):
+    async def list(self, workspace_id, *, limit=100, offset=0):
         result = await self.session.execute(
             select(Payment)
             .where(Payment.workspace_id == workspace_id)
             .order_by(Payment.created_at.desc())
+            .offset(offset)
+            .limit(limit)
         )
         return list(result.scalars())
 
@@ -103,7 +107,7 @@ class PaymentVerificationRepository(BaseRepository[PaymentVerification]):
             )
         )
 
-    async def list(self, workspace_id, payment_id):
+    async def list(self, workspace_id, payment_id, *, limit=100, offset=0):
         result = await self.session.execute(
             select(PaymentVerification)
             .where(
@@ -111,6 +115,8 @@ class PaymentVerificationRepository(BaseRepository[PaymentVerification]):
                 PaymentVerification.payment_id == payment_id,
             )
             .order_by(PaymentVerification.created_at)
+            .offset(offset)
+            .limit(limit)
         )
         return list(result.scalars())
 

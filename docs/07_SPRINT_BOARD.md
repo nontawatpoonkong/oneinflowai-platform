@@ -39,7 +39,7 @@ are **IMPLEMENTED**. Instagram is not in Sprint 9.0.
 - 9.2 - SaaS Billing + Plans + Entitlements
 - 9.3 - Production Slip Verification — IMPLEMENTED
 - 9.4 - Analytics + Insights — IMPLEMENTED
-- 9.5 - MVP Hardening + Pilot
+- 9.5 - MVP Hardening + Pilot — COMPLETE
 # Sprint 9.2 — SaaS Billing + Plans + Entitlements
 
 Implementation complete pending final validation. Customer Payment remains a

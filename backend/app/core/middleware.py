@@ -11,6 +11,7 @@ Implemented as pure ASGI (not BaseHTTPMiddleware) so the contextvar is set
 in the same task that runs the endpoint, guaranteeing log correlation.
 """
 
+import re
 import uuid
 
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
@@ -18,6 +19,7 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from app.core.context import request_id_var
 
 REQUEST_ID_HEADER = b"x-request-id"
+_SAFE_REQUEST_ID = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
 
 
 class RequestIDMiddleware:
@@ -31,7 +33,15 @@ class RequestIDMiddleware:
 
         headers = dict(scope.get("headers") or [])
         inbound = headers.get(REQUEST_ID_HEADER)
-        request_id = inbound.decode() if inbound else str(uuid.uuid4())
+        try:
+            candidate = inbound.decode("ascii") if inbound else ""
+        except UnicodeDecodeError:
+            candidate = ""
+        request_id = (
+            candidate
+            if _SAFE_REQUEST_ID.fullmatch(candidate)
+            else str(uuid.uuid4())
+        )
 
         token = request_id_var.set(request_id)
 

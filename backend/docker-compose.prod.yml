@@ -2,6 +2,15 @@
 # Run with:
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 services:
+  postgres:
+    ports: !reset []
+
+  redis:
+    ports: !reset []
+
+  qdrant:
+    ports: !reset []
+
   app:
     build:
       target: production
@@ -20,3 +29,30 @@ services:
       LOG_JSON: "true"
       LOG_LEVEL: INFO
     restart: always
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - app_storage:/app/storage
+
+  frontend:
+    build:
+      context: ../frontend
+      target: production
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL is required}
+    command: ["node", "server.js"]
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: always
+    networks:
+      - oneflowai
+
+volumes:
+  app_storage:

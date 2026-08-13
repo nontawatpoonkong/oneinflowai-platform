@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     DEMO_CHAT_RATE_LIMIT_REQUESTS: int = 5
     DEMO_CHAT_RATE_LIMIT_WINDOW_SECONDS: int = 60
     DEMO_CHAT_MAX_INPUT_CHARS: int = 1000
+    WEBCHAT_RATE_LIMIT_REQUESTS: int = 30
+    WEBCHAT_RATE_LIMIT_WINDOW_SECONDS: int = 60
+    AUTH_RATE_LIMIT_REQUESTS: int = 10
+    AUTH_RATE_LIMIT_WINDOW_SECONDS: int = 60
     EMBEDDING_PROVIDER: str = "openai"
     OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
     EMBEDDING_BATCH_SIZE: int = 64
@@ -141,6 +145,8 @@ class Settings(BaseSettings):
     APP_ENV: str = "development"  # development | staging | production
     DEBUG: bool = False
     API_V1_PREFIX: str = "/api/v1"
+    CORS_ORIGINS: str = "http://localhost:3000"
+    TRUSTED_HOSTS: str = "localhost,127.0.0.1,testserver"
 
     # ------------------------------------------------------------- Logging
     LOG_LEVEL: str = "INFO"
@@ -208,6 +214,43 @@ class Settings(BaseSettings):
     @property
     def QDRANT_URL(self) -> str:
         return f"http://{self.QDRANT_HOST}:{self.QDRANT_PORT}"
+
+    @property
+    def cors_origins(self) -> list[str]:
+        return [item.strip() for item in self.CORS_ORIGINS.split(",") if item.strip()]
+
+    @property
+    def trusted_hosts(self) -> list[str]:
+        return [item.strip() for item in self.TRUSTED_HOSTS.split(",") if item.strip()]
+
+
+def validate_production_settings(settings: Settings) -> None:
+    """Fail startup closed on unsafe production-only configuration."""
+    if settings.APP_ENV != "production":
+        return
+    errors: list[str] = []
+    if settings.DEBUG:
+        errors.append("DEBUG must be false")
+    if len(settings.JWT_SECRET_KEY.encode()) < 32:
+        errors.append("JWT_SECRET_KEY must contain at least 32 bytes")
+    if not settings.OTP_HASH_SECRET or len(settings.OTP_HASH_SECRET.encode()) < 32:
+        errors.append("OTP_HASH_SECRET must contain at least 32 bytes")
+    if "*" in settings.cors_origins or not settings.cors_origins:
+        errors.append("CORS_ORIGINS must contain explicit origins")
+    if "*" in settings.trusted_hosts or not settings.trusted_hosts:
+        errors.append("TRUSTED_HOSTS must contain explicit hosts")
+    if settings.EMAIL_PROVIDER.strip().lower() == "development":
+        errors.append("EMAIL_PROVIDER cannot be development")
+    if settings.GENERATION_PROVIDER.strip().lower() == "development":
+        errors.append("GENERATION_PROVIDER cannot be development")
+    if settings.EMBEDDING_PROVIDER.strip().lower() == "development":
+        errors.append("EMBEDDING_PROVIDER cannot be development")
+    if settings.ACTION_COLLECTION_PROVIDER.strip().lower() != "generation":
+        errors.append("ACTION_COLLECTION_PROVIDER must be generation")
+    if settings.SLIP_VERIFICATION_PROVIDER.strip().lower() == "development":
+        errors.append("SLIP_VERIFICATION_PROVIDER cannot be development")
+    if errors:
+        raise ValueError("Unsafe production configuration: " + "; ".join(errors))
 
 
 @lru_cache

@@ -13,6 +13,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.core.config import get_settings, validate_production_settings
 from app.core.logging import get_logger
 from app.database.qdrant import create_qdrant_client
 from app.database.redis import create_redis_client
@@ -24,6 +25,7 @@ logger = get_logger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("application.startup.begin")
+    validate_production_settings(get_settings())
 
     app.state.redis = create_redis_client()
     app.state.qdrant = create_qdrant_client()

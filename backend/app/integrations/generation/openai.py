@@ -40,15 +40,25 @@ class OpenAIGenerationProvider:
         self.client = client or AsyncOpenAI(api_key=api_key, timeout=timeout_seconds)
 
     async def generate(self, prompt: GenerationRequest) -> GenerationResult:
+        request: dict[str, Any] = {
+            "model": self.model,
+            "instructions": prompt.system_prompt,
+            "input": prompt.user_prompt,
+            "temperature": prompt.temperature,
+            "max_output_tokens": prompt.max_output_tokens,
+            "timeout": self.timeout_seconds,
+        }
+        if prompt.output_schema is not None:
+            request["text"] = {
+                "format": {
+                    "type": "json_schema",
+                    "name": prompt.output_schema_name or "structured_output",
+                    "schema": prompt.output_schema,
+                    "strict": True,
+                }
+            }
         try:
-            response = await self.client.responses.create(
-                model=self.model,
-                instructions=prompt.system_prompt,
-                input=prompt.user_prompt,
-                temperature=prompt.temperature,
-                max_output_tokens=prompt.max_output_tokens,
-                timeout=self.timeout_seconds,
-            )
+            response = await self.client.responses.create(**request)
         except AuthenticationError as exc:
             raise GenerationAuthenticationError() from exc
         except RateLimitError as exc:

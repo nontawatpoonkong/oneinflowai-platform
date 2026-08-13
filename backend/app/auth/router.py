@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
+from app.auth.rate_limit import enforce_auth_rate_limit
 from app.core.logging import get_logger
 from app.database.session import get_db
 from app.integrations.email import EmailDeliveryError, create_email_provider
@@ -31,7 +32,11 @@ router = APIRouter()
 logger = get_logger(__name__)
 
 
-@router.post("/register", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(enforce_auth_rate_limit)],
+)
 async def register(
     payload: RegisterRequest, session: AsyncSession = Depends(get_db)
 ) -> dict:
@@ -57,7 +62,7 @@ async def register(
     )
 
 
-@router.post("/login")
+@router.post("/login", dependencies=[Depends(enforce_auth_rate_limit)])
 async def login(payload: LoginRequest, session: AsyncSession = Depends(get_db)) -> dict:
     _, token = await AuthService(session).login(
         email=payload.email, password=payload.password
@@ -68,7 +73,7 @@ async def login(payload: LoginRequest, session: AsyncSession = Depends(get_db)) 
     )
 
 
-@router.post("/verify-email")
+@router.post("/verify-email", dependencies=[Depends(enforce_auth_rate_limit)])
 async def verify_email(
     payload: VerifyEmailRequest, session: AsyncSession = Depends(get_db)
 ) -> dict:
@@ -79,7 +84,7 @@ async def verify_email(
     return success_response(message="Email verified successfully")
 
 
-@router.post("/resend-verification")
+@router.post("/resend-verification", dependencies=[Depends(enforce_auth_rate_limit)])
 async def resend_verification(
     payload: ResendVerificationRequest,
     session: AsyncSession = Depends(get_db),
@@ -105,7 +110,7 @@ async def resend_verification(
     )
 
 
-@router.post("/forgot-password")
+@router.post("/forgot-password", dependencies=[Depends(enforce_auth_rate_limit)])
 async def forgot_password(
     payload: ForgotPasswordRequest,
     session: AsyncSession = Depends(get_db),
@@ -132,7 +137,9 @@ async def forgot_password(
     )
 
 
-@router.post("/verify-password-reset")
+@router.post(
+    "/verify-password-reset", dependencies=[Depends(enforce_auth_rate_limit)]
+)
 async def verify_password_reset(
     payload: VerifyPasswordResetRequest,
     session: AsyncSession = Depends(get_db),
@@ -151,7 +158,7 @@ async def verify_password_reset(
     )
 
 
-@router.post("/reset-password")
+@router.post("/reset-password", dependencies=[Depends(enforce_auth_rate_limit)])
 async def reset_password(
     payload: ResetPasswordRequest,
     session: AsyncSession = Depends(get_db),

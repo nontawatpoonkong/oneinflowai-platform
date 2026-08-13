@@ -10,7 +10,7 @@ const TOKEN_COOKIE = "oneflow_token";
  * Token validity is re-checked client-side (AuthGuard + /auth/me); an invalid
  * cookie is cleared there, so this only performs the fast presence check.
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hasToken = Boolean(request.cookies.get(TOKEN_COOKIE)?.value);
 

@@ -51,8 +51,15 @@ TestSessionLocal = async_sessionmaker(
 
 
 class _FakeRedis:
+    def __init__(self) -> None:
+        self.values: dict[str, int] = {}
+
     async def ping(self) -> bool:
         return True
+
+    async def eval(self, script, key_count, key, window):
+        self.values[key] = self.values.get(key, 0) + 1
+        return [self.values[key], int(window)]
 
     async def aclose(self) -> None:
         return None

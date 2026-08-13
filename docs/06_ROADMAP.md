@@ -54,6 +54,11 @@ management authorization, entitlement enforcement, and EN/TH dashboard.
 
 ### Sprint 9.5 - MVP Hardening + Pilot
 
+Complete. Production configuration, public abuse protection, recovery
+evidence, deployment/runbooks, dependency remediation and release checklist
+passed the Pilot completion gate. OneInFlow is MVP Complete — Pilot Ready,
+not Commercial Production Ready.
+
 Planned security, observability, operational hardening, and pilot readiness.
 
 ## Later direction
