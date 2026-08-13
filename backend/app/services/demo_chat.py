@@ -60,11 +60,99 @@ _FOLLOW_UP_MARKERS = (
     "it cost",
 )
 _PRICING_TERMS = {"ราคา", "ค่าบริการ", "คิดเงิน", "pricing", "price", "cost"}
-_DEMO_PRODUCT_REFERENCE_QUERIES = {
-    "ทำอะไรได้บ้าง": "OneInFlow ทำอะไรได้บ้าง",
-    "คุณทำอะไรได้บ้าง": "OneInFlow ทำอะไรได้บ้าง",
-    "what can you do": "What can OneInFlow do?",
+_SCOPE_WARNING = {
+    "th": "กรุณาถามเฉพาะคำถามที่เกี่ยวข้องกับ OneInFlow และการใช้งานระบบของเรา",
+    "en": "Please ask only questions related to OneInFlow and how our platform works.",
 }
+_PRODUCT_TERMS = (
+    "oneinflow",
+    "webchat",
+    "line oa",
+    "line official",
+    "facebook",
+    "messenger",
+    "knowledge",
+    "rag",
+    "human handoff",
+    "handoff",
+    "action",
+    "payment",
+    "slip",
+    "analytics",
+    "billing",
+    "subscription",
+    "channel",
+    "เวบแชต",
+    "เว็บแชต",
+    "ไลน์",
+    "ฐานความรู้",
+    "ส่งต่อให้คน",
+    "พนักงาน",
+    "สลิป",
+    "ชำระเงิน",
+    "ช่องทาง",
+    "แพ็กเกจ",
+)
+_IMPLICIT_PRODUCT_REFERENCES = (
+    "คุณ",
+    "ระบบนี้",
+    "เว็บนี้",
+    "แพลตฟอร์มนี้",
+    "ai นี้",
+    "บริการนี้",
+    "this system",
+    "this website",
+    "this platform",
+    "this ai",
+    "this service",
+    "you",
+)
+_PRODUCT_CAPABILITY_TERMS = (
+    "ทำอะไร",
+    "ช่วยอะไร",
+    "ช่วยธุรกิจ",
+    "ช่วยร้าน",
+    "มีประโยชน์",
+    "รองรับ",
+    "ใช้งาน",
+    "ทำงานยังไง",
+    "คิดราคา",
+    "ราคา",
+    "ค่าบริการ",
+    "what can",
+    "what do",
+    "how can",
+    "help my business",
+    "capabilit",
+    "support",
+    "how does",
+    "how it works",
+    "pricing",
+    "price",
+    "cost",
+)
+_OUT_OF_SCOPE_TERMS = (
+    "อากาศ",
+    "bitcoin",
+    "เขียน python",
+    "write python",
+    "python code",
+    "ประธานาธิบดี",
+    "president",
+    "ร้านอาหาร",
+    "restaurant",
+    "ผลบอล",
+    "football score",
+    "เรื่องตลก",
+    "tell me a joke",
+    "แปลบทความ",
+    "translate this",
+    "คำถามทั่วไป",
+    "general question",
+    "chatgpt",
+)
+_ARITHMETIC_ONLY = re.compile(r"^\s*\d+(?:\s*[+\-*/]\s*\d+)+\s*(?:=|เท่ากับ|เท่าไหร่)?\s*$")
+_THAI_CHARACTER = re.compile(r"[\u0E00-\u0E7F]")
 
 
 def detect_language_preference(message: str) -> str | None:
@@ -106,6 +194,11 @@ class DemoChatService:
             return DemoChatResponse(
                 answer=_LANGUAGE_ACKNOWLEDGEMENTS[command_language], citations=[]
             )
+        if not self._is_in_scope(request):
+            language = request.preferred_language or self._message_language(
+                request.message
+            )
+            return DemoChatResponse(answer=_SCOPE_WARNING[language], citations=[])
         retrieval_query = self._retrieval_query(request)
         sections = self._retrieve(retrieval_query)
         if self._is_pricing_question(request.message) and not any(
@@ -169,9 +262,46 @@ class DemoChatService:
         )
 
     @classmethod
+    def _is_in_scope(cls, request: DemoChatRequest) -> bool:
+        if cls._message_is_in_scope(request.message):
+            return True
+        if not request.history or not cls._is_follow_up(request.message):
+            return False
+        return any(
+            cls._message_is_in_scope(item.content)
+            for item in request.history
+            if item.role == "user"
+        )
+
+    @staticmethod
+    def _message_is_in_scope(message: str) -> bool:
+        normalized = " ".join(message.casefold().split())
+        if _ARITHMETIC_ONLY.fullmatch(normalized) or any(
+            term in normalized for term in _OUT_OF_SCOPE_TERMS
+        ):
+            return False
+        if any(term in normalized for term in _PRODUCT_TERMS):
+            return True
+        capability = any(term in normalized for term in _PRODUCT_CAPABILITY_TERMS)
+        implicit_reference = any(
+            term in normalized for term in _IMPLICIT_PRODUCT_REFERENCES
+        )
+        return capability and (
+            implicit_reference
+            or len(normalized) <= 120
+            and not any(term in normalized for term in _OUT_OF_SCOPE_TERMS)
+        )
+
+    @staticmethod
+    def _message_language(message: str) -> str:
+        return "th" if _THAI_CHARACTER.search(message) else "en"
+
+    @classmethod
     def _retrieval_query(cls, request: DemoChatRequest) -> str:
         normalized = " ".join(request.message.casefold().strip().split()).rstrip(".!?")
-        product_query = _DEMO_PRODUCT_REFERENCE_QUERIES.get(normalized, request.message)
+        product_query = request.message
+        if "oneinflow" not in normalized and cls._is_in_scope(request):
+            product_query = f"OneInFlow: {request.message}"
         if not request.history or not cls._is_follow_up(request.message):
             return product_query
         prior_user_messages = [
