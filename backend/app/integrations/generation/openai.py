@@ -24,7 +24,11 @@ from app.integrations.generation.base import GenerationRequest, GenerationResult
 
 def _supports_temperature(model: str) -> bool:
     """Return whether the Responses API accepts temperature for this model."""
-    return model != "gpt-5.5" and not model.startswith("gpt-5.5-")
+    unsupported_families = ("gpt-5.5", "gpt-5.6-terra", "gpt-5.6-luna")
+    return not any(
+        model == family or model.startswith(f"{family}-")
+        for family in unsupported_families
+    )
 
 
 class OpenAIGenerationProvider:

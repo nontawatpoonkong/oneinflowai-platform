@@ -102,8 +102,21 @@ async def test_openai_temperature_compatible_model_keeps_temperature() -> None:
 
 
 @pytest.mark.asyncio
-async def test_openai_gpt_5_5_structured_output_omits_temperature() -> None:
-    api = FakeResponses(SimpleNamespace(output_text='{"ok":true}', model="gpt-5.5"))
+@pytest.mark.parametrize(
+    "model",
+    [
+        "gpt-5.5",
+        "gpt-5.5-2026-04-23",
+        "gpt-5.6-terra",
+        "gpt-5.6-terra-2026-04-23",
+        "gpt-5.6-luna",
+        "gpt-5.6-luna-2026-04-23",
+    ],
+)
+async def test_openai_unsupported_model_family_omits_temperature(
+    model: str,
+) -> None:
+    api = FakeResponses(SimpleNamespace(output_text='{"ok":true}', model=model))
     prompt = GenerationRequest(
         "system",
         "user",
@@ -118,7 +131,7 @@ async def test_openai_gpt_5_5_structured_output_omits_temperature() -> None:
         output_schema_name="compatibility_check",
     )
 
-    await _provider(api).generate(prompt)
+    await _provider(api, model=model).generate(prompt)
 
     assert "temperature" not in api.calls[0]
     assert api.calls[0]["max_output_tokens"] == 16

@@ -10,6 +10,7 @@ from app.integrations.action_extraction import (
     GenerationActionFieldExtractionProvider,
     create_action_field_extraction_provider,
 )
+from app.integrations.action_extraction.generation import _extraction_schema
 from app.integrations.generation import GenerationResult
 
 
@@ -75,7 +76,12 @@ async def test_production_extraction_uses_configured_generation_provider() -> No
     result = await provider.extract(
         ActionFieldExtractionRequest(
             field_schema=(
-                {"key": "server", "label": "Server", "type": "enum"},
+                {
+                    "key": "server",
+                    "label": "Server",
+                    "type": "enum",
+                    "values": ["Asia", "Europe"],
+                },
             ),
             user_input="Asia",
             collected_payload={},
@@ -108,3 +114,70 @@ async def test_generation_extraction_fails_closed_on_bad_output() -> None:
             await GenerationActionFieldExtractionProvider(
                 FakeGeneration(text)
             ).extract(request)
+
+
+def test_extraction_schema_maps_supported_types_and_requires_nullable_keys() -> None:
+    fields = (
+        {"key": "name", "type": "string"},
+        {"key": "guests", "type": "integer"},
+        {"key": "budget", "type": "number"},
+        {"key": "confirmed", "type": "boolean"},
+        {"key": "region", "type": "enum", "values": ["north", "south"]},
+    )
+
+    schema = _extraction_schema(fields)
+    candidates = schema["properties"]["candidates"]
+
+    assert candidates["properties"] == {
+        "name": {"type": ["string", "null"]},
+        "guests": {"type": ["integer", "null"]},
+        "budget": {"type": ["number", "null"]},
+        "confirmed": {"type": ["boolean", "null"]},
+        "region": {
+            "type": ["string", "null"],
+            "enum": ["north", "south", None],
+        },
+    }
+    assert candidates["required"] == [field["key"] for field in fields]
+    assert candidates["additionalProperties"] is False
+    assert schema["additionalProperties"] is False
+
+
+@pytest.mark.asyncio
+async def test_generation_extraction_removes_null_missing_values() -> None:
+    request = ActionFieldExtractionRequest(
+        field_schema=(
+            {"key": "name", "label": "Name", "type": "string"},
+            {"key": "server", "label": "Server", "type": "enum", "values": ["EU"]},
+        ),
+        user_input="Name is Noi",
+        collected_payload={},
+    )
+    provider = GenerationActionFieldExtractionProvider(
+        FakeGeneration('{"candidates":{"name":"Noi","server":null}}')
+    )
+
+    result = await provider.extract(request)
+
+    assert result.candidates == {"name": "Noi"}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "text",
+    [
+        '{"candidates":{"count":"12"}}',
+        '{"candidates":{"region":"east"}}',
+        '{"candidates":{"count":12,"unknown":null}}',
+    ],
+)
+async def test_generation_extraction_rejects_wrong_type_enum_or_keys(text: str) -> None:
+    field = (
+        {"key": "region", "label": "Region", "type": "enum", "values": ["north"]}
+        if "region" in text
+        else {"key": "count", "label": "Count", "type": "integer"}
+    )
+    with pytest.raises(ActionCollectionProviderError):
+        await GenerationActionFieldExtractionProvider(FakeGeneration(text)).extract(
+            ActionFieldExtractionRequest((field,), "untrusted", {})
+        )
