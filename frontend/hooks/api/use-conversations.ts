@@ -10,5 +10,7 @@ export function useConversations(params: ListParams = {}) {
   return useQuery({
     queryKey: queryKeys.conversations(params),
     queryFn: () => conversationService.list(params),
+    refetchInterval: 5_000,
+    refetchIntervalInBackground: false,
   });
 }

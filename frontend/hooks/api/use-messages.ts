@@ -20,5 +20,7 @@ export function useMessages(
         page_size: pageSize,
       }),
     enabled: Boolean(conversationId),
+    refetchInterval: conversationId ? 3_000 : false,
+    refetchIntervalInBackground: false,
   });
 }
