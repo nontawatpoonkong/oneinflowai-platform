@@ -51,7 +51,12 @@ export function Hero() {
             variants={fadeUp}
             className="text-balance text-6xl font-semibold leading-[1.1] tracking-tight sm:text-6xl md:text-6xl"
           >
-            {t("headline1")}
+            {t.rich("headline1", {
+              break: () => <br />,
+              nowrap: (chunks) => (
+                <span className="whitespace-nowrap">{chunks}</span>
+              ),
+            })}
             <br />
             {t("headline2")}
             <br />
