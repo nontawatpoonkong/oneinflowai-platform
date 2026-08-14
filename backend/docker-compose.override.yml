@@ -12,6 +12,8 @@ services:
       - --port
       - "8000"
       - --reload
+      - --reload-dir
+      - /app/app
     environment:
       APP_ENV: development
       DEBUG: "true"
