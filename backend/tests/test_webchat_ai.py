@@ -11,11 +11,21 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
 import app.services.action_collection as action_collection_module
+import app.services.demo_chat as demo_chat_module
 import app.webchat.router as webchat_router
+from app.core.config import Settings
+from app.integrations.generation import GenerationResult
 from app.models.conversation import Conversation
 from app.models.message import Message, SenderType
+from app.rag.context import RAGContextAssembler
+from app.rag.prompt import RAGPromptBuilder
 from app.schemas.message import MessageCreate
-from app.services.grounded_generation import GroundedAnswer, GroundingStatus
+from app.services.grounded_generation import (
+    GroundedAnswer,
+    GroundedGenerationService,
+    GroundingStatus,
+)
+from app.services.knowledge_retrieval import RetrievalResult
 from app.services.message import MessageService
 from app.services.webchat_ai import WebChatAIOrchestrator
 from tests.conftest import TestSessionLocal, register_verify_and_login
@@ -43,6 +53,72 @@ class FakeGroundedGeneration:
             prompt_version="test",
             context_version="test",
         )
+
+
+class WorkspaceKnowledgePreparation:
+    def __init__(self) -> None:
+        self.calls = []
+        self.document_id = uuid.uuid4()
+        self.chunk_id = uuid.uuid4()
+
+    async def prepare(self, *, workspace_id, query, **kwargs):
+        self.calls.append({"workspace_id": workspace_id, "query": query})
+        results = []
+        if "ราคา" in query:
+            results = [
+                RetrievalResult(
+                    chunk_id=self.chunk_id,
+                    document_id=self.document_id,
+                    chunk_index=0,
+                    text=(
+                        "Business: ABC Hotel\n"
+                        "Room price: 1,500 THB/night\n"
+                        "Check-in: 14:00"
+                    ),
+                    score=0.99,
+                    content_hash="a" * 64,
+                    chunking_version="v1",
+                    embedding_model="test",
+                    embedding_version="test:v1",
+                    document_title="ABC Hotel Knowledge",
+                    original_filename="abc-hotel.txt",
+                )
+            ]
+        context = RAGContextAssembler(
+            max_characters=10_000, max_sources=8
+        ).assemble(query, results)
+        return RAGPromptBuilder().build(query=query, context=context)
+
+
+class WorkspaceKnowledgeProvider:
+    name = "workspace-test"
+
+    def __init__(self) -> None:
+        self.calls = []
+
+    async def generate(self, prompt):
+        self.calls.append(prompt)
+        return GenerationResult(
+            text="ห้องพัก ABC Hotel ราคา 1,500 THB ต่อคืน [S1]",
+            model="workspace-test-model",
+            provider=self.name,
+        )
+
+
+def _install_workspace_grounded(monkeypatch):
+    preparation = WorkspaceKnowledgePreparation()
+    provider = WorkspaceKnowledgeProvider()
+    grounded = GroundedGenerationService(
+        preparation,
+        provider,
+        settings=Settings(_env_file=None, GENERATION_PROVIDER="development"),
+    )
+
+    def factory(session, qdrant):
+        return WebChatAIOrchestrator(session, grounded)
+
+    monkeypatch.setattr(webchat_router, "create_webchat_ai_orchestrator", factory)
+    return preparation, provider
 
 
 def _workspace(client: TestClient, email: str) -> tuple[str, dict[str, str]]:
@@ -97,6 +173,85 @@ def _message_counts(conversation_id: str) -> tuple[int, int]:
             return customer or 0, assistant or 0
 
     return asyncio.run(inspect())
+
+
+def _conversation(conversation_id: str) -> Conversation:
+    async def inspect():
+        async with TestSessionLocal() as session:
+            item = await session.get(Conversation, uuid.UUID(conversation_id))
+            assert item is not None
+            return item
+
+    return asyncio.run(inspect())
+
+
+_PUBLIC_DEMO_ONLY_RESPONSES = (
+    "ขณะนี้ OneInFlow ยังไม่มีข้อมูลราคา",
+    "กรุณาถามเฉพาะคำถามที่เกี่ยวข้องกับ OneInFlow",
+    "ไม่พบข้อมูลนี้ในเอกสารสาธารณะของ OneInFlow",
+)
+
+
+def test_workspace_pricing_uses_workspace_knowledge_not_public_demo_policy(
+    client_db: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    preparation, provider = _install_workspace_grounded(monkeypatch)
+
+    async def demo_must_not_run(*args, **kwargs):
+        pytest.fail("DemoChatService was called by Workspace WebChat")
+
+    monkeypatch.setattr(demo_chat_module.DemoChatService, "answer", demo_must_not_run)
+    workspace, _ = _workspace(client_db, "workspace-pricing-isolation@example.com")
+    webchat = _session(client_db, workspace)
+
+    response = _send(client_db, webchat, "workspace-price-1", "ห้องราคาเท่าไหร่")
+
+    assert response.status_code == 201
+    assistant = response.json()["data"]["assistant"]
+    assert "1,500 THB" in assistant["message"]
+    assert assistant["citations"] == [
+        {
+            "label": "S1",
+            "document_id": str(preparation.document_id),
+            "chunk_id": str(preparation.chunk_id),
+            "document_name": "abc-hotel.txt",
+        }
+    ]
+    assert all(text not in assistant["message"] for text in _PUBLIC_DEMO_ONLY_RESPONSES)
+    conversation = _conversation(webchat["conversation_id"])
+    assert preparation.calls == [
+        {"workspace_id": conversation.workspace_id, "query": "ห้องราคาเท่าไหร่"}
+    ]
+    assert len(provider.calls) == 1
+    assert "Room price: 1,500 THB/night" in provider.calls[0].user_prompt
+    assert _message_counts(webchat["conversation_id"]) == (1, 1)
+
+
+def test_workspace_unanswerable_general_question_uses_workspace_grounding_policy(
+    client_db: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    preparation, provider = _install_workspace_grounded(monkeypatch)
+
+    async def demo_must_not_run(*args, **kwargs):
+        pytest.fail("DemoChatService was called by Workspace WebChat")
+
+    monkeypatch.setattr(demo_chat_module.DemoChatService, "answer", demo_must_not_run)
+    workspace, _ = _workspace(client_db, "workspace-weather-isolation@example.com")
+    webchat = _session(client_db, workspace)
+
+    response = _send(client_db, webchat, "workspace-weather-1", "พรุ่งนี้ฝนตกไหม")
+
+    assert response.status_code == 201
+    assistant = response.json()["data"]["assistant"]
+    assert assistant["message"] == "ไม่พบข้อมูลเพียงพอในฐานความรู้สำหรับตอบคำถามนี้"
+    assert assistant["citations"] == []
+    assert all(text not in assistant["message"] for text in _PUBLIC_DEMO_ONLY_RESPONSES)
+    conversation = _conversation(webchat["conversation_id"])
+    assert preparation.calls == [
+        {"workspace_id": conversation.workspace_id, "query": "พรุ่งนี้ฝนตกไหม"}
+    ]
+    assert provider.calls == []
+    assert _message_counts(webchat["conversation_id"]) == (1, 1)
 
 
 def test_same_client_message_id_returns_original_result_without_duplicate_processing(
