@@ -17,6 +17,7 @@ from app.core.exceptions import (
     PaymentEvidenceTooLargeError,
     PaymentNotFoundError,
     PaymentValidationError,
+    PaymentVerificationInProgressError,
     PaymentVerificationProviderError,
 )
 from app.integrations.slip_verification import (
@@ -236,11 +237,17 @@ class PaymentVerificationService:
         self.verifications = PaymentVerificationRepository(session)
 
     async def verify(self, workspace_id, payment_id):
-        payment = await self.payments.get(workspace_id, payment_id)
+        payment = await self.payments.get_for_update(workspace_id, payment_id)
         if not payment:
             raise PaymentNotFoundError()
         if payment.status == PaymentStatus.VERIFIED:
+            # Reconciliation locks the booking before the payment. Release this
+            # payment lock first to preserve that order on repeated requests.
+            await self.session.commit()
+            await self._reconcile_booking_payment(workspace_id, payment)
             return payment, await self.verifications.latest(workspace_id, payment.id)
+        if payment.status == PaymentStatus.VERIFYING:
+            raise PaymentVerificationInProgressError()
         if payment.expires_at and payment.expires_at <= datetime.now(UTC):
             payment.status = PaymentStatus.EXPIRED
             await self.session.commit()
@@ -266,9 +273,8 @@ class PaymentVerificationService:
             await entitlements.record(
                 workspace_id, SLIP_VERIFICATIONS, 1, provider=self.provider.name
             )
-            # Commit the reservation while the advisory transaction lock is held,
-            # then release it before the bounded external request.
-            await self.session.commit()
+            # Reserve quota and claim this payment in the same transaction.
+            # Release the row/advisory locks before the bounded external call.
         payment.status = PaymentStatus.VERIFYING
         await self.session.commit()
         try:
@@ -363,20 +369,36 @@ class PaymentVerificationService:
         await self.session.commit()
         await self.session.refresh(payment)
         await self.session.refresh(verification)
+        if payment.status == PaymentStatus.VERIFIED:
+            await self._reconcile_booking_payment(workspace_id, payment)
         return payment, verification
 
+    async def _reconcile_booking_payment(self, workspace_id, payment):
+        if payment.booking_id is None:
+            return
+        # Financial verification is committed first. Booking application is a
+        # separate, idempotent transaction owned by the Hotel service boundary.
+        from app.services.booking_payment_reconciliation import (
+            BookingPaymentReconciliationService,
+        )
+
+        await BookingPaymentReconciliationService(self.session).reconcile_payment(
+            workspace_id, payment.id
+        )
+        await self.session.refresh(payment)
+
     async def _record_provider_error(self, workspace_id, payment, evidence, code):
-            payment.status = PaymentStatus.PENDING
-            verification = PaymentVerification(
-                workspace_id=workspace_id,
-                payment_id=payment.id,
-                evidence_id=evidence.id,
-                provider=self.provider.name,
-                status=VerificationStatus.ERROR,
-                error_code=code,
-            )
-            await self.verifications.add(verification)
-            await self.session.commit()
+        payment.status = PaymentStatus.PENDING
+        verification = PaymentVerification(
+            workspace_id=workspace_id,
+            payment_id=payment.id,
+            evidence_id=evidence.id,
+            provider=self.provider.name,
+            status=VerificationStatus.ERROR,
+            error_code=code,
+        )
+        await self.verifications.add(verification)
+        await self.session.commit()
 
     @staticmethod
     def _receiver_matches(destination, result) -> bool:

@@ -6,7 +6,13 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.payment import DestinationType, PaymentStatus, VerificationStatus
+from app.models.payment import (
+    DestinationType,
+    PaymentApplicationReason,
+    PaymentApplicationStatus,
+    PaymentStatus,
+    VerificationStatus,
+)
 
 
 class PaymentDestinationCreate(BaseModel):
@@ -60,6 +66,12 @@ class PaymentCreate(BaseModel):
 class PaymentResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
+    booking_id: uuid.UUID | None
+    booking_applied_at: datetime | None
+    booking_application_status: PaymentApplicationStatus | None
+    booking_application_reason: PaymentApplicationReason | None
+    booking_review_note: str | None
+    booking_reviewed_at: datetime | None
     action_request_id: uuid.UUID | None
     conversation_id: uuid.UUID | None
     customer_id: uuid.UUID | None

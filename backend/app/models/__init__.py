@@ -18,6 +18,13 @@ from app.models.action_collection import (
     ActionCollectionSession,
     ActionCollectionStatus,
 )
+from app.models.booking import (
+    Booking,
+    BookingEvent,
+    BookingEventType,
+    BookingItem,
+    BookingStatus,
+)
 from app.models.channel import (
     ChannelConnection,
     ChannelConnectionStatus,
@@ -26,8 +33,27 @@ from app.models.channel import (
 )
 from app.models.conversation import Conversation, ConversationStatus, HandoffReason
 from app.models.conversation_read_state import ConversationReadState
+from app.models.crm import (
+    CustomerCRMEvent,
+    CustomerCRMEventType,
+    CustomerNote,
+    CustomerPreference,
+    CustomerPreferenceKey,
+    CustomerPreferenceSource,
+    CustomerTag,
+    CustomerTagAssignment,
+)
 from app.models.customer import Customer, CustomerStatus
 from app.models.customer_identity import CustomerIdentity
+from app.models.hotel import InventoryDate, Property, RatePlan, RoomType
+from app.models.housekeeping import (
+    HousekeepingEvent,
+    HousekeepingEventType,
+    HousekeepingPriority,
+    HousekeepingTask,
+    HousekeepingTaskStatus,
+    RoomReadinessOverrideEvent,
+)
 from app.models.knowledge_chunk import KnowledgeChunk
 from app.models.knowledge_document import (
     KnowledgeDocument,
@@ -46,11 +72,23 @@ from app.models.password_reset_session import PasswordResetSession
 from app.models.payment import (
     DestinationType,
     Payment,
+    PaymentApplicationReason,
+    PaymentApplicationStatus,
     PaymentDestination,
     PaymentEvidence,
     PaymentStatus,
     PaymentVerification,
     VerificationStatus,
+)
+from app.models.stay import (
+    HotelRoom,
+    RoomOperationalStatus,
+    RoomReadinessStatus,
+    Stay,
+    StayEvent,
+    StayEventType,
+    StayRoomAssignment,
+    StayStatus,
 )
 from app.models.user import User
 from app.models.verification_challenge import (
@@ -62,6 +100,11 @@ from app.models.workspace import Workspace
 from app.models.workspace_member import WorkspaceMember, WorkspaceRole
 
 __all__ = [
+    "Booking",
+    "BookingEvent",
+    "BookingEventType",
+    "BookingItem",
+    "BookingStatus",
     "ActionActorType",
     "ActionCollectionSession",
     "ActionCollectionStatus",
@@ -81,10 +124,22 @@ __all__ = [
     "HandoffReason",
     "ConversationReadState",
     "Customer",
+    "CustomerCRMEvent",
+    "CustomerCRMEventType",
     "CustomerIdentity",
+    "CustomerNote",
+    "CustomerPreference",
+    "CustomerPreferenceKey",
+    "CustomerPreferenceSource",
     "CustomerStatus",
+    "CustomerTag",
+    "CustomerTagAssignment",
     "Message",
     "KnowledgeDocument",
+    "InventoryDate",
+    "Property",
+    "RatePlan",
+    "RoomType",
     "KnowledgeIndexStatus",
     "KnowledgeDocumentStatus",
     "KnowledgeDocumentContent",
@@ -97,10 +152,26 @@ __all__ = [
     "PasswordResetSession",
     "DestinationType",
     "Payment",
+    "PaymentApplicationReason",
+    "PaymentApplicationStatus",
     "PaymentDestination",
     "PaymentEvidence",
     "PaymentStatus",
     "PaymentVerification",
+    "HotelRoom",
+    "HousekeepingEvent",
+    "HousekeepingEventType",
+    "HousekeepingPriority",
+    "HousekeepingTask",
+    "HousekeepingTaskStatus",
+    "RoomReadinessOverrideEvent",
+    "RoomOperationalStatus",
+    "RoomReadinessStatus",
+    "Stay",
+    "StayEvent",
+    "StayEventType",
+    "StayRoomAssignment",
+    "StayStatus",
     "PlanEntitlement",
     "VerificationStatus",
     "SenderType",

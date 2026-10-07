@@ -341,6 +341,12 @@ class PaymentVerificationProviderError(AppError):
     message = "Payment verification is temporarily unavailable"
 
 
+class PaymentVerificationInProgressError(AppError):
+    status_code = 409
+    code = "PAYMENT_VERIFICATION_IN_PROGRESS"
+    message = "Payment verification is already in progress"
+
+
 class ActionCollectionNotFoundError(AppError):
     status_code = 404
     code = "ACTION_COLLECTION_NOT_FOUND"
