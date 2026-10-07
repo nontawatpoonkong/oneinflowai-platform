@@ -271,6 +271,9 @@ Implemented:
 - Shared text-first Channel Integration Layer for WebChat, LINE OA, and Facebook Page Messenger with authenticated webhooks, encrypted credentials, tenant-safe identity mapping, and truthful outbound delivery state.
 - MVP operational dashboard with a live Overview composed from existing APIs, unified Inbox filters and delivery state, Action and Payment work queues, Knowledge pipeline/index controls, Channels, Notifications, and role-aware Workspace views in English and Thai.
 - Workspace Action Type management for owner/admin users, including ordered required/optional fields, supported scalar/enum types, immutable keys, and enable/disable lifecycle; members retain read-only visibility.
+- Hotel Guest CRM and Customer 360, composed from authoritative Customer, Conversation, Booking, Payment, and reconciliation data with explicit preferences, append-only staff notes, workspace tags, deterministic repeat-guest rules, and a bounded journey timeline. See [Guest CRM and Customer 360](docs/22_GUEST_CRM_CUSTOMER_360.md).
+- Hotel Stay Operations with physical rooms, multi-room assignment, PostgreSQL-safe check-in, deterministic check-out/no-show, immutable events, and Customer 360 Stay history. Commercial RoomType inventory remains separate from physical occupancy. See [Hotel Stay Operations](docs/23_HOTEL_STAY_OPERATIONS.md).
+- Hotel Housekeeping with separate occupancy/readiness state, checkout-created cleaning tasks, deterministic staff operations, and readiness-safe future arrivals. See [Hotel Housekeeping](docs/24_HOTEL_HOUSEKEEPING.md).
 
 In development:
 
@@ -327,6 +330,9 @@ commercial-production hosted-service guarantee.
 - [Channel integrations](docs/10_CHANNEL_INTEGRATIONS.md)
 - [MVP operations guide](docs/11_MVP_OPERATIONS.md)
 - [Changelog](docs/CHANGELOG.md)
+- [Guest CRM and Customer 360](docs/22_GUEST_CRM_CUSTOMER_360.md)
+- [Hotel Stay Operations](docs/23_HOTEL_STAY_OPERATIONS.md)
+- [Hotel Housekeeping](docs/24_HOTEL_HOUSEKEEPING.md)
 
 ## Naming compatibility
 

@@ -15,6 +15,9 @@ downloads/
 eggs/
 .eggs/
 lib/
+!frontend/lib/
+frontend/lib/*
+!frontend/lib/dashboard-nav.ts
 lib64/
 parts/
 sdist/

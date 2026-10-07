@@ -4,6 +4,7 @@ import { AlertTriangle, CreditCard, Loader2, type LucideIcon } from "lucide-reac
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { PaymentExceptionsPanel } from "@/components/dashboard/payments/payment-exceptions";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,7 @@ export function PaymentsView() {
   return <div className="space-y-6">
     <header><h1 className="text-2xl font-semibold">{t("title")}</h1><p className="text-sm text-muted-foreground">{t("description")}</p></header>
     <p className="rounded-xl border bg-muted/30 p-3 text-sm">{quota}</p>
+    <PaymentExceptionsPanel onSelectPayment={setSelected} />
     {!payments.data?.length ? <State icon={CreditCard} text={t("empty")} /> : <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
       <div className="overflow-x-auto rounded-2xl border bg-card"><table className="w-full text-left text-sm"><thead className="border-b bg-muted/40"><tr>{["reference","expected","verified","status","created"].map((key) => <th key={key} className="p-3">{t(key)}</th>)}</tr></thead><tbody>{payments.data.map((payment) => <tr key={payment.id} onClick={() => setSelected(payment.id)} className="cursor-pointer border-b hover:bg-muted/30"><td className="p-3">{payment.reference || payment.id.slice(0,8)}</td><td className="p-3">{money(payment.expected_amount,payment.currency)}</td><td className="p-3">{payment.verified_amount ? money(payment.verified_amount,payment.currency) : "—"}</td><td className="p-3"><Badge variant="muted">{t(`statuses.${payment.status}`)}</Badge></td><td className="p-3">{new Date(payment.created_at).toLocaleString()}</td></tr>)}</tbody></table></div>
       {item ? <aside className="rounded-2xl border bg-card p-5"><h2 className="font-semibold">{t("detail")}</h2><dl className="mt-4 space-y-3 text-sm"><Row label={t("status")} value={t(`statuses.${item.status}`)}/><Row label={t("destination")} value={destinations.data?.find((d) => d.id === item.payment_destination_id)?.display_name ?? "—"}/><Row label={t("expected")} value={money(item.expected_amount,item.currency)}/><Row label={t("verified")} value={item.verified_amount ? money(item.verified_amount,item.currency) : "—"}/><Row label={t("paidAt")} value={date(item.paid_at)}/><Row label={t("verifiedAt")} value={date(item.verified_at)}/><Row label={t("evidence")} value={evidence.data ? `${evidence.data.mime_type} · ${formatBytes(evidence.data.file_size)}` : "—"}/><Row label={t("verificationResult")} value={latest ? t(`verificationStatuses.${latest.status}`) : "—"}/><Row label={t("reportedAmount")} value={latest?.reported_amount && latest.currency ? money(latest.reported_amount, latest.currency) : "—"}/><Row label={t("reason")} value={latest?.error_code ? t(`reasonCodes.${latest.error_code}`) : "—"}/></dl><p className="mt-5 rounded-xl bg-warning/10 p-3 text-xs text-muted-foreground">{t("providerNotice")}</p></aside> : null}
