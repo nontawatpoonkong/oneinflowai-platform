@@ -1,0 +1,91 @@
+{
+  "version": "retrieval-eval-v1",
+  "workspaces": [
+    {
+      "workspace_id": "thai-shop",
+      "documents": [
+        {
+          "document_id": "thai-products",
+          "language": "th",
+          "title": "สินค้าและแพ็กเกจ",
+          "content": "# แพ็กเกจบริการ\n\nBasic Package ราคา 990 บาทต่อเดือน รองรับ WebChat 1 เว็บไซต์และผู้ดูแล 2 คน เหมาะกับร้านขนาดเล็กที่เพิ่งเริ่มใช้งานระบบตอบแชท\n\nPremium Package ราคา 2,990 บาทต่อเดือน รองรับ LINE OA 3 บัญชี WebChat 3 เว็บไซต์ ผู้ดูแล 10 คน และรายงานเชิงปฏิบัติการ เหมาะกับธุรกิจที่มีหลายสาขา\n\nBusiness Package ราคา 5,990 บาทต่อเดือน รองรับ LINE OA 10 บัญชี Facebook 5 เพจ ผู้ดูแลไม่จำกัด และการตรวจสอบสลิปตามสิทธิ์แพ็กเกจ\n\n# โปรโมชั่น\n\nโปรโมชั่นรายปีของ Premium ลด 10 เปอร์เซ็นต์เมื่อชำระล่วงหน้า 12 เดือน โปรโมชั่นนี้ใช้ร่วมกับคูปองอื่นไม่ได้\n\n# เปรียบเทียบ\n\nBasic ไม่มี LINE OA ส่วน Premium เชื่อม LINE OA ได้ 3 บัญชี Business เชื่อม LINE OA ได้ 10 บัญชี ทุกแพ็กเกจมี WebChat แต่จำนวนเว็บไซต์และผู้ดูแลต่างกัน"
+        },
+        {
+          "document_id": "thai-policy",
+          "language": "th",
+          "title": "นโยบายและการชำระเงิน",
+          "content": "# การชำระเงิน\n\nรองรับบัตรเครดิต โอนผ่านธนาคาร และ PromptPay รอบบิลเริ่มในวันที่สมัครใช้งาน ระบบจะไม่เก็บข้อมูลบัตรเต็มไว้ใน OneInFlow\n\n# การคืนเงิน\n\nลูกค้าขอคืนเงินได้ภายใน 7 วันหลังชำระครั้งแรก หากยังใช้งานข้อความ AI ไม่เกิน 100 ข้อความ ค่าธรรมเนียมภายนอกที่เกิดขึ้นแล้วไม่สามารถคืนได้\n\n# การจัดส่งและเปิดใช้งาน\n\nบริการเป็นซอฟต์แวร์ออนไลน์ ไม่มีการจัดส่งสินค้า การเปิดใช้งาน Workspace ปกติใช้เวลาไม่เกิน 1 วันทำการหลังยืนยันการชำระเงิน\n\n# การรับประกันบริการ\n\nแพ็กเกจ Pilot ยังไม่มี SLA เชิงพาณิชย์ ทีมงานช่วยตรวจสอบเหตุขัดข้องในวันทำการเวลา 09:00-18:00 น."
+        },
+        {
+          "document_id": "thai-faq",
+          "language": "mixed",
+          "title": "คำถามที่พบบ่อย",
+          "content": "# FAQ\n\nถาม: เปิดทำการกี่โมง\nตอบ: ทีมสนับสนุนเปิดวันจันทร์ถึงศุกร์ เวลา 09:00-18:00 น.\n\nถาม: ใช้กับ Facebook ได้ไหม\nตอบ: Business Package รองรับ Facebook Page Messenger 5 เพจ ส่วน Facebook comments และ Lead Ads ยังไม่รองรับ\n\nถาม: Premium กับ Basic ต่างกันอย่างไร\nตอบ: Premium เพิ่ม LINE OA 3 บัญชี WebChat 3 เว็บไซต์ ผู้ดูแล 10 คน และ operational reports ขณะที่ Basic มี WebChat 1 เว็บไซต์และไม่มี LINE OA\n\nถาม: ต้องติดตั้งโปรแกรมหรือไม่\nตอบ: ไม่ต้องติดตั้ง OneInFlow ใช้งานผ่านเว็บเบราว์เซอร์"
+        }
+      ]
+    },
+    {
+      "workspace_id": "english-shop",
+      "documents": [
+        {
+          "document_id": "english-products",
+          "language": "en",
+          "title": "Plans and product catalog",
+          "content": "# Service plans\n\nStarter costs 1,490 THB per month and includes one WebChat site, three staff accounts, and standard knowledge search.\n\nPremium costs 4,990 THB per month and includes five LINE OA accounts, five WebChat sites, twenty staff accounts, and priority support.\n\nEnterprise costs 9,900 THB per month and includes fifteen LINE OA accounts, ten Facebook pages, unlimited staff, and a dedicated onboarding review.\n\n# Promotions\n\nThe current Premium annual promotion provides two months free when twelve months are prepaid. The promotion ends on 31 December 2026.\n\n# Comparisons\n\nStarter has no LINE integration. Premium supports five LINE OA accounts. Enterprise supports fifteen LINE OA accounts and ten Facebook pages."
+        },
+        {
+          "document_id": "english-policy",
+          "language": "en",
+          "title": "Billing, refund, warranty, and hours",
+          "content": "# Payment methods\n\nCustomers may pay by credit card, bank transfer, or PromptPay. Invoices are issued after payment confirmation.\n\n# Refund policy\n\nA first subscription payment may be refunded within fourteen days when fewer than fifty AI messages have been used. Third-party processing fees are non-refundable.\n\n# Service warranty\n\nThe pilot service does not include a commercial uptime SLA. Support investigates incidents Monday through Friday from 08:00 to 17:00 ICT.\n\n# Delivery\n\nOneInFlow is delivered online. Workspace activation normally completes within two business days after payment verification."
+        }
+      ]
+    },
+    {
+      "workspace_id": "mixed-services",
+      "documents": [
+        {
+          "document_id": "mixed-packages",
+          "language": "mixed",
+          "title": "Hotel automation services",
+          "content": "# Hotel Connect Packages\n\nLite Hotel ราคา 1,200 THB/month includes WebChat, check-in FAQ, and two staff seats. LINE OA is not included.\n\nHotel Pro ราคา 3,200 THB/month รองรับ LINE OA 3 accounts, WebChat, payment notifications, room FAQ, and ten staff seats.\n\nHotel Plus ราคา 6,500 THB/month รองรับ LINE OA 8 accounts, Facebook 3 pages, unlimited staff, analytics, and priority onboarding.\n\n# Operating facts\n\nABC Hotel check-in time is 14:00 and check-out time is 12:00. Breakfast is served from 06:30 to 10:00 in the lobby.\n\n# Warranty and cancellation\n\nHotel automation subscriptions may be cancelled before the next billing date. Setup fees are non-refundable after channel configuration begins."
+        },
+        {
+          "document_id": "mixed-comparison",
+          "language": "mixed",
+          "title": "Package comparison FAQ",
+          "content": "ถาม: งบน้อยควรเลือกอะไร\nตอบ: Lite Hotel เหมาะกับโรงแรมที่ต้องการ WebChat และ FAQ โดยไม่ใช้ LINE OA\n\nถาม: ต้องใช้ LINE สามบัญชี\nตอบ: Hotel Pro รองรับ LINE OA 3 accounts ในราคา 3,200 THB/month\n\nQ: Which package supports Facebook?\nA: Hotel Plus supports three Facebook pages, while Hotel Pro and Lite Hotel do not include Facebook.\n\nQ: Can setup fees be refunded?\nA: Setup fees are non-refundable after channel configuration begins."
+        }
+      ]
+    }
+  ],
+  "cases": [
+    {"case_id":"th-price-exact","language":"th","workspace_id":"thai-shop","query":"Premium Package ราคาเท่าไหร่","expected_markers":["Premium Package ราคา 2,990 บาทต่อเดือน"],"category":"PRICE","negative":false,"notes":"Exact product price"},
+    {"case_id":"th-price-colloquial","language":"th","workspace_id":"thai-shop","query":"ตัวพรีเมียมกี่บาท","expected_markers":["Premium Package ราคา 2,990 บาทต่อเดือน"],"category":"PARAPHRASE","negative":false,"notes":"Colloquial Thai"},
+    {"case_id":"th-line-feature","language":"th","workspace_id":"thai-shop","query":"แพ็กไหนเชื่อม LINE ได้ 3 บัญชี","expected_markers":["Premium Package ราคา 2,990 บาทต่อเดือน"],"category":"PRODUCT","negative":false,"notes":"Feature lookup"},
+    {"case_id":"th-line-colloquial","language":"th","workspace_id":"thai-shop","query":"ตัวไหนต่อไลน์ได้สามอัน","expected_markers":["Premium Package ราคา 2,990 บาทต่อเดือน"],"category":"PARAPHRASE","negative":false,"notes":"Informal feature query"},
+    {"case_id":"th-budget-discovery","language":"th","workspace_id":"thai-shop","query":"อยากได้แบบถูกหน่อยแต่ใช้ LINE 3 บัญชี","expected_markers":["Premium Package ราคา 2,990 บาทต่อเดือน"],"category":"NEEDS_DISCOVERY","negative":false,"notes":"Sales discovery"},
+    {"case_id":"th-objection","language":"th","workspace_id":"thai-shop","query":"Premium แพงไปนะ มีอะไรที่คุ้มกว่านี้ไหม","expected_markers":["Basic Package ราคา 990 บาทต่อเดือน","Premium Package ราคา 2,990 บาทต่อเดือน"],"category":"OBJECTION_CONTEXT","negative":false,"notes":"Needs comparison context"},
+    {"case_id":"th-comparison","language":"th","workspace_id":"thai-shop","query":"Basic กับ Premium ต่างกันยังไง","expected_markers":["Basic ไม่มี LINE OA ส่วน Premium เชื่อม LINE OA ได้ 3 บัญชี"],"category":"PRODUCT_COMPARISON","negative":false,"notes":"Explicit comparison"},
+    {"case_id":"th-purchase","language":"th","workspace_id":"thai-shop","query":"ถ้าเอา Premium วันนี้ต้องจ่ายเท่าไหร่","expected_markers":["Premium Package ราคา 2,990 บาทต่อเดือน"],"category":"PURCHASE_INTENT","negative":false,"notes":"Purchase intent"},
+    {"case_id":"th-refund","language":"th","workspace_id":"thai-shop","query":"ถ้าใช้แล้วไม่เหมาะขอคืนเงินได้ไหม","expected_markers":["ลูกค้าขอคืนเงินได้ภายใน 7 วันหลังชำระครั้งแรก"],"category":"POLICY_BEFORE_PURCHASE","negative":false,"notes":"Refund policy"},
+    {"case_id":"th-payment","language":"th","workspace_id":"thai-shop","query":"จ่ายด้วยพร้อมเพย์ได้หรือเปล่า","expected_markers":["รองรับบัตรเครดิต โอนผ่านธนาคาร และ PromptPay"],"category":"FAQ","negative":false,"notes":"Payment method"},
+    {"case_id":"th-hours","language":"th","workspace_id":"thai-shop","query":"ทีมงานเปิดกี่โมง","expected_markers":["ทีมสนับสนุนเปิดวันจันทร์ถึงศุกร์ เวลา 09:00-18:00 น."],"category":"FACT_LOOKUP","negative":false,"notes":"Opening hours"},
+    {"case_id":"th-negative","language":"th","workspace_id":"thai-shop","query":"มีโปรซื้อหนึ่งแถมหนึ่งไหม","expected_markers":[],"category":"NEGATIVE","negative":true,"notes":"Invented promotion"},
+    {"case_id":"en-price","language":"en","workspace_id":"english-shop","query":"How much does Premium cost?","expected_markers":["Premium costs 4,990 THB per month"],"category":"PRICE","negative":false,"notes":"Conflicts with Thai workspace price"},
+    {"case_id":"en-line","language":"en","workspace_id":"english-shop","query":"Which plan supports five LINE accounts?","expected_markers":["Premium costs 4,990 THB per month"],"category":"PRODUCT","negative":false,"notes":"Feature lookup"},
+    {"case_id":"en-refund","language":"en","workspace_id":"english-shop","query":"Can I get my first payment back?","expected_markers":["refunded within fourteen days"],"category":"POLICY","negative":false,"notes":"Paraphrased refund policy"},
+    {"case_id":"en-hours","language":"en","workspace_id":"english-shop","query":"When is support available?","expected_markers":["Monday through Friday from 08:00 to 17:00 ICT"],"category":"FACT_LOOKUP","negative":false,"notes":"Support hours"},
+    {"case_id":"en-promotion","language":"en","workspace_id":"english-shop","query":"What is the annual Premium deal?","expected_markers":["two months free when twelve months are prepaid"],"category":"PROMOTION","negative":false,"notes":"Promotion"},
+    {"case_id":"en-delivery","language":"en","workspace_id":"english-shop","query":"How long does workspace activation take?","expected_markers":["within two business days after payment verification"],"category":"FAQ","negative":false,"notes":"Digital delivery"},
+    {"case_id":"en-negative","language":"en","workspace_id":"english-shop","query":"Does the Diamond plan include lifetime warranty?","expected_markers":[],"category":"NEGATIVE","negative":true,"notes":"Unsupported product and warranty"},
+    {"case_id":"mixed-line","language":"mixed","workspace_id":"mixed-services","query":"ตัวไหนรองรับ LINE 3 accounts","expected_markers":["Hotel Pro ราคา 3,200 THB/month รองรับ LINE OA 3 accounts"],"category":"PRODUCT","negative":false,"notes":"Mixed-language feature query"},
+    {"case_id":"mixed-budget","language":"mixed","workspace_id":"mixed-services","query":"budget 3500 อยากต่อ LINE สามบัญชี","expected_markers":["Hotel Pro ราคา 3,200 THB/month รองรับ LINE OA 3 accounts"],"category":"NEEDS_DISCOVERY","negative":false,"notes":"Budget and capability"},
+    {"case_id":"mixed-checkin","language":"mixed","workspace_id":"mixed-services","query":"ABC Hotel check-in กี่โมง","expected_markers":["ABC Hotel check-in time is 14:00"],"category":"FACT_LOOKUP","negative":false,"notes":"Hotel fact"},
+    {"case_id":"mixed-facebook","language":"mixed","workspace_id":"mixed-services","query":"package ไหนใช้ Facebook ได้","expected_markers":["Hotel Plus supports three Facebook pages"],"category":"PRODUCT_COMPARISON","negative":false,"notes":"Cross-language comparison"},
+    {"case_id":"mixed-setup-refund","language":"mixed","workspace_id":"mixed-services","query":"setup fee ขอคืนได้ไหม","expected_markers":["Setup fees are non-refundable after channel configuration begins"],"category":"POLICY_BEFORE_PURCHASE","negative":false,"notes":"Mixed policy"},
+    {"case_id":"mixed-negative","language":"mixed","workspace_id":"mixed-services","query":"มีแพ็ก Ultra พร้อม TikTok 20 accounts ไหม","expected_markers":[],"category":"NEGATIVE","negative":true,"notes":"Invented package"},
+    {"case_id":"th-cross-workspace-conflict","language":"th","workspace_id":"thai-shop","query":"Premium ราคา 4,990 ใช่ไหม","expected_markers":["Premium Package ราคา 2,990 บาทต่อเดือน"],"category":"CROSS_WORKSPACE","negative":false,"notes":"Must not use English workspace fact"},
+    {"case_id":"en-cross-workspace-conflict","language":"en","workspace_id":"english-shop","query":"Is Premium 2,990 THB?","expected_markers":["Premium costs 4,990 THB per month"],"category":"CROSS_WORKSPACE","negative":false,"notes":"Must not use Thai workspace fact"}
+  ]
+}

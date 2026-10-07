@@ -1,0 +1,16 @@
+{
+  "category_breakdown": {"CROSS_WORKSPACE":2,"FACT_LOOKUP":3,"FAQ":2,"NEEDS_DISCOVERY":2,"NEGATIVE":3,"OBJECTION_CONTEXT":1,"PARAPHRASE":2,"POLICY":1,"POLICY_BEFORE_PURCHASE":2,"PRICE":2,"PRODUCT":3,"PRODUCT_COMPARISON":2,"PROMOTION":1,"PURCHASE_INTENT":1},
+  "chunking_configuration": {"overlap_characters":200,"target_characters":1200,"version":"recursive-char-v1"},
+  "dataset_version": "retrieval-eval-v1",
+  "embedding_configuration": {"dimensions":512,"external_requests":0,"model":"hashed-char-ngram-v1","provider":"evaluation-hashed-char-ngram"},
+  "evaluation_mode": "DETERMINISTIC_TEST_MODE",
+  "evaluator_version": "hashed-char-ngram-v1",
+  "failed_cases": [{"case_id":"th-price-colloquial","reason":"NO_RELEVANT_HIT"},{"case_id":"th-objection","reason":"NO_RELEVANT_HIT"},{"case_id":"th-payment","reason":"NO_RELEVANT_HIT"},{"case_id":"en-negative","reason":"NEGATIVE_FALSE_POSITIVE"}],
+  "language_breakdown": {"en":8,"mixed":6,"th":13},
+  "metrics": {"cross_workspace_leakage_rate":0.0,"duplicate_result_ratio":0.0,"hit_rate_at_1":0.666667,"hit_rate_at_3":0.875,"hit_rate_at_5":0.875,"mrr":0.770833,"negative_query_false_positive_rate":0.333333,"precision_at_1":0.666667,"precision_at_3":0.305556,"precision_at_5":0.183333,"recall_at_1":0.666667,"recall_at_3":0.875,"recall_at_5":0.875},
+  "negative_cases": 3,
+  "positive_cases": 24,
+  "retriever_configuration": {"distance":"cosine","score_threshold":0.12,"top_k":5,"workspace_filter":true},
+  "total_cases": 27,
+  "weakest_categories": [{"cases":1,"category":"OBJECTION_CONTEXT","hit_rate":0.0},{"cases":2,"category":"FAQ","hit_rate":0.5},{"cases":2,"category":"PARAPHRASE","hit_rate":0.5},{"cases":2,"category":"CROSS_WORKSPACE","hit_rate":1.0},{"cases":3,"category":"FACT_LOOKUP","hit_rate":1.0}]
+}

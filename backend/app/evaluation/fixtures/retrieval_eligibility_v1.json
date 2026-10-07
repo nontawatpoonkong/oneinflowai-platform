@@ -1,0 +1,32 @@
+{
+  "version": "retrieval-eligibility-eval-v1",
+  "entity_catalogs": {
+    "thai-shop": ["Basic", "Premium", "Business", "PromptPay", "LINE OA", "Facebook"],
+    "english-shop": ["Starter", "Premium", "Enterprise", "PromptPay", "LINE OA", "Facebook"],
+    "mixed-services": ["Lite Hotel", "Hotel Pro", "Hotel Plus", "LINE OA", "Facebook", "ABC Hotel"]
+  },
+  "case_metadata": {
+    "en-negative": {"mentioned_entities":["Diamond"]},
+    "mixed-negative": {"mentioned_entities":["Ultra", "TikTok"]},
+    "qi-negative-objection": {"mentioned_entities":["Diamond", "lifetime warranty"]}
+  },
+  "cases": [
+    {"case_id":"elig-th-unknown-package","language":"th","workspace_id":"thai-shop","query":"Diamond package เท่าไหร่","expected_markers":[],"category":"UNKNOWN_PACKAGE","negative":true,"notes":"Valid price intent with nonexistent package","mentioned_entities":["Diamond"]},
+    {"case_id":"elig-th-invented-promo","language":"th","workspace_id":"thai-shop","query":"Premium มีส่วนลด 80% ใช่ไหม","expected_markers":[],"category":"INVENTED_PROMOTION","negative":true,"notes":"Known product with unsupported numeric promotion claim","mentioned_entities":["Premium"]},
+    {"case_id":"elig-th-impossible-warranty","language":"th","workspace_id":"thai-shop","query":"Business รับประกันตลอดชีวิตหรือเปล่า","expected_markers":[],"category":"IMPOSSIBLE_WARRANTY","negative":true,"notes":"Known package with unsupported warranty condition","mentioned_entities":["Business", "รับประกันตลอดชีวิต"]},
+    {"case_id":"elig-th-unsupported-payment","language":"th","workspace_id":"thai-shop","query":"จ่ายด้วย Bitcoin ได้ไหม","expected_markers":[],"category":"UNSUPPORTED_PAYMENT","negative":true,"notes":"Valid payment intent with unsupported method","mentioned_entities":["Bitcoin"]},
+    {"case_id":"elig-th-unknown-product","language":"th","workspace_id":"thai-shop","query":"ตัว Pro Max Plus มีไหม","expected_markers":[],"category":"UNKNOWN_PRODUCT","negative":true,"notes":"Nonexistent product-like entity","mentioned_entities":["Pro Max Plus"]},
+    {"case_id":"elig-th-out-of-scope","language":"th","workspace_id":"thai-shop","query":"Premium หุ้นน่าลงทุนไหม","expected_markers":[],"category":"OUT_OF_SCOPE","negative":true,"notes":"Known token used for unrelated investment question","mentioned_entities":["Premium"]},
+    {"case_id":"elig-th-ambiguous","language":"th","workspace_id":"thai-shop","query":"ตัวนั้นราคาเท่าไหร่","expected_markers":[],"category":"AMBIGUOUS_REFERENCE","negative":true,"notes":"Reference has no conversation context"},
+    {"case_id":"elig-th-unsupported-feature","language":"th","workspace_id":"thai-shop","query":"Premium ต่อ TikTok 20 accounts ได้ไหม","expected_markers":[],"category":"UNSUPPORTED_FEATURE","negative":true,"notes":"Known plan plus unsupported channel","mentioned_entities":["Premium", "TikTok"]},
+    {"case_id":"elig-th-conflicting-price","language":"th","workspace_id":"thai-shop","query":"Premium ราคา 4,990 บาทใช่ไหม","expected_markers":[],"category":"CONFLICTING_ENTITY","negative":true,"notes":"Known entity with conflicting workspace-specific price","mentioned_entities":["Premium"]},
+    {"case_id":"elig-th-valid-intent-unknown","language":"th","workspace_id":"thai-shop","query":"Platinum จ่ายผ่านธนาคารได้ไหม","expected_markers":[],"category":"VALID_INTENT_UNKNOWN_ENTITY","negative":true,"notes":"Payment intent must not validate unknown plan","mentioned_entities":["Platinum"]},
+    {"case_id":"elig-en-unknown-plan","language":"en","workspace_id":"english-shop","query":"How much is the Gold plan?","expected_markers":[],"category":"UNKNOWN_PACKAGE","negative":true,"notes":"English nonexistent plan","mentioned_entities":["Gold"]},
+    {"case_id":"elig-en-invented-warranty","language":"en","workspace_id":"english-shop","query":"Does Premium include a 10 year warranty?","expected_markers":[],"category":"IMPOSSIBLE_WARRANTY","negative":true,"notes":"Known plan with unsupported numeric warranty","mentioned_entities":["Premium"]},
+    {"case_id":"elig-mixed-payment","language":"mixed","workspace_id":"mixed-services","query":"Hotel Pro จ่ายด้วย Ethereum ได้ไหม","expected_markers":[],"category":"UNSUPPORTED_PAYMENT","negative":true,"notes":"Mixed-language unsupported payment","mentioned_entities":["Hotel Pro", "Ethereum"]},
+    {"case_id":"elig-th-invented-price","language":"th","workspace_id":"thai-shop","query":"Premium ราคา 77,777 บาทใช่ไหม","expected_markers":[],"category":"INVENTED_PRICE","negative":true,"notes":"Known product with invented price","mentioned_entities":["Premium"]},
+    {"case_id":"elig-en-unsupported-feature","language":"en","workspace_id":"english-shop","query":"Does Premium support Shopify?","expected_markers":[],"category":"UNSUPPORTED_FEATURE","negative":true,"notes":"Known product with unsupported feature","mentioned_entities":["Premium", "Shopify"]},
+    {"case_id":"elig-en-unsupported-payment","language":"en","workspace_id":"english-shop","query":"Can I pay for Premium with PayPal?","expected_markers":[],"category":"UNSUPPORTED_PAYMENT","negative":true,"notes":"Known product with unsupported payment","mentioned_entities":["Premium", "PayPal"]},
+    {"case_id":"elig-mixed-invented-promo","language":"mixed","workspace_id":"mixed-services","query":"Hotel Pro discount 90% มีไหม","expected_markers":[],"category":"INVENTED_PROMOTION","negative":true,"notes":"Known product with invented promotion","mentioned_entities":["Hotel Pro"]}
+  ]
+}
