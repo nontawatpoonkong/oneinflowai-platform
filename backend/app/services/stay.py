@@ -37,6 +37,7 @@ from app.schemas.stay import (
     StayResponse,
     StayRoomSummary,
 )
+from app.services.automation_events import emit_housekeeping_event, emit_stay_event
 from app.services.hotel import HotelCatalogService
 
 
@@ -269,6 +270,7 @@ class StayOperationsService:
         self.session.add(stay)
         await self.session.flush()
         self._event(stay, StayEventType.STAY_CREATED, actor_user_id)
+        await emit_stay_event(self.session, stay, "hotel.stay.created")
         await self.session.commit()
         return await self.get_stay(workspace_id, stay.id)
 
@@ -335,6 +337,7 @@ class StayOperationsService:
             stay.status = StayStatus.CHECKED_IN
             stay.actual_check_in_at = now
             self._event(stay, StayEventType.CHECKED_IN, actor_user_id)
+            await emit_stay_event(self.session, stay, "hotel.stay.checked_in")
             await self.session.commit()
         except IntegrityError as exc:
             await self.session.rollback()
@@ -397,11 +400,13 @@ class StayOperationsService:
                     ),
                 ]
             )
+            await emit_housekeeping_event(self.session, task, "hotel.room.dirty")
         for assignment in assignments:
             assignment.released_at = now
         stay.status = StayStatus.CHECKED_OUT
         stay.actual_check_out_at = now
         self._event(stay, StayEventType.CHECKED_OUT, actor_user_id)
+        await emit_stay_event(self.session, stay, "hotel.stay.checked_out")
         await self.session.commit()
         return await self.get_stay(workspace_id, stay_id)
 
@@ -433,6 +438,7 @@ class StayOperationsService:
             )
         stay.status = StayStatus.NO_SHOW
         self._event(stay, StayEventType.NO_SHOW, actor_user_id)
+        await emit_stay_event(self.session, stay, "hotel.stay.no_show")
         await self.session.commit()
         return await self.get_stay(workspace_id, stay_id)
 

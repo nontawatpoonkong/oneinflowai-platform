@@ -1,5 +1,6 @@
 import {
   Bell,
+  Bot,
   BedDouble,
   Boxes,
   ClipboardList,
@@ -27,6 +28,7 @@ export const DASHBOARD_NAV: DashboardNavItem[] = [
   { key: "rooms", href: "/dashboard/hotel/rooms", icon: BedDouble },
   { key: "stays", href: "/dashboard/hotel/stays", icon: ClipboardList },
   { key: "housekeeping", href: "/dashboard/hotel/housekeeping", icon: Sparkles },
+  { key: "automations", href: "/dashboard/automations", icon: Bot },
   { key: "actions", href: "/dashboard/actions", icon: ClipboardList },
   { key: "knowledge", href: "/dashboard/knowledge", icon: FileText },
   { key: "payments", href: "/dashboard/payments", icon: CreditCard },

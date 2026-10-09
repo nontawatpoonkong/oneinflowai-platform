@@ -11,6 +11,8 @@ from app.models.workspace_member import WorkspaceMember, WorkspaceRole
 
 
 class WorkspaceCapability(enum.StrEnum):
+    AUTOMATION_READ = "automation.read"
+    AUTOMATION_MANAGE = "automation.manage"
     HOTEL_HOUSEKEEPING_OPERATE = "hotel.housekeeping.operate"
     HOTEL_HOUSEKEEPING_MANAGE = "hotel.housekeeping.manage"
     HOTEL_READINESS_OVERRIDE = "hotel.readiness.override"
@@ -20,7 +22,10 @@ _ROLE_CAPABILITIES = {
     WorkspaceRole.OWNER: frozenset(WorkspaceCapability),
     WorkspaceRole.ADMIN: frozenset(WorkspaceCapability),
     WorkspaceRole.MEMBER: frozenset(
-        {WorkspaceCapability.HOTEL_HOUSEKEEPING_OPERATE}
+        {
+            WorkspaceCapability.AUTOMATION_READ,
+            WorkspaceCapability.HOTEL_HOUSEKEEPING_OPERATE,
+        }
     ),
 }
 

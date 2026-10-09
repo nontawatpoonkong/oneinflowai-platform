@@ -15,6 +15,7 @@ from app.models.payment import (
     PaymentDestination,
     PaymentStatus,
 )
+from app.services.automation_events import emit_booking_event
 
 
 class BookingPaymentError(AppError):
@@ -160,7 +161,7 @@ class BookingPaymentConfirmationService:
             reason = self.reason(booking, payment)
             if reason:
                 raise BookingPaymentError(reason)
-            self.apply_locked(booking, payment, actor_user_id=actor_user_id)
+            await self.apply_locked(booking, payment, actor_user_id=actor_user_id)
             await self.session.commit()
             return booking
         except Exception:
@@ -220,7 +221,7 @@ class BookingPaymentConfirmationService:
             return PaymentApplicationReason.AMOUNT_MISMATCH
         return None
 
-    def apply_locked(
+    async def apply_locked(
         self,
         booking: Booking,
         payment: Payment,
@@ -242,3 +243,4 @@ class BookingPaymentConfirmationService:
                 event_metadata={"payment_id": str(payment.id)},
             )
         )
+        await emit_booking_event(self.session, booking, "hotel.booking.confirmed")

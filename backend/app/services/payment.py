@@ -48,6 +48,7 @@ from app.schemas.payment import (
     PaymentDestinationCreate,
     PaymentDestinationUpdate,
 )
+from app.services.automation_events import emit_domain_event
 from app.services.entitlement import SLIP_VERIFICATIONS, EntitlementService
 from app.services.notification import NotificationService
 from app.storage import StorageProvider, create_storage_provider
@@ -363,6 +364,22 @@ class PaymentVerificationService:
                 entity_type=NotificationEntityType.PAYMENT,
                 entity_id=payment.id,
                 deduplication_key=f"payment-verified:{payment.id}",
+            )
+            await emit_domain_event(
+                self.session,
+                workspace_id=workspace_id,
+                aggregate_type="payment",
+                aggregate_id=payment.id,
+                event_type="hotel.payment.verified",
+                payload={
+                    "payment_id": payment.id,
+                    "booking_id": payment.booking_id,
+                    "customer_id": payment.customer_id,
+                    "conversation_id": payment.conversation_id,
+                    "currency": payment.currency,
+                    "total_amount": payment.verified_amount,
+                },
+                deduplication_key=f"hotel.payment.verified:v1:{payment.id}",
             )
         else:
             payment.status = PaymentStatus.REJECTED

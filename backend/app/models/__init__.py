@@ -18,6 +18,17 @@ from app.models.action_collection import (
     ActionCollectionSession,
     ActionCollectionStatus,
 )
+from app.models.automation import (
+    AutomationActionType,
+    AutomationDefinition,
+    AutomationExecution,
+    AutomationExecutionStatus,
+    AutomationScheduleMode,
+    AutomationWorkerHeartbeat,
+    AutomationWorkerState,
+    DomainEventOutbox,
+    OutboxState,
+)
 from app.models.booking import (
     Booking,
     BookingEvent,
@@ -99,6 +110,15 @@ from app.models.webchat_session import WebChatSession
 from app.models.workspace import Workspace
 from app.models.workspace_member import WorkspaceMember, WorkspaceRole
 
+    "AutomationActionType",
+    "AutomationDefinition",
+    "AutomationExecution",
+    "AutomationExecutionStatus",
+    "AutomationScheduleMode",
+    "AutomationWorkerHeartbeat",
+    "AutomationWorkerState",
+    "DomainEventOutbox",
+    "OutboxState",
 __all__ = [
     "Booking",
     "BookingEvent",

@@ -14,6 +14,7 @@ from app.models.payment import (
     PaymentApplicationStatus,
     PaymentStatus,
 )
+from app.services.automation_events import emit_domain_event
 from app.services.booking_payment_confirmation import (
     BookingPaymentConfirmationService,
     BookingPaymentError,
@@ -73,7 +74,7 @@ class BookingPaymentReconciliationService:
                 return payment, booking
             reason = self.confirmation.reason(booking, payment)
             if reason is None:
-                self.confirmation.apply_locked(
+                await self.confirmation.apply_locked(
                     booking, payment, actor_user_id=actor_user_id
                 )
             elif payment.status == PaymentStatus.VERIFIED:
@@ -93,6 +94,26 @@ class BookingPaymentReconciliationService:
                         BookingEventType.PAYMENT_REQUIRES_REVIEW,
                         actor_user_id,
                         {"reason": reason.value},
+                    )
+                    await emit_domain_event(
+                        self.session,
+                        workspace_id=workspace_id,
+                        aggregate_type="payment",
+                        aggregate_id=payment.id,
+                        event_type="hotel.payment.requires_review",
+                        payload={
+                            "payment_id": payment.id,
+                            "booking_id": booking.id,
+                            "property_id": booking.property_id,
+                            "customer_id": booking.customer_id,
+                            "conversation_id": booking.conversation_id,
+                            "currency": booking.currency,
+                            "total_amount": booking.total_amount,
+                            "reason": reason.value,
+                        },
+                        deduplication_key=(
+                            f"hotel.payment.requires_review:v1:{payment.id}:{reason.value}"
+                        ),
                     )
             else:
                 payment.booking_application_status = PaymentApplicationStatus.UNAPPLIED

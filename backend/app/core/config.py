@@ -138,6 +138,29 @@ class Settings(BaseSettings):
             raise ValueError("DEMO_CHAT_RATE_LIMIT_WINDOW_SECONDS must be positive")
         if self.DEMO_CHAT_MAX_INPUT_CHARS <= 0:
             raise ValueError("DEMO_CHAT_MAX_INPUT_CHARS must be positive")
+        if not 0 < self.AUTOMATION_WORKER_POLL_SECONDS <= 300:
+            raise ValueError("AUTOMATION_WORKER_POLL_SECONDS must be between 0 and 300")
+        if not 1 <= self.AUTOMATION_WORKER_BATCH_SIZE <= 500:
+            raise ValueError("AUTOMATION_WORKER_BATCH_SIZE must be between 1 and 500")
+        if not 0 < self.AUTOMATION_WORKER_HEARTBEAT_SECONDS <= 300:
+            raise ValueError(
+                "AUTOMATION_WORKER_HEARTBEAT_SECONDS must be between 0 and 300"
+            )
+        if self.AUTOMATION_WORKER_STALE_SECONDS < (
+            self.AUTOMATION_WORKER_HEARTBEAT_SECONDS * 2
+        ):
+            raise ValueError(
+                "AUTOMATION_WORKER_STALE_SECONDS must be at least two "
+                "heartbeat intervals"
+            )
+        if self.AUTOMATION_EXECUTION_STALE_SECONDS <= 0:
+            raise ValueError("AUTOMATION_EXECUTION_STALE_SECONDS must be positive")
+        if self.AUTOMATION_BACKLOG_ALERT_THRESHOLD_SECONDS <= 0:
+            raise ValueError(
+                "AUTOMATION_BACKLOG_ALERT_THRESHOLD_SECONDS must be positive"
+            )
+        if self.AUTOMATION_BACKLOG_ALERT_COUNT <= 0:
+            raise ValueError("AUTOMATION_BACKLOG_ALERT_COUNT must be positive")
         return self
 
     # ------------------------------------------------------------------ App
@@ -193,6 +216,16 @@ class Settings(BaseSettings):
     CHANNEL_CREDENTIAL_KEY_VERSION: str = "v1"
     CHANNEL_PROVIDER_TIMEOUT_SECONDS: float = 10.0
     CHANNEL_WEBHOOK_MAX_BYTES: int = 1_000_000
+
+    # ---------------------------------------------- Automation worker operations
+    AUTOMATION_WORKER_POLL_SECONDS: float = 5.0
+    AUTOMATION_WORKER_BATCH_SIZE: int = 20
+    AUTOMATION_WORKER_HEARTBEAT_SECONDS: float = 15.0
+    AUTOMATION_WORKER_STALE_SECONDS: int = 45
+    AUTOMATION_EXECUTION_STALE_SECONDS: int = 300
+    AUTOMATION_BACKLOG_ALERT_THRESHOLD_SECONDS: int = 300
+    AUTOMATION_BACKLOG_ALERT_COUNT: int = 1000
+    AUTOMATION_WORKER_BUILD_IDENTIFIER: str | None = None
 
     # -------------------------------------------------- Derived / computed
     @computed_field  # type: ignore[prop-decorator]

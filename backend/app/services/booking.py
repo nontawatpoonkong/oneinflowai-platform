@@ -21,6 +21,7 @@ from app.models.conversation import Conversation
 from app.models.customer import Customer
 from app.models.hotel import InventoryDate, Property, RatePlan, RoomType
 from app.schemas.booking import BookingHoldCreate
+from app.services.automation_events import emit_booking_event
 from app.services.hotel import HotelCatalogService
 
 HOLD_DURATION = timedelta(minutes=15)
@@ -538,6 +539,9 @@ class BookingService:
                         "HUMAN",
                         actor_user_id,
                     )
+                    await emit_booking_event(
+                        self.session, booking, "hotel.booking.cancelled"
+                    )
                     await self.session.commit()
                     return booking
                 if booking.status not in ACTIVE_STATES:
@@ -583,6 +587,13 @@ class BookingService:
                     else BookingEventType.HOLD_EXPIRED,
                     "HUMAN" if operation == "cancel" else "SYSTEM",
                     actor_user_id,
+                )
+                await emit_booking_event(
+                    self.session,
+                    booking,
+                    "hotel.booking.cancelled"
+                    if operation == "cancel"
+                    else "hotel.booking.expired",
                 )
             await self.session.commit()
             return booking

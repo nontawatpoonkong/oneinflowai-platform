@@ -30,6 +30,7 @@ from app.schemas.housekeeping import (
     RoomReadinessOverrideEventResponse,
     RoomReadinessOverrideResponse,
 )
+from app.services.automation_events import emit_housekeeping_event
 from app.services.stay import StayConflictError, StayTransitionError
 from app.services.workspace_capability import (
     WorkspaceCapability,
@@ -182,6 +183,10 @@ class HousekeepingService:
         room.readiness_status = RoomReadinessStatus.READY
         self._event(task, HousekeepingEventType.HOUSEKEEPING_COMPLETED, actor_id)
         self._event(task, HousekeepingEventType.ROOM_READY, actor_id)
+        await emit_housekeeping_event(
+            self.session, task, "hotel.housekeeping.completed"
+        )
+        await emit_housekeeping_event(self.session, task, "hotel.room.ready")
         await self.session.commit()
         return await self.get_task(workspace_id, task_id)
 

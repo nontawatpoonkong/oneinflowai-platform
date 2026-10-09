@@ -274,6 +274,8 @@ Implemented:
 - Hotel Guest CRM and Customer 360, composed from authoritative Customer, Conversation, Booking, Payment, and reconciliation data with explicit preferences, append-only staff notes, workspace tags, deterministic repeat-guest rules, and a bounded journey timeline. See [Guest CRM and Customer 360](docs/22_GUEST_CRM_CUSTOMER_360.md).
 - Hotel Stay Operations with physical rooms, multi-room assignment, PostgreSQL-safe check-in, deterministic check-out/no-show, immutable events, and Customer 360 Stay history. Commercial RoomType inventory remains separate from physical occupancy. See [Hotel Stay Operations](docs/23_HOTEL_STAY_OPERATIONS.md).
 - Hotel Housekeeping with separate occupancy/readiness state, checkout-created cleaning tasks, deterministic staff operations, and readiness-safe future arrivals. See [Hotel Housekeeping](docs/24_HOTEL_HOUSEKEEPING.md).
+- Hotel Automation Foundation with transactional versioned outbox events, Workspace-scoped deterministic rules, bounded scheduling/retry, idempotent internal notifications, and customer messages through the existing Channel boundary. See [Hotel Automation Foundation](docs/25_HOTEL_AUTOMATION.md).
+- Automation operations hardening with a separately supervised worker, persisted heartbeat, concurrency-safe stale recovery, workspace queue metrics, deterministic alert signals, and bounded manual retry. See [Automation Operations Runbook](docs/26_AUTOMATION_OPERATIONS.md).
 
 In development:
 
@@ -333,6 +335,8 @@ commercial-production hosted-service guarantee.
 - [Guest CRM and Customer 360](docs/22_GUEST_CRM_CUSTOMER_360.md)
 - [Hotel Stay Operations](docs/23_HOTEL_STAY_OPERATIONS.md)
 - [Hotel Housekeeping](docs/24_HOTEL_HOUSEKEEPING.md)
+- [Hotel Automation Foundation](docs/25_HOTEL_AUTOMATION.md)
+- [Automation Operations Runbook](docs/26_AUTOMATION_OPERATIONS.md)
 
 ## Naming compatibility
 
