@@ -161,6 +161,12 @@ class Settings(BaseSettings):
             )
         if self.AUTOMATION_BACKLOG_ALERT_COUNT <= 0:
             raise ValueError("AUTOMATION_BACKLOG_ALERT_COUNT must be positive")
+        if not 1 <= self.AI_TOOL_MAX_CALLS_PER_TURN <= 3:
+            raise ValueError("AI_TOOL_MAX_CALLS_PER_TURN must be between 1 and 3")
+        if not 1 <= self.AI_TOOL_CONFIRMATION_TTL_MINUTES <= 60:
+            raise ValueError(
+                "AI_TOOL_CONFIRMATION_TTL_MINUTES must be between 1 and 60"
+            )
         return self
 
     # ------------------------------------------------------------------ App
@@ -226,6 +232,10 @@ class Settings(BaseSettings):
     AUTOMATION_BACKLOG_ALERT_THRESHOLD_SECONDS: int = 300
     AUTOMATION_BACKLOG_ALERT_COUNT: int = 1000
     AUTOMATION_WORKER_BUILD_IDENTIFIER: str | None = None
+
+    # ------------------------------------------------ AI action orchestration
+    AI_TOOL_MAX_CALLS_PER_TURN: int = 3
+    AI_TOOL_CONFIRMATION_TTL_MINUTES: int = 10
 
     # -------------------------------------------------- Derived / computed
     @computed_field  # type: ignore[prop-decorator]

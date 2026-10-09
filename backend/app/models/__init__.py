@@ -18,6 +18,14 @@ from app.models.action_collection import (
     ActionCollectionSession,
     ActionCollectionStatus,
 )
+from app.models.ai_tool import (
+    AIConversationState,
+    AIToolAction,
+    AIToolActionStatus,
+    AIToolAuditEvent,
+    AIToolAuditEventType,
+    AIToolClassification,
+)
 from app.models.automation import (
     AutomationActionType,
     AutomationDefinition,
@@ -110,6 +118,13 @@ from app.models.webchat_session import WebChatSession
 from app.models.workspace import Workspace
 from app.models.workspace_member import WorkspaceMember, WorkspaceRole
 
+__all__ = [
+    "AIConversationState",
+    "AIToolAction",
+    "AIToolActionStatus",
+    "AIToolAuditEvent",
+    "AIToolAuditEventType",
+    "AIToolClassification",
     "AutomationActionType",
     "AutomationDefinition",
     "AutomationExecution",
@@ -119,7 +134,6 @@ from app.models.workspace_member import WorkspaceMember, WorkspaceRole
     "AutomationWorkerState",
     "DomainEventOutbox",
     "OutboxState",
-__all__ = [
     "Booking",
     "BookingEvent",
     "BookingEventType",

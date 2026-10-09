@@ -132,6 +132,19 @@ Action collection follows a guarded flow: customer intent → a trusted workspac
 
 Provider/LLM output is always untrusted and cannot directly create an ActionRequest, Payment, or PaymentVerification or perform a status transition. Action creation occurs only after the exact collected payload passes deterministic validation and an authenticated caller supplies its current confirmation token. Payment verification remains exclusively controlled by `PaymentVerificationService`. End-to-end WebChat orchestration is implemented, while external API execution remains future work.
 
+## AI action orchestration
+
+The hotel AI can use a small code-defined registry of typed tools for trusted
+availability/quotes, customer Booking and Payment status, explicitly confirmed
+booking holds/payment requests, and human handoff. Model output remains
+untrusted: Workspace/customer identifiers are server-derived, sensitive
+actions use short-lived payload-bound confirmation, and every mutation goes
+through the existing authoritative domain service. The AI cannot confirm a
+Booking, verify a Payment, mutate hotel operations, or run arbitrary tools.
+Execution is idempotent, audited, Workspace-scoped, and bounded to at most
+three tool calls per turn. See
+[AI Action Orchestration](docs/27_AI_ACTION_ORCHESTRATION.md).
+
 ## Project structure
 
 ```text

@@ -4,6 +4,7 @@ import json
 import uuid
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,6 +23,7 @@ from app.integrations.embedding import create_embedding_provider
 from app.integrations.generation import create_generation_provider
 from app.integrations.qdrant_knowledge import QdrantKnowledgeVectorStore
 from app.models.action_collection import ActionCollectionStatus
+from app.models.ai_tool import AIToolAction, AIToolActionStatus
 from app.models.conversation import ConversationMode, HandoffReason
 from app.models.message import Message, MessageType, SenderType
 from app.repositories.action import ActionDefinitionRepository
@@ -31,6 +33,7 @@ from app.schemas.action_collection import ActionCollectionCreate, ActionCollecti
 from app.schemas.message import MessageCreate
 from app.schemas.webchat import WebChatResponseType
 from app.services.action_collection import ActionCollectionService
+from app.services.ai_tool_orchestration import AIActionOrchestrationService
 from app.services.conversation_handoff import ConversationHandoffService
 from app.services.grounded_generation import GroundedGenerationService
 from app.services.knowledge_retrieval import KnowledgeRetrievalService
@@ -56,9 +59,9 @@ class WebChatAIOrchestrator:
         self.message_service = MessageService(session)
         self.collections = ActionCollectionRepository(session)
         self.definitions = ActionDefinitionRepository(session)
-        self.collection_service = ActionCollectionService(
-            session, extraction or create_action_field_extraction_provider()
-        )
+        extraction_provider = extraction or create_action_field_extraction_provider()
+        self.collection_service = ActionCollectionService(session, extraction_provider)
+        self.ai_tools = AIActionOrchestrationService(session, extraction_provider)
 
     async def process(self, conversation_id, token, client_message_id, content):
         stored = await self.webchat.authorize(conversation_id, token)
@@ -109,7 +112,9 @@ class WebChatAIOrchestrator:
             assistant_data = None
         else:
             try:
-                assistant_data = await self._route(conversation, language, content)
+                assistant_data = await self._route(
+                    conversation, language, content, client_message_id
+                )
             except AppError:
                 assistant_data = self._error(language)
             except Exception:
@@ -164,6 +169,37 @@ class WebChatAIOrchestrator:
         )
         return self._public_assistant(message, data)
 
+    async def confirm_ai_tool(self, conversation_id, token, action_id, decision):
+        stored = await self.webchat.authorize(conversation_id, token)
+        conversation = await self.webchat._conversation_or_unauthorized(conversation_id)
+        action = await self.ai_tools.confirm(
+            conversation.workspace_id,
+            conversation.id,
+            conversation.customer_id,
+            action_id,
+            decision.confirmation_token,
+        )
+        data = self._tool_data(stored.language, action, None)
+        message = await self._action_ack(
+            conversation.id, f"tool-confirm:{decision.client_message_id}", data
+        )
+        return self._public_assistant(message, data)
+
+    async def cancel_ai_tool(self, conversation_id, token, action_id, decision):
+        stored = await self.webchat.authorize(conversation_id, token)
+        conversation = await self.webchat._conversation_or_unauthorized(conversation_id)
+        action = await self.ai_tools.cancel(
+            conversation.workspace_id,
+            conversation.id,
+            conversation.customer_id,
+            action_id,
+        )
+        data = self._tool_data(stored.language, action, None)
+        message = await self._action_ack(
+            conversation.id, f"tool-cancel:{decision.client_message_id}", data
+        )
+        return self._public_assistant(message, data)
+
     async def _claim_customer_message(self, conversation, external_id, content):
         try:
             async with self.session.begin_nested():
@@ -213,14 +249,65 @@ class WebChatAIOrchestrator:
                 data["summary"] = self.collection_service.summary(
                     definition, collection.collected_payload
                 )
+        tool_action_id = data.get("ai_tool_action_id")
+        if tool_action_id:
+            action = await self.session.scalar(
+                select(AIToolAction).where(
+                    AIToolAction.workspace_id == conversation.workspace_id,
+                    AIToolAction.conversation_id == conversation.id,
+                    AIToolAction.id == uuid.UUID(tool_action_id),
+                )
+            )
+            if action:
+                data.update(
+                    self._tool_data(
+                        "th" if self._contains_thai(assistant.content) else "en",
+                        action,
+                        self.ai_tools.confirmation_token(action),
+                    )
+                )
         return self._public_assistant(assistant, data)
 
-    async def _route(self, conversation, language, content):
+    async def _route(self, conversation, language, content, client_message_id):
+        normalized = " ".join(content.casefold().split())
+        pending_tool = await self.ai_tools.pending_for_conversation(
+            conversation.workspace_id, conversation.id
+        )
+        if pending_tool:
+            if normalized in {
+                "yes",
+                "confirm",
+                "confirm request",
+                "ยืนยัน",
+                "ยืนยันรายการ",
+                "ตกลง",
+            }:
+                pending_tool = await self.ai_tools.confirm(
+                    conversation.workspace_id,
+                    conversation.id,
+                    conversation.customer_id,
+                    pending_tool.id,
+                    self.ai_tools.confirmation_token(pending_tool),
+                )
+                return self._tool_data(language, pending_tool, None)
+            if normalized in {"no", "cancel", "cancel request", "ยกเลิก", "ไม่เอา"}:
+                pending_tool = await self.ai_tools.cancel(
+                    conversation.workspace_id,
+                    conversation.id,
+                    conversation.customer_id,
+                    pending_tool.id,
+                )
+                return self._tool_data(language, pending_tool, None)
+            return self._tool_data(
+                language,
+                pending_tool,
+                self.ai_tools.confirmation_token(pending_tool),
+            )
+
         active = await self.collections.get_active_for_conversation(
             conversation.workspace_id, conversation.id
         )
         if active:
-            normalized = " ".join(content.casefold().split())
             if (
                 active.status is ActionCollectionStatus.AWAITING_CONFIRMATION
                 and normalized in {"confirm", "confirm request", "ยืนยัน", "ยืนยันรายการ"}
@@ -255,15 +342,37 @@ class WebChatAIOrchestrator:
             for item in await self.definitions.list(conversation.workspace_id)
             if item.is_active
         ]
+        tools = self.ai_tools.registry.list()
         intent = await self.intent.route(
             ActionIntentRequest(
                 message=content,
                 options=tuple(
                     ActionIntentOption(item.key, item.name, item.description)
                     for item in definitions
+                )
+                + tuple(
+                    ActionIntentOption(item.intent_key, item.name, item.description)
+                    for item in tools
                 ),
             )
         )
+        tool = (
+            self.ai_tools.registry.from_intent_key(intent.selected_action_key)
+            if intent.selected_action_key
+            else None
+        )
+        if tool and intent.confidence == 1.0:
+            self.ai_tools.require_call_budget(1)
+            action, token = await self.ai_tools.propose_from_text(
+                conversation,
+                tool,
+                intent.field_input or content,
+                idempotency_key=(
+                    f"ai-tool:{conversation.id}:{client_message_id}:"
+                    f"{tool.name}:{tool.version}"
+                ),
+            )
+            return self._tool_data(language, action, token)
         definition = next(
             (item for item in definitions if item.key == intent.selected_action_key),
             None,
@@ -371,6 +480,126 @@ class WebChatAIOrchestrator:
             "confirmation_token": token,
         }
 
+    def _tool_data(self, language, action, token):
+        if action.status is AIToolActionStatus.AWAITING_CONFIRMATION:
+            response_type = WebChatResponseType.AI_TOOL_CONFIRMATION
+            message = self._tool_confirmation_message(language, action)
+        elif action.status is AIToolActionStatus.CANCELLED:
+            response_type = WebChatResponseType.AI_TOOL_CANCELLED
+            message = self._text(language, "cancelled")
+        elif action.status is AIToolActionStatus.SUCCEEDED:
+            response_type = WebChatResponseType.AI_TOOL_RESULT
+            message = self._tool_result_message(language, action)
+        else:
+            response_type = WebChatResponseType.ERROR
+            message = self._text(language, "error")
+        return {
+            "type": response_type,
+            "message": message,
+            "citations": [],
+            "ai_tool_action_id": str(action.id),
+            "ai_tool_name": action.tool_name,
+            "ai_tool_status": action.status.value,
+            "ai_tool_result": action.result,
+            "confirmation_token": token,
+            "confirmation_expires_at": (
+                action.confirmation_expires_at.isoformat()
+                if action.confirmation_expires_at
+                else None
+            ),
+        }
+
+    @staticmethod
+    def _tool_confirmation_message(language, action):
+        thai = (language or "").lower().startswith("th")
+        labels = {
+            "create_booking_hold": (
+                "กรุณายืนยันการสร้างรายการจองชั่วคราว",
+                "Please confirm the temporary booking hold.",
+            ),
+            "request_booking_payment": (
+                "กรุณายืนยันการขอช่องทางชำระเงินสำหรับรายการจองนี้",
+                "Please confirm the payment request for this booking.",
+            ),
+        }
+        value = labels.get(
+            action.tool_name,
+            ("กรุณายืนยันรายการนี้", "Please confirm this action."),
+        )
+        return value[0] if thai else value[1]
+
+    def _tool_result_message(self, language, action):
+        thai = (language or "").lower().startswith("th")
+        result = action.result or {}
+        if action.tool_name in {"search_availability", "quote_availability"}:
+            options = result.get("options", [])
+            if not options:
+                return (
+                    "ไม่พบห้องว่างตามวันที่และจำนวนผู้เข้าพักที่ระบุ"
+                    if thai
+                    else "No rooms are available for the requested stay."
+                )
+            rendered = "; ".join(
+                f"{item['option_index']}. {item['room_type_name']} - "
+                f"{item['rate_plan_name']} {item['subtotal']} {item['currency']}"
+                for item in options[:3]
+            )
+            return (
+                f"ตัวเลือกที่ว่างจากระบบโรงแรม: {rendered}"
+                if thai
+                else f"Available options from the hotel system: {rendered}"
+            )
+        if action.tool_name == "create_booking_hold":
+            return (
+                "สร้างรายการจองชั่วคราวแล้ว "
+                f"ยอดรวม {result.get('total_amount')} {result.get('currency')}"
+                if thai
+                else "The booking hold was created. "
+                f"Total: {result.get('total_amount')} {result.get('currency')}."
+            )
+        if action.tool_name == "get_booking_status":
+            if result.get("payment_requires_review"):
+                return (
+                    "ได้รับการชำระเงินแล้ว แต่รายการจองยังต้องให้เจ้าหน้าที่ตรวจสอบ"
+                    if thai
+                    else (
+                        "Payment was received, but the booking still requires "
+                        "staff review."
+                    )
+                )
+            return (
+                f"สถานะรายการจอง: {result.get('booking_status')}"
+                if thai
+                else f"Booking status: {result.get('booking_status')}."
+            )
+        if action.tool_name == "request_booking_payment":
+            return (
+                f"สร้างคำขอชำระเงินแล้ว ยอด {result.get('expected_amount')} "
+                f"{result.get('currency')} ผ่าน {result.get('destination_display_name')}"
+                if thai
+                else f"Payment request created for {result.get('expected_amount')} "
+                f"{result.get('currency')} via "
+                f"{result.get('destination_display_name')}."
+            )
+        if action.tool_name == "get_payment_status":
+            if result.get("requires_review"):
+                return (
+                    "ได้รับการชำระเงินแล้ว แต่ต้องให้เจ้าหน้าที่ตรวจสอบก่อนยืนยันการจอง"
+                    if thai
+                    else (
+                        "Payment was received but requires staff review before "
+                        "booking confirmation."
+                    )
+                )
+            return (
+                f"สถานะการชำระเงิน: {result.get('payment_status')}"
+                if thai
+                else f"Payment status: {result.get('payment_status')}."
+            )
+        if action.tool_name == "handoff_to_human":
+            return self._text(language, "handoff")
+        return self._text(language, "error")
+
     async def _assistant_message(self, conversation_id, client_id, data):
         metadata = {
             "response_type": str(data["type"]),
@@ -381,6 +610,11 @@ class WebChatAIOrchestrator:
             "missing_fields": data.get("missing_fields"),
             "invalid_fields": data.get("invalid_fields"),
             "summary": data.get("summary"),
+            "ai_tool_action_id": data.get("ai_tool_action_id"),
+            "ai_tool_name": data.get("ai_tool_name"),
+            "ai_tool_status": data.get("ai_tool_status"),
+            "ai_tool_result": data.get("ai_tool_result"),
+            "confirmation_expires_at": data.get("confirmation_expires_at"),
         }
         return await self.message_service.create_message(
             (
@@ -418,6 +652,10 @@ class WebChatAIOrchestrator:
                                 "action_collection_session_id"
                             ),
                             "action_request_id": data.get("action_request_id"),
+                            "ai_tool_action_id": data.get("ai_tool_action_id"),
+                            "ai_tool_name": data.get("ai_tool_name"),
+                            "ai_tool_status": data.get("ai_tool_status"),
+                            "ai_tool_result": data.get("ai_tool_result"),
                         },
                         external_message_id=external_id,
                     ),
@@ -466,6 +704,16 @@ class WebChatAIOrchestrator:
             if data.get("action_collection_session_id")
             else None,
             "action_request_id": data.get("action_request_id"),
+            "ai_tool_action": {
+                "id": data.get("ai_tool_action_id"),
+                "tool_name": data.get("ai_tool_name"),
+                "status": data.get("ai_tool_status"),
+                "result": data.get("ai_tool_result"),
+                "confirmation_token": data.get("confirmation_token"),
+                "confirmation_expires_at": data.get("confirmation_expires_at"),
+            }
+            if data.get("ai_tool_action_id")
+            else None,
         }
 
     def _error(self, language):
@@ -509,6 +757,10 @@ class WebChatAIOrchestrator:
             "speak to an agent",
         }
         return normalized in phrases
+
+    @staticmethod
+    def _contains_thai(content: str) -> bool:
+        return any("\u0e00" <= char <= "\u0e7f" for char in content)
 
     @staticmethod
     def _prompt(language, label):

@@ -43,7 +43,7 @@ class BookingPaymentConfirmationService:
         workspace_id: uuid.UUID,
         booking_id: uuid.UUID,
         destination_id: uuid.UUID,
-        actor_user_id: uuid.UUID,
+        actor_user_id: uuid.UUID | None,
     ) -> Payment:
         try:
             booking = await self._lock_booking(workspace_id, booking_id)
@@ -120,7 +120,7 @@ class BookingPaymentConfirmationService:
                         if latest
                         else BookingEventType.PAYMENT_LINKED
                     ),
-                    actor_type="HUMAN",
+                    actor_type="HUMAN" if actor_user_id else "SYSTEM",
                     actor_user_id=actor_user_id,
                     event_metadata={
                         "payment_id": str(payment.id),

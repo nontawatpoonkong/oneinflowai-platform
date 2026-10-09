@@ -63,10 +63,11 @@ class BookingService:
     async def create_hold(
         self,
         workspace_id: uuid.UUID,
-        actor_user_id: uuid.UUID,
+        actor_user_id: uuid.UUID | None,
         request: BookingHoldCreate,
         *,
         draft: bool = False,
+        source: str = "STAFF",
     ) -> Booking:
         """Lock the idempotency key and all stay nights, then commit as one unit."""
         fingerprint = hashlib.sha256(
@@ -208,7 +209,7 @@ class BookingService:
                 hold_expires_at=None if draft else now + HOLD_DURATION,
                 idempotency_key=request.idempotency_key,
                 request_fingerprint=fingerprint,
-                source="STAFF",
+                source=source,
                 property_name_snapshot=prop.name,
             )
             self.session.add(booking)
@@ -240,8 +241,9 @@ class BookingService:
                     rate_plan_name_snapshot=plan.name,
                 )
             )
+            actor_type = "HUMAN" if actor_user_id else "SYSTEM"
             self._event(
-                booking, BookingEventType.BOOKING_CREATED, "HUMAN", actor_user_id
+                booking, BookingEventType.BOOKING_CREATED, actor_type, actor_user_id
             )
             if not draft:
                 for row in rows:
@@ -250,7 +252,7 @@ class BookingService:
                 self._event(
                     booking,
                     BookingEventType.HOLD_CREATED,
-                    "HUMAN",
+                    actor_type,
                     actor_user_id,
                     {"quantity": request.quantity},
                 )

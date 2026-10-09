@@ -35,6 +35,9 @@ export type WebChatResponseType =
   | "ACTION_CONFIRMATION"
   | "ACTION_CREATED"
   | "ACTION_CANCELLED"
+  | "AI_TOOL_CONFIRMATION"
+  | "AI_TOOL_RESULT"
+  | "AI_TOOL_CANCELLED"
   | "HUMAN_MODE"
   | "HUMAN_HANDOFF"
   | "NO_RESPONSE"
@@ -48,6 +51,15 @@ export interface WebChatActionCollection {
   confirmation_token: string | null;
 }
 
+export interface WebChatAIToolAction {
+  id: string;
+  tool_name: string;
+  status: string;
+  result: Record<string, unknown> | null;
+  confirmation_token: string | null;
+  confirmation_expires_at: string | null;
+}
+
 export interface WebChatAssistantResult {
   type: WebChatResponseType;
   message: string | null;
@@ -59,6 +71,7 @@ export interface WebChatAssistantResult {
   }>;
   action_collection: WebChatActionCollection | null;
   action_request_id: string | null;
+  ai_tool_action: WebChatAIToolAction | null;
 }
 
 export interface WebChatAIResponse {
@@ -68,6 +81,11 @@ export interface WebChatAIResponse {
 }
 
 export interface WebChatActionDecision {
+  client_message_id: string;
+  confirmation_token?: string;
+}
+
+export interface WebChatAIToolDecision {
   client_message_id: string;
   confirmation_token?: string;
 }

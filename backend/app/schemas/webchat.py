@@ -66,6 +66,9 @@ class WebChatResponseType(enum.StrEnum):
     ACTION_CONFIRMATION = "ACTION_CONFIRMATION"
     ACTION_CREATED = "ACTION_CREATED"
     ACTION_CANCELLED = "ACTION_CANCELLED"
+    AI_TOOL_CONFIRMATION = "AI_TOOL_CONFIRMATION"
+    AI_TOOL_RESULT = "AI_TOOL_RESULT"
+    AI_TOOL_CANCELLED = "AI_TOOL_CANCELLED"
     HUMAN_MODE = "HUMAN_MODE"
     HUMAN_HANDOFF = "HUMAN_HANDOFF"
     NO_RESPONSE = "NO_RESPONSE"
@@ -85,6 +88,7 @@ class WebChatAssistantResponse(BaseModel):
     citations: list[dict[str, Any]] = Field(default_factory=list)
     action_collection: dict[str, Any] | None = None
     action_request_id: uuid.UUID | None = None
+    ai_tool_action: dict[str, Any] | None = None
 
 
 class WebChatAIResponse(BaseModel):

@@ -12,10 +12,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import get_current_user
 from app.core.channels import ChannelType
 from app.database.session import get_db
+from app.integrations.action_extraction import create_action_field_extraction_provider
 from app.models.conversation import Conversation, ConversationStatus
 from app.models.message import Message
 from app.models.user import User
 from app.models.workspace import Workspace
+from app.schemas.ai_tool import AIToolActionResponse
 from app.schemas.common import SortOrder
 from app.schemas.conversation import (
     ConversationAssignRequest,
@@ -32,6 +34,7 @@ from app.schemas.message import (
     MessageResponse,
 )
 from app.schemas.response import success_response
+from app.services.ai_tool_orchestration import AIActionOrchestrationService
 from app.services.channel_delivery import ChannelDeliveryService
 from app.services.conversation import ConversationService
 from app.services.conversation_handoff import ConversationHandoffService
@@ -242,6 +245,27 @@ async def list_messages(
         total_pages=total_pages,
     )
     return success_response(data=data.model_dump(mode="json"), message="OK")
+
+
+@router.get(
+    "/{conversation_id}/ai-actions",
+    summary="List structured AI tool actions for a conversation",
+)
+async def list_ai_actions(
+    conversation_id: uuid.UUID,
+    workspace: Workspace = Depends(get_current_workspace),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    actions = await AIActionOrchestrationService(
+        session, create_action_field_extraction_provider()
+    ).list_for_conversation(workspace.id, conversation_id)
+    return success_response(
+        data=[
+            AIToolActionResponse.model_validate(item).model_dump(mode="json")
+            for item in actions
+        ],
+        message="OK",
+    )
 
 
 @router.post("/{conversation_id}/handoff")
