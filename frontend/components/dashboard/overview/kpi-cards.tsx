@@ -63,7 +63,7 @@ export function KpiCards({ values }: KpiCardsProps) {
           <motion.div key={kpi.id} variants={fadeUp}>
             <Card className="p-5">
               <div className="flex items-center justify-between">
-                <span className="grid size-10 place-items-center rounded-xl bg-brand/10 text-brand">
+                <span className="grid size-10 place-items-center rounded-md bg-brand/10 text-brand">
                   <kpi.icon className="size-5" />
                 </span>
                 <span

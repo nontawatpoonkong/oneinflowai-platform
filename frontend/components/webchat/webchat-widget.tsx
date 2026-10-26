@@ -41,7 +41,7 @@ interface WebChatWidgetProps {
 
 export function WebChatWidget({
   workspaceKey,
-  workspaceName = "OneInFlow",
+  workspaceName = "OneInFlowAI",
   defaultOpen = false,
 }: WebChatWidgetProps) {
   const [session, setSession] = useState<StoredWebChatSession | null>(null);
@@ -368,7 +368,7 @@ export function WebChatWidget({
                   {sendMessage.isPending ? <Loader2 className="size-4 animate-spin" /> : <ArrowUp className="size-4 stroke-[2.5]" />}
                 </button>
               </div>
-              <p className="mt-2 text-center text-[9px] font-medium tracking-wide text-slate-400">Powered by OneInFlow</p>
+              <p className="mt-2 text-center text-[9px] font-medium tracking-wide text-slate-400">Powered by OneInFlowAI</p>
             </form>
           </>
         )}

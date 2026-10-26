@@ -14,6 +14,7 @@ const KNOWN_KEYS = new Set([
   "rooms",
   "stays",
   "housekeeping",
+  "pms",
   "knowledge",
   "analytics",
   "integrations",

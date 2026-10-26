@@ -20,7 +20,7 @@ export function ThemeToggle() {
     <div
       role="radiogroup"
       aria-label="Theme"
-      className="glass inline-flex items-center gap-0.5 rounded-full p-1"
+      className="inline-flex items-center gap-0.5 rounded-lg border border-border bg-card p-0.5"
     >
       {OPTIONS.map(({ value, label, icon: Icon }) => {
         const active = mounted && theme === value;
@@ -34,10 +34,10 @@ export function ThemeToggle() {
             title={label}
             onClick={() => setTheme(value)}
             className={cn(
-              "grid h-8 w-8 place-items-center rounded-full transition-colors",
+              "grid h-8 w-8 place-items-center rounded-md transition-colors",
               active
-                ? "bg-brand text-brand-foreground shadow-glow"
-                : "text-muted-foreground hover:text-foreground",
+                ? "bg-accent font-medium text-accent-foreground"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >
             <Icon className="size-4" />

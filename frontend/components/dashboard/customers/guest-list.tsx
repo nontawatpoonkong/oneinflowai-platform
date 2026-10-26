@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCRMCustomers } from "@/hooks/api/use-crm";
+import { useMyWorkspace, useWorkspaceAccess } from "@/hooks/api/use-workspace";
 
 export function GuestList() {
   const t = useTranslations("guestCrm");
@@ -17,13 +18,19 @@ export function GuestList() {
   const [draft, setDraft] = useState("");
   const [search, setSearch] = useState("");
   const [exceptions, setExceptions] = useState(false);
+  const workspace = useMyWorkspace();
+  const access = useWorkspaceAccess(workspace.data?.id);
+  // Section filters need the section's capability; the API rejects them otherwise.
+  const capabilities = access.data?.capabilities ?? [];
+  const canReadPayments = capabilities.includes("payment.read");
+  const canReadBookings = capabilities.includes("booking.read");
   const [repeat, setRepeat] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const query = useCRMCustomers({
     q: search || undefined,
-    has_payment_exception: exceptions || undefined,
-    repeat_guest: repeat || undefined,
+    has_payment_exception: (canReadPayments && exceptions) || undefined,
+    repeat_guest: (canReadBookings && repeat) || undefined,
     page,
     page_size: pageSize,
   });
@@ -54,24 +61,28 @@ export function GuestList() {
             {t("searchAction")}
           </Button>
         </div>
-        <Button
-          variant={exceptions ? "default" : "outline"}
-          onClick={() => {
-            setExceptions((value) => !value);
-            setPage(1);
-          }}
-        >
-          {t("filters.exceptions")}
-        </Button>
-        <Button
-          variant={repeat ? "default" : "outline"}
-          onClick={() => {
-            setRepeat((value) => !value);
-            setPage(1);
-          }}
-        >
-          {t("filters.repeat")}
-        </Button>
+        {canReadPayments ? (
+          <Button
+            variant={exceptions ? "default" : "outline"}
+            onClick={() => {
+              setExceptions((value) => !value);
+              setPage(1);
+            }}
+          >
+            {t("filters.exceptions")}
+          </Button>
+        ) : null}
+        {canReadBookings ? (
+          <Button
+            variant={repeat ? "default" : "outline"}
+            onClick={() => {
+              setRepeat((value) => !value);
+              setPage(1);
+            }}
+          >
+            {t("filters.repeat")}
+          </Button>
+        ) : null}
       </div>
       {query.isLoading ? (
         <State icon={Loader2} text={t("loading")} spin />
@@ -80,7 +91,7 @@ export function GuestList() {
       ) : !query.data?.items.length ? (
         <State icon={Users} text={t("empty")} />
       ) : (
-        <div className="overflow-x-auto rounded-2xl border bg-card">
+        <div className="overflow-x-auto rounded-lg border bg-card">
           <table className="w-full text-left text-sm">
             <thead className="border-b bg-muted/40">
               <tr>
@@ -116,7 +127,7 @@ export function GuestList() {
                       {item.repeat_guest ? <Badge>{t("repeatGuest")}</Badge> : null}
                     </div>
                   </td>
-                  <td className="p-3">{item.booking_count}</td>
+                  <td className="p-3">{item.booking_count ?? "—"}</td>
                   <td className="p-3">{item.latest_booking_status ?? "—"}</td>
                   <td className="p-3">
                     {item.last_conversation_at
@@ -179,7 +190,7 @@ function State({
 }) {
   const t = useTranslations("common");
   return (
-    <div className="grid min-h-52 place-items-center rounded-2xl border border-dashed p-8 text-center">
+    <div className="grid min-h-52 place-items-center rounded-lg border border-dashed p-8 text-center">
       <div>
         <Icon
           className={`mx-auto mb-3 size-8 text-muted-foreground ${spin ? "animate-spin" : ""}`}

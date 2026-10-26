@@ -20,6 +20,7 @@ export interface UserDTO {
   email: string;
   full_name: string | null;
   is_active: boolean;
+  is_platform_admin: boolean;
   email_verified: boolean;
   email_verified_at: string | null;
   created_at: string;
@@ -31,6 +32,7 @@ export interface WorkspaceDTO {
   name: string;
   slug: string;
   owner_id: string;
+  status: "ACTIVE" | "SUSPENDED";
   created_at: string;
   updated_at: string;
 }
@@ -41,7 +43,36 @@ export interface WorkspaceMemberDTO {
   email: string;
   full_name: string | null;
   role: "owner" | "admin" | "member";
+  capabilities: string[];
   joined_at: string;
+}
+
+export interface WorkspaceAccessDTO {
+  workspace_id: string;
+  membership_id: string;
+  role: "owner" | "admin" | "member";
+  capabilities: string[];
+}
+
+export interface WorkspaceAccessRequestDTO {
+  id: string;
+  workspace_id: string;
+  workspace_name: string | null;
+  user_id: string;
+  email: string | null;
+  full_name: string | null;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+  message: string | null;
+  requested_at: string;
+  reviewed_at: string | null;
+  reviewed_by_user_id: string | null;
+  rejection_reason: string | null;
+}
+
+export interface WorkspaceJoinSettingsDTO {
+  join_enabled: boolean;
+  code_hint: string | null;
+  join_code?: string | null;
 }
 
 export interface TokenDTO {

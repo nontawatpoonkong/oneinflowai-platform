@@ -18,19 +18,23 @@ export function Cta() {
         initial="hidden"
         whileInView="visible"
         viewport={VIEWPORT}
-        className="relative overflow-hidden rounded-3xl border border-border bg-card px-8 py-16 text-center shadow-soft"
+        className="rounded-xl border border-border bg-foreground px-8 py-14 text-center text-background"
       >
-        <div className="pointer-events-none absolute left-1/2 top-0 h-64 w-[600px] -translate-x-1/2 rounded-full bg-brand/25 blur-[120px]" />
-        <div className="relative mx-auto flex max-w-2xl flex-col items-center gap-6">
+        <div className="mx-auto flex max-w-2xl flex-col items-center gap-5">
           <h2 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
             {t("title")}
           </h2>
-          <p className="text-muted-foreground">{t("description")}</p>
-          <Button asChild size="lg">
-            <Link href="/dashboard">
-              {t("button")} <ArrowRight className="size-4" />
-            </Link>
-          </Button>
+          <p className="text-background/70">{t("description")}</p>
+          <div className="flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row">
+            <Button asChild size="lg">
+              <Link href="/register">
+                {t("button")} <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="border-brand-secondary/60 bg-transparent text-background hover:bg-brand-secondary hover:text-white">
+              <Link href="#workflow">{t("secondaryButton")}</Link>
+            </Button>
+          </div>
         </div>
       </motion.div>
     </section>

@@ -6,7 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { PaginationControls } from "@/components/shared/pagination-controls";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/dashboard/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import {
   useHousekeepingMutations,
@@ -155,7 +155,7 @@ export function HousekeepingView() {
       ) : tasks.isError ? (
         <p role="alert">{t("error")}</p>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border bg-card">
+        <div className="overflow-x-auto rounded-lg border bg-card">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b">
@@ -179,8 +179,8 @@ export function HousekeepingView() {
                       {task.room_code} · {task.room_type_name}
                     </td>
                     <td className="p-3">{task.property_name}</td>
-                    <td className="p-3"><Badge variant="muted">{task.readiness_status}</Badge></td>
-                    <td className="p-3"><Badge variant="outline">{task.status}</Badge></td>
+                    <td className="p-3"><StatusBadge status={task.readiness_status} /></td>
+                    <td className="p-3"><StatusBadge status={task.status} /></td>
                     <td className="p-3">{task.priority}</td>
                     <td className="p-3">
                       <select

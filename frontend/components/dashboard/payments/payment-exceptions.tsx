@@ -49,7 +49,7 @@ export function PaymentExceptionsPanel({ onSelectPayment }: { onSelectPayment: (
   };
 
   return (
-    <section className="rounded-2xl border bg-card p-5" aria-labelledby="payment-exceptions-title">
+    <section className="rounded-lg border bg-card p-5" aria-labelledby="payment-exceptions-title">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id="payment-exceptions-title" className="font-semibold">{t("title")}</h2>
@@ -64,7 +64,7 @@ export function PaymentExceptionsPanel({ onSelectPayment }: { onSelectPayment: (
       {exceptions.data?.length === 0 ? <p className="mt-4 text-sm text-muted-foreground">{t("empty")}</p> : null}
       <div className="mt-4 space-y-3">
         {exceptions.data?.map((item) => (
-          <article key={item.payment_id} className="rounded-xl border p-4">
+          <article key={item.payment_id} className="rounded-md border p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0 space-y-1 text-sm">
                 <div className="flex items-center gap-2"><AlertTriangle className="size-4 text-warning" /><Badge variant="muted">{item.reason ? t(`reasons.${item.reason}`) : t("unclassified")}</Badge></div>

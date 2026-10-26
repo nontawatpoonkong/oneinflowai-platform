@@ -22,8 +22,8 @@ export function ConversationTrend() {
           <CardTitle>{t("title")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex h-80 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-muted/20 text-center">
-            <span className="grid size-14 place-items-center rounded-2xl bg-brand/10 text-brand">
+          <div className="flex h-80 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-muted/20 text-center">
+            <span className="grid size-14 place-items-center rounded-lg bg-brand/10 text-brand">
               <LineChart className="size-7" />
             </span>
             <p className="text-sm font-medium text-muted-foreground">

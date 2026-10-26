@@ -6,8 +6,8 @@ import { channelService } from "@/services/channel/channel.service";
 
 const key = ["channels"] as const;
 
-export function useChannels() {
-  return useQuery({ queryKey: key, queryFn: channelService.list });
+export function useChannels(enabled = true) {
+  return useQuery({ queryKey: key, queryFn: channelService.list, enabled });
 }
 
 export function useChannelOperations() {

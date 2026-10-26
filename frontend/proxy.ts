@@ -14,13 +14,14 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hasToken = Boolean(request.cookies.get(TOKEN_COOKIE)?.value);
 
-  const isDashboard = pathname.startsWith("/dashboard");
+  const isProtectedApp =
+    pathname.startsWith("/dashboard") || pathname.startsWith("/platform");
   const isAuthPage =
     pathname === "/login" ||
     pathname === "/register" ||
     pathname === "/verify-email";
 
-  if (isDashboard && !hasToken) {
+  if (isProtectedApp && !hasToken) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", pathname);
@@ -38,5 +39,11 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login", "/register", "/verify-email"],
+  matcher: [
+    "/dashboard/:path*",
+    "/platform/:path*",
+    "/login",
+    "/register",
+    "/verify-email",
+  ],
 };

@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { AppSidebar } from "@/components/dashboard/shell/app-sidebar";
 import { AppTopbar } from "@/components/dashboard/shell/app-topbar";
+import { UsageTracker } from "@/components/dashboard/usage-tracker";
 
 const STORAGE_KEY = "oneflow_sidebar_collapsed";
 
@@ -24,11 +25,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-dvh bg-muted/20">
+    <div className="app-workspace flex min-h-dvh bg-background">
+      <UsageTracker />
       <AppSidebar collapsed={collapsed} onToggle={toggle} />
       <div className="flex min-w-0 flex-1 flex-col">
         <AppTopbar />
-        <main className="flex-1 p-4 sm:p-6">{children}</main>
+        <main className="flex-1 bg-surface/55 p-4 sm:p-6 lg:p-8">
+          <div className="mx-auto w-full max-w-[1600px]">{children}</div>
+        </main>
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { StatusBadge } from "@/components/dashboard/shared/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -92,7 +93,7 @@ export function AutomationsView() {
       </header>
 
       {canManage ? (
-        <section className="space-y-4 rounded-2xl border bg-card p-5">
+        <section className="space-y-4 rounded-lg border bg-card p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="font-semibold">{t("operations")}</h2>
@@ -113,7 +114,7 @@ export function AutomationsView() {
             <>
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 {(["pending", "running", "scheduled", "terminal_failed"] as const).map((key) => (
-                  <div key={key} className="rounded-xl border p-3">
+                  <div key={key} className="rounded-md border p-3">
                     <p className="text-xs text-muted-foreground">{t(`queue.${key}`)}</p>
                     <p className="text-xl font-semibold">{status.data.queue[key]}</p>
                   </div>
@@ -151,7 +152,7 @@ export function AutomationsView() {
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {(["PENDING", "RUNNING", "SUCCEEDED", "FAILED"] as const).map((status) => (
-          <div key={status} className="rounded-2xl border bg-card p-4">
+          <div key={status} className="rounded-lg border bg-card p-4">
             <p className="text-xs text-muted-foreground">{status}</p>
             <p className="text-2xl font-semibold">{executions.data?.counts[status] ?? 0}</p>
           </div>
@@ -159,7 +160,7 @@ export function AutomationsView() {
       </div>
 
       {canManage ? (
-        <section className="space-y-3 rounded-2xl border bg-card p-5">
+        <section className="space-y-3 rounded-lg border bg-card p-5">
           <h2 className="font-semibold">{t("create")}</h2>
           <div className="grid gap-3 lg:grid-cols-3">
             <Input value={name} onChange={(event) => setName(event.target.value)} placeholder={t("name")} />
@@ -179,17 +180,17 @@ export function AutomationsView() {
         </section>
       ) : null}
 
-      <section className="overflow-x-auto rounded-2xl border bg-card">
+      <section className="overflow-x-auto rounded-lg border bg-card">
         <table className="w-full text-left text-sm">
           <thead><tr className="border-b"><th className="p-3">{t("name")}</th><th className="p-3">{t("trigger")}</th><th className="p-3">{t("action")}</th><th className="p-3">{t("status")}</th><th className="p-3">{t("manage")}</th></tr></thead>
-          <tbody>{automations.data?.items.map((item) => <tr key={item.id} className="border-b last:border-0"><td className="p-3 font-medium">{item.name}</td><td className="p-3">{item.trigger_event_type}</td><td className="p-3">{item.action_type}</td><td className="p-3"><Badge variant={item.active ? "default" : "outline"}>{item.active ? t("enabled") : t("disabled")}</Badge></td><td className="p-3">{canManage ? <Button size="sm" variant="outline" onClick={() => (item.active ? mutations.disable : mutations.enable).mutate(item.id)}><Power className="size-4" />{item.active ? t("disable") : t("enable")}</Button> : "—"}</td></tr>)}</tbody>
+          <tbody>{automations.data?.items.map((item) => <tr key={item.id} className="border-b last:border-0"><td className="p-3 font-medium">{item.name}</td><td className="p-3">{item.trigger_event_type}</td><td className="p-3">{item.action_type}</td><td className="p-3"><StatusBadge status={item.active ? "ACTIVE" : "DISABLED"} label={item.active ? t("enabled") : t("disabled")} /></td><td className="p-3">{canManage ? <Button size="sm" variant="outline" onClick={() => (item.active ? mutations.disable : mutations.enable).mutate(item.id)}><Power className="size-4" />{item.active ? t("disable") : t("enable")}</Button> : "—"}</td></tr>)}</tbody>
         </table>
         {!automations.data?.total ? <p className="p-8 text-center text-muted-foreground">{t("empty")}</p> : null}
       </section>
 
-      <section className="overflow-x-auto rounded-2xl border bg-card p-5">
+      <section className="overflow-x-auto rounded-lg border bg-card p-5">
         <h2 className="font-semibold">{t("history")}</h2>
-        {!executions.data?.items.length ? <p className="mt-4 text-sm text-muted-foreground">{t("noHistory")}</p> : executions.data.items.map((item) => <div key={item.id} className="mt-3 flex flex-wrap items-center gap-3 border-t pt-3 text-sm"><Badge variant="outline" className={item.status === "FAILED" ? "text-destructive" : undefined}>{item.status}</Badge><span>{new Date(item.scheduled_for).toLocaleString()}</span><span>{t("attempts", { count: item.attempt_count })}</span>{item.last_error_code ? <span className="inline-flex items-center gap-1 text-destructive"><AlertTriangle className="size-4" />{item.last_error_code}</span> : null}</div>)}
+        {!executions.data?.items.length ? <p className="mt-4 text-sm text-muted-foreground">{t("noHistory")}</p> : executions.data.items.map((item) => <div key={item.id} className="mt-3 flex flex-wrap items-center gap-3 border-t pt-3 text-sm"><StatusBadge status={item.status} /><span>{new Date(item.scheduled_for).toLocaleString()}</span><span>{t("attempts", { count: item.attempt_count })}</span>{item.last_error_code ? <span className="inline-flex items-center gap-1 text-destructive"><AlertTriangle className="size-4" />{item.last_error_code}</span> : null}</div>)}
       </section>
     </div>
   );

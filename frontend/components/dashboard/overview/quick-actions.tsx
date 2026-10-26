@@ -53,7 +53,7 @@ export function QuickActions() {
           >
             <Link href={action.href}>
               <Card className="group flex items-center gap-4 p-5 transition-colors hover:border-brand/40 hover:shadow-glow">
-                <span className="grid size-11 place-items-center rounded-2xl bg-brand/10 text-brand transition-transform group-hover:scale-105">
+                <span className="grid size-11 place-items-center rounded-lg bg-brand/10 text-brand transition-transform group-hover:scale-105">
                   <action.icon className="size-5" />
                 </span>
                 <span className="font-medium">{t(action.id)}</span>

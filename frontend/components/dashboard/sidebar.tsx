@@ -18,7 +18,7 @@ export function DashboardSidebar({ compact = false }: { compact?: boolean }) {
     >
       <div className={cn("px-2", compact && "px-0")}>
         {compact ? (
-          <span className="grid size-8 place-items-center rounded-xl bg-brand-gradient text-brand-foreground">
+          <span className="grid size-8 place-items-center rounded-md bg-brand-gradient text-brand-foreground">
             ●
           </span>
         ) : (
@@ -31,7 +31,7 @@ export function DashboardSidebar({ compact = false }: { compact?: boolean }) {
           <div
             key={item.id}
             className={cn(
-              "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
+              "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
               item.active
                 ? "bg-brand/10 text-brand"
                 : "text-muted-foreground hover:bg-accent hover:text-foreground",

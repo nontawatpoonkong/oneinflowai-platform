@@ -7,7 +7,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { PaginationControls } from "@/components/shared/pagination-controls";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/dashboard/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -67,8 +67,8 @@ export function StaysView() {
         <label className="grid gap-1 text-xs text-muted-foreground">{t("departureDate")}<Input type="date" value={departureDate} onChange={(event) => filter(() => setDepartureDate(event.target.value))} /></label>
       </section>
       {stays.isLoading ? <Loader2 className="size-6 animate-spin" /> : stays.isError ? <p>{t("error")}</p> : (
-        <div className="overflow-x-auto rounded-2xl border bg-card">
-          <table className="w-full text-left text-sm"><thead className="border-b bg-muted/40"><tr><th className="p-3">{t("guest")}</th><th className="p-3">{t("property")}</th><th className="p-3">{t("dates")}</th><th className="p-3">{t("roomsLabel")}</th><th className="p-3">{t("status")}</th></tr></thead><tbody>{stays.data?.items.map((stay) => <tr key={stay.id} className="border-b last:border-0"><td className="p-3"><Link className="font-medium text-primary" href={`/dashboard/hotel/stays/${stay.id}`}>{stay.guest_name ?? stay.booking_id}</Link></td><td className="p-3">{stay.property_name}</td><td className="p-3">{stay.planned_check_in_date} → {stay.planned_check_out_date}</td><td className="p-3">{stay.rooms.filter((item) => !item.released_at).map((item) => item.code).join(", ") || "—"}</td><td className="p-3"><Badge variant="outline">{stay.status}</Badge></td></tr>)}</tbody></table>
+        <div className="overflow-x-auto rounded-lg border bg-card">
+          <table className="w-full text-left text-sm"><thead className="border-b bg-muted/40"><tr><th className="p-3">{t("guest")}</th><th className="p-3">{t("property")}</th><th className="p-3">{t("dates")}</th><th className="p-3">{t("roomsLabel")}</th><th className="p-3">{t("status")}</th></tr></thead><tbody>{stays.data?.items.map((stay) => <tr key={stay.id} className="border-b last:border-0"><td className="p-3"><Link className="font-medium text-primary" href={`/dashboard/hotel/stays/${stay.id}`}>{stay.guest_name ?? stay.booking_id}</Link></td><td className="p-3">{stay.property_name}</td><td className="p-3">{stay.planned_check_in_date} → {stay.planned_check_out_date}</td><td className="p-3">{stay.rooms.filter((item) => !item.released_at).map((item) => item.code).join(", ") || "—"}</td><td className="p-3"><StatusBadge status={stay.status} /></td></tr>)}</tbody></table>
           {stays.data?.total === 0 ? <p className="p-6 text-center text-muted-foreground">{t("empty")}</p> : null}
           {stays.data ? <PaginationControls page={stays.data.page} pageSize={stays.data.page_size} total={stays.data.total} totalPages={stays.data.total_pages} previousLabel={common("previous")} nextLabel={common("next")} pageSizeLabel={common("pageSize")} summaryLabel={common("pageSummary", { page: stays.data.page, totalPages: stays.data.total_pages, total: stays.data.total })} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} /> : null}
         </div>

@@ -1,12 +1,13 @@
 "use client";
 
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Workflow } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 import { Logo } from "@/components/shared/logo";
-import { DASHBOARD_NAV } from "@/lib/dashboard-nav";
+import { useMyWorkspace, useWorkspaceAccess } from "@/hooks/api/use-workspace";
+import { DASHBOARD_NAV_GROUPS, permittedNavigation } from "@/lib/dashboard-nav";
 import { cn } from "@/lib/utils";
 
 function isActive(pathname: string, href: string): boolean {
@@ -24,12 +25,15 @@ export function AppSidebar({
   const pathname = usePathname();
   const tNav = useTranslations("dashboard.nav");
   const tShell = useTranslations("dashboard.shell");
+  const { data: workspace } = useMyWorkspace();
+  const { data: access } = useWorkspaceAccess(workspace?.id);
+  const navigation = permittedNavigation(access?.capabilities);
 
   return (
     <aside
       className={cn(
-        "hidden shrink-0 flex-col border-r border-border bg-card/50 transition-[width] duration-300 md:flex",
-        collapsed ? "w-[72px]" : "w-64",
+        "hidden shrink-0 flex-col border-r border-border bg-card transition-[width] duration-200 md:flex",
+        collapsed ? "w-[72px]" : "w-[248px]",
       )}
     >
       <div
@@ -39,52 +43,51 @@ export function AppSidebar({
         )}
       >
         {collapsed ? (
-          <span className="grid size-9 place-items-center rounded-xl bg-brand-gradient text-brand-foreground shadow-glow">
-            ●
+          <span className="grid size-9 place-items-center rounded-lg bg-foreground text-background">
+            <Workflow className="size-4" />
           </span>
         ) : (
           <Logo />
         )}
       </div>
 
-      <nav className="flex flex-1 flex-col gap-1.5 p-3">
-        {DASHBOARD_NAV.map((item) => {
-          const active = isActive(pathname, item.href);
-          const label = tNav(item.key);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              title={collapsed ? label : undefined}
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "group relative flex items-center gap-3 rounded-xl px-2.5 py-2.5 text-sm transition-all",
-                active
-                  ? "bg-brand/10 font-semibold text-brand"
-                  : "font-medium text-muted-foreground hover:bg-accent hover:text-foreground",
-                collapsed && "justify-center px-0",
-              )}
-            >
-              {active && !collapsed ? (
-                <span
-                  aria-hidden
-                  className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-brand"
-                />
-              ) : null}
-              <span
-                className={cn(
-                  "grid size-8 shrink-0 place-items-center rounded-lg transition-colors",
-                  active
-                    ? "bg-brand/15 text-brand"
-                    : "text-muted-foreground group-hover:text-foreground",
-                )}
-              >
-                <item.icon className="size-4" />
-              </span>
-              {!collapsed && <span className="truncate">{label}</span>}
-            </Link>
-          );
-        })}
+      <nav className="flex flex-1 flex-col gap-4 overflow-y-auto p-3" aria-label={tShell("primaryNavigation")}>
+        {DASHBOARD_NAV_GROUPS.map((group) => (
+          <div key={group} className="space-y-1">
+            {!collapsed ? (
+              <p className="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/80">
+                {tShell(`navGroups.${group}`)}
+              </p>
+            ) : group !== "workspace" ? (
+              <div aria-hidden className="mx-auto mb-2 h-px w-8 bg-border" />
+            ) : null}
+            {navigation.filter((item) => item.group === group).map((item) => {
+              const active = isActive(pathname, item.href);
+              const label = tNav(item.key);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  title={collapsed ? label : undefined}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "group relative flex min-h-10 items-center gap-3 rounded-md px-2.5 text-sm transition-colors",
+                    active
+                      ? "bg-brand-soft font-semibold text-brand"
+                      : "font-medium text-muted-foreground hover:bg-muted hover:text-foreground",
+                    collapsed && "justify-center px-0",
+                  )}
+                >
+                  {active && !collapsed ? (
+                    <span aria-hidden className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-brand" />
+                  ) : null}
+                  <item.icon className="size-[18px] shrink-0" />
+                  {!collapsed && <span className="truncate">{label}</span>}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       <div className="border-t border-border p-3">
@@ -93,7 +96,7 @@ export function AppSidebar({
           onClick={onToggle}
           aria-label={collapsed ? tShell("expand") : tShell("collapse")}
           className={cn(
-            "flex w-full items-center gap-2 rounded-xl border border-border py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
+            "flex w-full items-center gap-2 rounded-md border border-border py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
             collapsed ? "justify-center px-0" : "justify-center px-3",
           )}
         >

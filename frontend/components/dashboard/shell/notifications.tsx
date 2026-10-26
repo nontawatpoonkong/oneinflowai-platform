@@ -46,7 +46,7 @@ export function Notifications() {
       <div
         role="menu"
         className={cn(
-          "absolute right-0 mt-2 w-80 origin-top-right rounded-2xl border border-border bg-popover p-2 shadow-soft transition-all",
+          "absolute right-0 mt-2 w-80 origin-top-right rounded-lg border border-border bg-popover p-2 shadow-soft transition-all",
           open
             ? "pointer-events-auto scale-100 opacity-100"
             : "pointer-events-none scale-95 opacity-0",
@@ -64,7 +64,7 @@ export function Notifications() {
           <ul className="max-h-96 overflow-y-auto">
             {notifications.data.items.map((item) => (
               <li key={item.id}>
-                <button type="button" onClick={() => openNotification(item)} className={cn("w-full rounded-xl px-3 py-2 text-left hover:bg-accent", !item.is_read && "bg-brand/5")}>
+                <button type="button" onClick={() => openNotification(item)} className={cn("w-full rounded-md px-3 py-2 text-left hover:bg-accent", !item.is_read && "bg-brand/5")}>
                   <p className="text-sm font-medium">{item.title}</p>
                   <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{item.body}</p>
                   <time className="mt-1 block text-[10px] text-muted-foreground">{new Date(item.created_at).toLocaleString()}</time>

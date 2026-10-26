@@ -31,7 +31,7 @@ export function ConversationModeToggle({
       role="radiogroup"
       aria-label={label}
       aria-busy={disabled}
-      className="flex max-w-full rounded-xl border bg-muted/50 p-1"
+      className="flex max-w-full rounded-md border bg-muted/50 p-1"
     >
       {modes.map(({ value, icon: Icon }) => {
         const active = value === activeMode;

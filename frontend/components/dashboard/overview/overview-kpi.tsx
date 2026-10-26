@@ -16,7 +16,7 @@ interface OverviewKpiProps {
 export function OverviewKpi({ label, value, icon: Icon, isLoading }: OverviewKpiProps) {
   return (
     <Card className="p-5">
-      <span className="grid size-9 place-items-center rounded-xl bg-brand/10 text-brand">
+      <span className="grid size-9 place-items-center rounded-md bg-brand/10 text-brand">
         <Icon className="size-4" />
       </span>
       <div className="mt-4 text-2xl font-semibold tracking-tight">
