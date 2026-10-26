@@ -22,7 +22,8 @@ Starting requires a dirty room and changes readiness to `CLEANING`. Completion r
 
 ## Assignment and authorization
 
-The small `WorkspaceCapabilityService` makes operational permissions explicit without adding a database-backed RBAC system:
+The shared `WorkspaceCapabilityService` combines role baselines with normalized
+`WorkspaceMemberCapability` grants:
 
 - `hotel.housekeeping.operate`: Owner, Admin, and Member. A Member can start or complete only a task assigned to that same user.
 - `hotel.housekeeping.manage`: Owner and Admin. Required to assign or cancel tasks.

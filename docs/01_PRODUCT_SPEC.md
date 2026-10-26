@@ -13,9 +13,10 @@ OneInFlow remains an MVP-stage AI-first Customer Operations Platform.
 - Registration, email verification, login, authenticated user lookup, and
   password-reset flows.
 - Multi-tenant workspaces, workspace membership, and workspace isolation.
-- Registration creates a User only. A zero-membership user completes Workspace
-  onboarding by explicitly creating a Workspace; invitation acceptance is not
-  yet implemented and arbitrary self-join is forbidden.
+- Registration creates a User only. A zero-membership user can explicitly
+  create a Workspace or enter a secure join code and request employee access.
+  Membership is created only after owner/admin review with explicit permissions;
+  arbitrary self-join remains forbidden.
 - Customers, channel identities, conversations, and persisted messages.
 
 ### WebChat
@@ -126,3 +127,38 @@ OneInFlow subscription billing is distinct from Workspace Customer Payment.
 Workspaces receive data-driven plan entitlements and billing-period usage.
 Pricing v0.1 remains a working hypothesis. No production checkout or free
 self-upgrade exists.
+
+## Sprint 10.9C rich hotel catalog
+
+The Hotel product now separates a rich sellable `RoomType` catalog from
+physical `HotelRoom` operations. Guest-visible beds, views, amenities, photos,
+size, and capacity are trusted structured Hotel data. Daily availability still
+comes from `InventoryDate` and the existing LOCAL/PMS authority policy.
+
+## Sprint 10.9D audit and analytics foundation
+
+OneInFlowAI provides an immutable, permission-gated Workspace audit history for
+meaningful cross-domain changes and a separate, non-invasive product-usage
+stream for authenticated page views. Home views, real operational metrics, and
+viewer history are available through Analytics. Audit requires `audit.read`;
+analytics requires `analytics.read` plus the existing entitlement. Usage is not
+an employee performance score and captures no interaction content.
+
+## Sprint 10.9E promotions and attribution
+
+OneInFlowAI supports Workspace-owned hotel campaigns, deterministic percentage
+or fixed-amount discount codes, explicit catalog/source eligibility, bounded
+usage, and immutable Booking attribution. Quote validation is informational;
+Booking Hold revalidates and freezes price, Payment uses that total, and
+confirmation records the authoritative redemption. AI may explain the trusted
+result but cannot calculate or administer promotions.
+
+## Sprint 10.9F platform administration
+
+Trusted OneInFlowAI operators have a separate Platform Console for global
+Users, Workspaces, subscriptions, Workspace marketing, product usage, audit,
+and operational health. Workspace ownership never grants access. The console
+supports only reasoned, audited, explicitly confirmed lifecycle actions and
+contains no impersonation, secret editor, database editor, or domain bypass.
+Plan mutation and Platform Campaign execution are deferred until their missing
+authority and settlement models are defined.

@@ -23,6 +23,12 @@ behavior and tone. It is not a document, chunk, vector, credential, or citation
 source. A User may have zero or multiple `workspace_members` rows; registration
 does not create either a Workspace or membership.
 
+Sprint 10.9B adds `workspace_join_settings`, `workspace_access_requests`,
+`workspace_member_capabilities`, and immutable `workspace_access_audit_events`.
+Join settings store only a SHA-256 digest and short display hint, never the
+plaintext code. A partial unique index enforces one `PENDING` request per
+user/Workspace; member grants are unique by membership and capability.
+
 ## Conversation and WebChat idempotency
 
 `conversations` stores status, channel, assignment, external identity, AI mode,
@@ -64,7 +70,8 @@ data, or complete payment details.
 
 Defined notification types are `CONVERSATION_HANDOFF`,
 `CONVERSATION_ASSIGNED`, `NEW_CUSTOMER_MESSAGE`, `ACTION_CREATED`,
-`ACTION_ASSIGNED`, `PAYMENT_VERIFIED`, and `PAYMENT_REVIEW_REQUIRED`.
+`ACTION_ASSIGNED`, `PAYMENT_VERIFIED`, `PAYMENT_REVIEW_REQUIRED`, and
+`WORKSPACE_ACCESS_REQUESTED`.
 `PAYMENT_REVIEW_REQUIRED` is defined but has no active event source.
 
 ## Other important uniqueness boundaries
@@ -98,7 +105,13 @@ the trusted outbound adapter.
 `PENDING`/`SENT`/`FAILED`, safe provider message ID, normalized error code, and
 sent timestamp. It stores no raw provider response or credentials.
 
-Current Alembic head is `b8c9d0e1f2a3`.
+Sprint 10.9D adds `workspace_audit_events` and `product_usage_events` in revision
+`8c9d0e1f2a3`. The audit table has a database trigger that rejects updates and
+deletes. The usage table has a Workspace/user/event/navigation uniqueness key
+for navigation idempotency. Both use Workspace/time indexes; they remain
+separate because their semantics and future retention policies differ.
+
+Current Alembic head is `0e1f2a3b4c5`.
 # SaaS billing tables
 
 - `saas_plans`: configurable plan and provisional pricing metadata
@@ -108,3 +121,28 @@ Current Alembic head is `b8c9d0e1f2a3`.
 
 These tables are intentionally separate from `payments`, `payment_evidence`, and
 `payment_verifications`, which represent end-customer payments.
+
+## Rich Hotel catalog tables
+
+Sprint 10.9C adds `hotel_room_type_beds`, `hotel_amenity_definitions`,
+`hotel_room_type_amenities`, and `hotel_room_type_images`. Room types gain
+guest-facing size, smoking, accessibility, highlight, and controlled-view
+fields. Physical rooms gain building, wing, and internal notes. Image rows
+store object references and accessible metadata only; active physical room
+records remain the authoritative quantity.
+
+## Sprint 10.9E promotion schema
+
+Revision `9d0e1f2a3b4` adds `promotion_campaigns`, `promotions`,
+`promotion_codes`, normalized property/room-type/rate-plan/source eligibility,
+`booking_attributions`, and `promotion_redemptions`. Booking gains
+`discount_amount` and a JSONB promotion snapshot while retaining its existing
+subtotal/total/currency concepts. Composite Workspace foreign keys prevent
+cross-tenant attribution and redemption links. One redemption per Booking and
+one normalized code per Workspace are unique.
+
+Sprint 10.9F revision `0e1f2a3b4c5` adds only `workspaces.status`, constrained
+to `ACTIVE` or `SUSPENDED`, plus a status/created-time index. User lifecycle
+reuses `users.is_active`; platform mutation accountability reuses the existing
+nullable-Workspace, append-only audit ledger. No platform campaign, plan, or
+secret-storage schema is introduced.

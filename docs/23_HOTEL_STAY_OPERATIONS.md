@@ -87,7 +87,7 @@ Room and Stay lists are bounded, paginated, and deterministically ordered. Arriv
 
 ## Authorization and tenant isolation
 
-The existing Hotel policy is reused: Workspace members may read operational records, while Owner/Admin users perform room and Stay mutations. Every service query and relationship is Workspace-scoped; composite foreign keys prevent cross-Workspace links, and assignment validation rejects cross-Property or incompatible RoomType selections.
+The shared Workspace capability policy is reused: `room.read` and `stay.read` permit operational reads, while explicit room/stay mutation capabilities govern changes. Owner/Admin baselines include these capabilities; members receive them only through Workspace-scoped grants. Every service query and relationship is Workspace-scoped; composite foreign keys prevent cross-Workspace links, and assignment validation rejects cross-Property or incompatible RoomType selections.
 
 ## Audit and Customer 360
 

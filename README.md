@@ -1,8 +1,8 @@
-# OneInFlow
+# OneInFlowAI
 
 **Everything in one flow.**
 
-OneInFlow is an **AI-first Customer Operations Platform** for managing customer conversations and the operational work that follows them through AI and human collaboration. Its core flow is Conversation -> Understanding -> Knowledge -> Action -> Human -> Payment -> Operations: **Everything in one flow.** The current product is an MVP and is not yet production-ready or a replacement for every CRM.
+OneInFlowAI is an **AI-first Customer Operations Platform** for managing customer conversations and the operational work that follows them through AI and human collaboration. Its core flow is Conversation -> Understanding -> Knowledge -> Action -> Human -> Payment -> Operations: **Everything in one flow.** The current product is an MVP and is not yet production-ready or a replacement for every CRM.
 
 ## Current architecture
 
@@ -57,7 +57,7 @@ The RAG preview API exposes the prepared context and user prompt for development
 
 ## Authentication
 
-The backend includes registration, email OTP verification, login, token-based protected routes, and password-reset flows. Registration creates only a User; an authenticated user with no memberships must explicitly create a Workspace or accept a future invitation. Explicit Workspace creation makes that user the sole owner and provisions Workspace-scoped billing state. Verification codes are delivered through an email-provider abstraction and are not returned as authentication credentials. Workspace and user dependencies enforce access at the API boundary.
+The backend includes registration, email OTP verification, login, token-based protected routes, and password-reset flows. Registration creates only a User; an authenticated user with no memberships can explicitly create a Workspace or request access with a secure Workspace join code. A join code never grants membership: an owner/admin must review the pending request and assign role plus granular capabilities. Explicit Workspace creation makes that user the sole owner and provisions Workspace-scoped billing state. Employees need membership, not their own subscription. Verification codes are delivered through an email-provider abstraction and are not returned as authentication credentials. Workspace and user dependencies enforce access at the API boundary. See [Workspace Access & Permissions](docs/29_WORKSPACE_ACCESS_PERMISSIONS.md).
 
 Workspace AI Instructions are nullable, owner/admin-managed behavioral guidance
 shared by WebChat, LINE, and Facebook through the common grounded-generation
@@ -144,6 +144,20 @@ Booking, verify a Payment, mutate hotel operations, or run arbitrary tools.
 Execution is idempotent, audited, Workspace-scoped, and bounded to at most
 three tool calls per turn. See
 [AI Action Orchestration](docs/27_AI_ACTION_ORCHESTRATION.md).
+
+## Promotions and booking attribution
+
+Workspace owners/admins can configure deterministic hotel campaigns, discount
+codes, eligibility, and usage limits. Booking Hold revalidates against trusted
+catalog, rate, customer, source, subtotal, and currency data, reserves quota
+under a PostgreSQL lock, and freezes the discounted price for that Booking.
+Payment continues to use the immutable discounted Booking total.
+
+AI can call a read-only validation tool and can pass a code into the existing
+Booking Hold flow, but it cannot calculate discounts or administer campaigns.
+Promotion analytics report confirmed gross, discount, and net amounts by
+currency, campaign, code, and controlled source. See
+[Promotions, Discount Codes, and Attribution](docs/32_PROMOTIONS.md).
 
 ## Project structure
 
@@ -289,6 +303,11 @@ Implemented:
 - Hotel Housekeeping with separate occupancy/readiness state, checkout-created cleaning tasks, deterministic staff operations, and readiness-safe future arrivals. See [Hotel Housekeeping](docs/24_HOTEL_HOUSEKEEPING.md).
 - Hotel Automation Foundation with transactional versioned outbox events, Workspace-scoped deterministic rules, bounded scheduling/retry, idempotent internal notifications, and customer messages through the existing Channel boundary. See [Hotel Automation Foundation](docs/25_HOTEL_AUTOMATION.md).
 - Automation operations hardening with a separately supervised worker, persisted heartbeat, concurrency-safe stale recovery, workspace queue metrics, deterministic alert signals, and bounded manual retry. See [Automation Operations Runbook](docs/26_AUTOMATION_OPERATIONS.md).
+- Provider-neutral, read-only PMS import foundation with encrypted Workspace connections, explicit external mappings, durable cursor/checkpoint history, inventory authority, conflict-safe reconciliation, and bounded manual sync. No PMS write-back is implemented. See [PMS Adapter Foundation](docs/28_PMS_ADAPTER_FOUNDATION.md).
+- Rich Hotel Catalog with structured guest-facing room metadata, reusable typed amenities, multiple bed configurations, image metadata backed by the existing storage boundary, authoritative active physical-room counts, and a bounded 7/14/30-day availability calendar. Inventory and PMS authority remain unchanged. See [Rich Hotel Catalog and Availability](docs/30_RICH_HOTEL_CATALOG.md).
+- Global immutable Workspace audit history plus separate privacy-bounded product usage telemetry. The first-class Analytics surface uses real Booking, Payment, Stay, Housekeeping, AI Action, Automation, Conversation, and Home-view data without employee surveillance or cross-currency totals. See [Global Audit, Product Usage, and Analytics](docs/31_GLOBAL_AUDIT_ANALYTICS.md).
+- Internal Platform Administration Console with a dedicated platform-admin authority, bounded audited lifecycle actions, paginated cross-tenant operations, and truthful global analytics. See [Platform Administration Console](docs/33_PLATFORM_ADMIN_CONSOLE.md).
+- Campaign operations: platform-authored Workspace-owned draft campaigns with exposure-reducing governance, a staff manual-booking composer with server quotes, supervised scheduled campaign expiry inside the automation worker, and currency-safe campaign analytics. See [Campaign Operations](docs/34_CAMPAIGN_OPERATIONS.md).
 
 In development:
 
@@ -297,7 +316,6 @@ In development:
 
 Planned:
 
-- Sprint 9.4: Analytics and Insights.
 - Sprint 9.4 operational Analytics is implemented from Workspace-scoped source
   tables with UTC ranges, truthful KPI definitions, and management-only access.
   See [Analytics and Insights](docs/14_ANALYTICS.md).
@@ -309,7 +327,7 @@ Planned:
   [Backup/Recovery](docs/17_BACKUP_RECOVERY.md) and the
   [Release Checklist](docs/18_RELEASE_CHECKLIST.md).
 
-**OneInFlow status: MVP Complete — Pilot Ready.** This is not a claim of
+**OneInFlowAI status: MVP Complete — Pilot Ready.** This is not a claim of
 Commercial Production Readiness; the documented MVP limitations and Pilot
 operating controls still apply.
 - Automatic external action execution.
@@ -350,10 +368,16 @@ commercial-production hosted-service guarantee.
 - [Hotel Housekeeping](docs/24_HOTEL_HOUSEKEEPING.md)
 - [Hotel Automation Foundation](docs/25_HOTEL_AUTOMATION.md)
 - [Automation Operations Runbook](docs/26_AUTOMATION_OPERATIONS.md)
+- [AI Action Orchestration](docs/27_AI_ACTION_ORCHESTRATION.md)
+- [PMS Adapter Foundation](docs/28_PMS_ADAPTER_FOUNDATION.md)
+- [Rich Hotel Catalog and Availability](docs/30_RICH_HOTEL_CATALOG.md)
+- [Global Audit, Product Usage, and Analytics](docs/31_GLOBAL_AUDIT_ANALYTICS.md)
+- [Platform Administration Console](docs/33_PLATFORM_ADMIN_CONSOLE.md)
+- [Campaign Operations, Staff Booking, and Lifecycle Scheduling](docs/34_CAMPAIGN_OPERATIONS.md)
 
 ## Naming compatibility
 
-The product name is **OneInFlow**. The historical repository directory identifier `oneflowai-platform` may remain in local paths and clone instructions for compatibility; it is not the current product brand.
+The product name is **OneInFlowAI**. The historical repository directory identifier `oneflowai-platform` may remain in local paths and clone instructions for compatibility; it is not the current product brand.
 
 ## License
 

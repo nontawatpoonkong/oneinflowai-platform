@@ -86,8 +86,24 @@ secrets in the unit file or command line.
 | `AUTOMATION_BACKLOG_ALERT_THRESHOLD_SECONDS` | 300 | Oldest-pending alert threshold |
 | `AUTOMATION_BACKLOG_ALERT_COUNT` | 1000 | Queue-count alert threshold |
 | `AUTOMATION_WORKER_BUILD_IDENTIFIER` | empty | Optional deployment identifier |
+| `PROMOTION_LIFECYCLE_ENABLED` | true | Run scheduled campaign lifecycle phase |
+| `PROMOTION_LIFECYCLE_INTERVAL_SECONDS` | 60 | Delay between lifecycle batches |
+| `PROMOTION_LIFECYCLE_BATCH_SIZE` | 100 | Maximum campaigns per transition type |
+| `PROMOTION_LIFECYCLE_STALE_SECONDS` | 300 | Lifecycle health stale threshold |
 
 Impossible values fail Settings validation at startup.
+
+## Scheduled campaign lifecycle phase
+
+Sprint 10.9F runs campaign expiry and start marking as an isolated phase of
+this same worker. A failure in the lifecycle phase is logged as
+`promotion.lifecycle.failed` with a safe `error_code`, recorded in
+`scheduled_job_states`, and retried after one interval; it never blocks the
+automation phase (and vice versa). Inspect it with
+`GET /api/v1/platform/marketing/lifecycle` or the Platform System page. The
+worker healthcheck still reflects the automation heartbeat only; use the
+lifecycle health signal for scheduler staleness. Details, alerts, and recovery
+are in [34_CAMPAIGN_OPERATIONS.md](34_CAMPAIGN_OPERATIONS.md).
 
 ## Health and queue inspection
 
