@@ -18,6 +18,9 @@ class RoomCreate(BaseModel):
     room_type_id: uuid.UUID
     code: str = Field(min_length=1, max_length=64)
     floor: str | None = Field(default=None, max_length=32)
+    building: str | None = Field(default=None, max_length=80)
+    wing: str | None = Field(default=None, max_length=80)
+    internal_notes: str | None = Field(default=None, max_length=1000)
 
     @field_validator("code")
     @classmethod
@@ -31,6 +34,9 @@ class RoomCreate(BaseModel):
 class RoomUpdate(BaseModel):
     code: str | None = Field(default=None, min_length=1, max_length=64)
     floor: str | None = Field(default=None, max_length=32)
+    building: str | None = Field(default=None, max_length=80)
+    wing: str | None = Field(default=None, max_length=80)
+    internal_notes: str | None = Field(default=None, max_length=1000)
     active: bool | None = None
 
     @field_validator("code")
@@ -49,6 +55,9 @@ class RoomResponse(BaseModel):
     room_type_name: str
     code: str
     floor: str | None
+    building: str | None
+    wing: str | None
+    internal_notes: str | None
     active: bool
     operational_status: RoomOperationalStatus
     readiness_status: RoomReadinessStatus

@@ -1,7 +1,7 @@
 """Sprint 10.0 authoritative Hotel catalog and availability regressions."""
 
 import asyncio
-from datetime import date
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
 import pytest
@@ -9,6 +9,7 @@ from sqlalchemy import select, update
 
 from app.integrations.hotel_availability import SearchAvailabilityTool
 from app.models.hotel import InventoryDate
+from app.models.workspace_access import WorkspaceMemberCapability
 from app.models.workspace_member import WorkspaceMember, WorkspaceRole
 from app.schemas.hotel import AvailabilitySearchRequest
 from tests.conftest import TestSessionLocal, register_verify_and_login
@@ -389,6 +390,20 @@ def test_member_can_read_but_cannot_manage_hotel_catalog(client_db):
                 update(WorkspaceMember)
                 .where(WorkspaceMember.workspace_id == workspace_id)
                 .values(role=WorkspaceRole.MEMBER)
+            )
+            membership = await session.scalar(
+                select(WorkspaceMember).where(
+                    WorkspaceMember.workspace_id == workspace_id
+                )
+            )
+            session.add(
+                WorkspaceMemberCapability(
+                    workspace_id=workspace_id,
+                    membership_id=membership.id,
+                    capability="room.read",
+                    granted_by_user_id=membership.user_id,
+                    granted_at=datetime.now(UTC),
+                )
             )
             await session.commit()
 

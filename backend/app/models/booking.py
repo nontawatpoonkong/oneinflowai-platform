@@ -90,7 +90,10 @@ class Booking(UUIDMixin, TimestampMixin, Base):
             "adults > 0 AND children >= 0", name="ck_hotel_booking_occupancy"
         ),
         CheckConstraint(
-            "subtotal >= 0 AND total_amount >= 0", name="ck_hotel_booking_totals"
+            "subtotal >= 0 AND discount_amount >= 0 "
+            "AND discount_amount <= subtotal "
+            "AND total_amount = subtotal - discount_amount",
+            name="ck_hotel_booking_totals",
         ),
     )
 
@@ -116,7 +119,11 @@ class Booking(UUIDMixin, TimestampMixin, Base):
     children: Mapped[int] = mapped_column(Integer, nullable=False)
     currency: Mapped[str] = mapped_column(String(3), nullable=False)
     subtotal: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    discount_amount: Mapped[Decimal] = mapped_column(
+        Numeric(12, 2), nullable=False, default=Decimal("0.00")
+    )
     total_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    promotion_snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     hold_expires_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
     idempotency_key: Mapped[str] = mapped_column(String(128), nullable=False)
     request_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)

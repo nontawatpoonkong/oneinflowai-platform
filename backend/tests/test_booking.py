@@ -8,6 +8,7 @@ import pytest
 from sqlalchemy import select, update
 
 from app.core.channels import ChannelType
+from app.models.audit import WorkspaceAuditEvent
 from app.models.booking import Booking, BookingEvent, BookingItem, BookingStatus
 from app.models.conversation import Conversation
 from app.models.customer import Customer
@@ -102,6 +103,20 @@ def test_hold_snapshots_three_nights_and_reserves_each_day(client_db):
         ("2030-01-02", 1),
         ("2030-01-03", 1),
     ]
+
+    async def audit_actions():
+        async with TestSessionLocal() as session:
+            return set(
+                await session.scalars(
+                    select(WorkspaceAuditEvent.action).where(
+                        WorkspaceAuditEvent.workspace_id
+                        == uuid.UUID(user["workspace"]["id"]),
+                        WorkspaceAuditEvent.resource_id == uuid.UUID(data["id"]),
+                    )
+                )
+            )
+
+    assert {"BOOKING_CREATED", "BOOKING_HELD"} <= asyncio.run(audit_actions())
 
 
 def test_price_and_policy_snapshot_survive_rate_change(client_db):

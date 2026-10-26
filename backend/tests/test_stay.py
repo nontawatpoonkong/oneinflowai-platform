@@ -2,9 +2,11 @@
 
 import asyncio
 import uuid
+from datetime import UTC, datetime
 
 from sqlalchemy import func, select, update
 
+from app.models.audit import WorkspaceAuditEvent
 from app.models.booking import Booking, BookingStatus
 from app.models.stay import (
     HotelRoom,
@@ -14,6 +16,7 @@ from app.models.stay import (
     StayRoomAssignment,
     StayStatus,
 )
+from app.models.workspace_access import WorkspaceMemberCapability
 from app.models.workspace_member import WorkspaceMember, WorkspaceRole
 from app.services.stay import StayConflictError, StayOperationsService
 from tests.conftest import TestSessionLocal
@@ -299,6 +302,20 @@ def test_check_in_and_check_out_are_transactional_and_idempotent(client_db):
         "CHECKED_OUT"
     ) == 1
 
+    async def audit_actions():
+        async with TestSessionLocal() as session:
+            return list(
+                await session.scalars(
+                    select(WorkspaceAuditEvent.action).where(
+                        WorkspaceAuditEvent.resource_id == uuid.UUID(stay["id"])
+                    )
+                )
+            )
+
+    actions = asyncio.run(audit_actions())
+    assert actions.count("CHECKED_IN") == 1
+    assert actions.count("CHECKED_OUT") == 1
+
 
 def test_no_show_releases_assignment_without_changing_booking(client_db):
     _, token, prop, room_type, plan = _setup(client_db, email="stay-noshow@example.com")
@@ -467,13 +484,22 @@ def test_member_reads_but_cannot_mutate_stays_or_rooms(client_db):
 
     async def demote():
         async with TestSessionLocal() as session:
-            await session.execute(
-                update(WorkspaceMember)
-                .where(
+            membership = await session.scalar(
+                select(WorkspaceMember).where(
                     WorkspaceMember.workspace_id == uuid.UUID(user["workspace"]["id"])
                 )
-                .values(role=WorkspaceRole.MEMBER)
             )
+            membership.role = WorkspaceRole.MEMBER
+            for capability in ("room.read", "stay.read"):
+                session.add(
+                    WorkspaceMemberCapability(
+                        workspace_id=membership.workspace_id,
+                        membership_id=membership.id,
+                        capability=capability,
+                        granted_by_user_id=membership.user_id,
+                        granted_at=datetime.now(UTC),
+                    )
+                )
             await session.commit()
 
     asyncio.run(demote())

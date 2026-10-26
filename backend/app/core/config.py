@@ -19,8 +19,11 @@ class Settings(BaseSettings):
     )
 
     # ------------------------------------------------------------- AI
+    AI_PROVIDER: str = "openai"
     OPENAI_API_KEY: str | None = None
     OPENAI_MODEL: str = "gpt-5.6-terra"
+    GEMINI_API_KEY: str | None = None
+    GEMINI_MODEL: str = "gemini-2.5-pro"
     GENERATION_PROVIDER: str = "openai"
     GENERATION_TEMPERATURE: float = 0.2
     GENERATION_MAX_OUTPUT_TOKENS: int = 800
@@ -161,6 +164,18 @@ class Settings(BaseSettings):
             )
         if self.AUTOMATION_BACKLOG_ALERT_COUNT <= 0:
             raise ValueError("AUTOMATION_BACKLOG_ALERT_COUNT must be positive")
+        if not 5 <= self.PROMOTION_LIFECYCLE_INTERVAL_SECONDS <= 3600:
+            raise ValueError(
+                "PROMOTION_LIFECYCLE_INTERVAL_SECONDS must be between 5 and 3600"
+            )
+        if not 1 <= self.PROMOTION_LIFECYCLE_BATCH_SIZE <= 500:
+            raise ValueError("PROMOTION_LIFECYCLE_BATCH_SIZE must be between 1 and 500")
+        if self.PROMOTION_LIFECYCLE_STALE_SECONDS < (
+            self.PROMOTION_LIFECYCLE_INTERVAL_SECONDS * 2
+        ):
+            raise ValueError(
+                "PROMOTION_LIFECYCLE_STALE_SECONDS must be at least two intervals"
+            )
         if not 1 <= self.AI_TOOL_MAX_CALLS_PER_TURN <= 3:
             raise ValueError("AI_TOOL_MAX_CALLS_PER_TURN must be between 1 and 3")
         if not 1 <= self.AI_TOOL_CONFIRMATION_TTL_MINUTES <= 60:
@@ -232,6 +247,11 @@ class Settings(BaseSettings):
     AUTOMATION_BACKLOG_ALERT_THRESHOLD_SECONDS: int = 300
     AUTOMATION_BACKLOG_ALERT_COUNT: int = 1000
     AUTOMATION_WORKER_BUILD_IDENTIFIER: str | None = None
+    # Scheduled campaign lifecycle runs inside the supervised automation worker.
+    PROMOTION_LIFECYCLE_ENABLED: bool = True
+    PROMOTION_LIFECYCLE_INTERVAL_SECONDS: int = 60
+    PROMOTION_LIFECYCLE_BATCH_SIZE: int = 100
+    PROMOTION_LIFECYCLE_STALE_SECONDS: int = 300
 
     # ------------------------------------------------ AI action orchestration
     AI_TOOL_MAX_CALLS_PER_TURN: int = 3

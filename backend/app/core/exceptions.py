@@ -96,6 +96,24 @@ class WorkspaceAccessDeniedError(AppError):
     message = "You do not have permission to perform this action"
 
 
+class WorkspaceJoinCodeInvalidError(AppError):
+    status_code = 404
+    code = "WORKSPACE_JOIN_CODE_INVALID"
+    message = "Workspace join code is invalid or unavailable"
+
+
+class WorkspaceAccessRequestConflictError(AppError):
+    status_code = 409
+    code = "WORKSPACE_ACCESS_REQUEST_CONFLICT"
+    message = "Workspace access request cannot be changed in its current state"
+
+
+class WorkspaceOwnerProtectionError(AppError):
+    status_code = 409
+    code = "WORKSPACE_OWNER_PROTECTED"
+    message = "Workspace owner access cannot be removed or downgraded"
+
+
 class SlugAlreadyExistsError(AppError):
     status_code = 409
     code = "SLUG_ALREADY_EXISTS"
@@ -255,6 +273,48 @@ class SubscriptionRequiredError(AppError):
     status_code = 403
     code = "SUBSCRIPTION_REQUIRED"
     message = "An active subscription is required for this capability"
+
+
+class BillingAccountAccessDeniedError(AppError):
+    status_code = 403
+    code = "BILLING_ACCOUNT_FORBIDDEN"
+    message = "You do not have access to this billing account"
+
+
+class PlatformAdminRequiredError(AppError):
+    status_code = 403
+    code = "PLATFORM_ADMIN_REQUIRED"
+    message = "Platform administrator access is required"
+
+
+class WorkspaceSuspendedError(AppError):
+    status_code = 403
+    code = "WORKSPACE_SUSPENDED"
+    message = "Workspace access is suspended"
+
+
+class SubscriptionNotFoundError(AppError):
+    status_code = 404
+    code = "SUBSCRIPTION_NOT_FOUND"
+    message = "Subscription not found"
+
+
+class SubscriptionNotEligibleError(AppError):
+    status_code = 409
+    code = "SUBSCRIPTION_NOT_ELIGIBLE"
+    message = "Subscription is not eligible for Workspace provisioning"
+
+
+class SubscriptionAllocationExhaustedError(AppError):
+    status_code = 409
+    code = "SUBSCRIPTION_ALLOCATION_EXHAUSTED"
+    message = "Subscription has no remaining Workspace allocation"
+
+
+class InvalidSubscriptionTransitionError(AppError):
+    status_code = 409
+    code = "INVALID_SUBSCRIPTION_TRANSITION"
+    message = "Subscription status transition is not allowed"
 
 
 class EntitlementDeniedError(AppError):

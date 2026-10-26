@@ -2,11 +2,13 @@
 
 import asyncio
 import uuid
+from datetime import UTC, datetime
 
 import pytest
 from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 
+from app.models.audit import WorkspaceAuditEvent
 from app.models.housekeeping import (
     HousekeepingEvent,
     HousekeepingPriority,
@@ -15,6 +17,7 @@ from app.models.housekeeping import (
     RoomReadinessOverrideEvent,
 )
 from app.models.stay import HotelRoom, RoomReadinessStatus
+from app.models.workspace_access import WorkspaceMemberCapability
 from app.models.workspace_member import WorkspaceMember, WorkspaceRole
 from app.services.housekeeping import HousekeepingService
 from tests.conftest import TestSessionLocal
@@ -248,14 +251,23 @@ def test_member_can_work_assigned_task_but_cannot_manage_queue(client_db):
 
     async def demote():
         async with TestSessionLocal() as session:
-            await session.execute(
-                update(WorkspaceMember)
-                .where(
+            membership = await session.scalar(
+                select(WorkspaceMember).where(
                     WorkspaceMember.workspace_id == workspace_id,
                     WorkspaceMember.user_id == uuid.UUID(user_id),
                 )
-                .values(role=WorkspaceRole.MEMBER)
             )
+            membership.role = WorkspaceRole.MEMBER
+            for capability in ("housekeeping.read", "housekeeping.operate"):
+                session.add(
+                    WorkspaceMemberCapability(
+                        workspace_id=workspace_id,
+                        membership_id=membership.id,
+                        capability=capability,
+                        granted_by_user_id=membership.user_id,
+                        granted_at=datetime.now(UTC),
+                    )
+                )
             await session.commit()
 
     asyncio.run(demote())
@@ -443,8 +455,7 @@ def test_unassigned_member_lacks_permission_to_operate_task(client_db):
             await session.execute(
                 update(WorkspaceMember)
                 .where(
-                    WorkspaceMember.workspace_id
-                    == uuid.UUID(user["workspace"]["id"]),
+                    WorkspaceMember.workspace_id == uuid.UUID(user["workspace"]["id"]),
                     WorkspaceMember.user_id == uuid.UUID(user["user"]["id"]),
                 )
                 .values(role=WorkspaceRole.MEMBER)
@@ -503,17 +514,29 @@ def test_privileged_readiness_override_is_audited_and_resolves_active_task(
         async with TestSessionLocal() as session:
             saved_event = await session.scalar(
                 select(RoomReadinessOverrideEvent).where(
-                    RoomReadinessOverrideEvent.id
-                    == uuid.UUID(data["event"]["id"])
+                    RoomReadinessOverrideEvent.id == uuid.UUID(data["event"]["id"])
                 )
             )
             saved_task = await session.get(HousekeepingTask, uuid.UUID(task["id"]))
-            return saved_event, saved_task.status
+            global_audit = await session.scalar(
+                select(WorkspaceAuditEvent).where(
+                    WorkspaceAuditEvent.workspace_id
+                    == uuid.UUID(user["workspace"]["id"]),
+                    WorkspaceAuditEvent.resource_id == uuid.UUID(room["id"]),
+                    WorkspaceAuditEvent.action == "ROOM_READINESS_OVERRIDDEN",
+                )
+            )
+            return saved_event, saved_task.status, global_audit
 
-    event, task_status = asyncio.run(audit_state())
+    event, task_status, global_audit = asyncio.run(audit_state())
     assert event.workspace_id == uuid.UUID(user["workspace"]["id"])
     assert event.room_id == uuid.UUID(room["id"])
     assert task_status == HousekeepingTaskStatus.CANCELLED
+    assert global_audit.actor_user_id == uuid.UUID(user["user"]["id"])
+    assert global_audit.safe_metadata == {
+        "previous_readiness": "DIRTY",
+        "new_readiness": "READY",
+    }
 
 
 def test_readiness_override_rejects_member_missing_reason_invalid_and_occupied(
@@ -572,8 +595,7 @@ def test_readiness_override_rejects_member_missing_reason_invalid_and_occupied(
             await session.execute(
                 update(WorkspaceMember)
                 .where(
-                    WorkspaceMember.workspace_id
-                    == uuid.UUID(user["workspace"]["id"])
+                    WorkspaceMember.workspace_id == uuid.UUID(user["workspace"]["id"])
                 )
                 .values(role=WorkspaceRole.MEMBER)
             )
@@ -607,8 +629,7 @@ def test_readiness_override_workspace_isolation_and_dirty_task_creation(client_d
         "reason": "Manual inspection found the room requires cleaning",
     }
     assert (
-        client_db.post(url, headers=_auth(other_token), json=payload).status_code
-        == 404
+        client_db.post(url, headers=_auth(other_token), json=payload).status_code == 404
     )
     response = client_db.post(url, headers=_auth(token), json=payload)
     assert response.status_code == 200

@@ -2,6 +2,7 @@
 
 import asyncio
 import uuid
+from datetime import UTC, datetime
 
 import pytest
 from fastapi.testclient import TestClient
@@ -9,6 +10,7 @@ from sqlalchemy import select
 
 from app.core.exceptions import ActionPayloadValidationError
 from app.models.action import ActionDefinition
+from app.models.workspace_access import WorkspaceMemberCapability
 from app.models.workspace_member import WorkspaceMember, WorkspaceRole
 from app.services.action_validation import ActionPayloadValidator
 from tests.conftest import TestSessionLocal, register_verify_and_login
@@ -64,6 +66,29 @@ def _set_role(user_id: str, role: WorkspaceRole) -> None:
     asyncio.run(_update())
 
 
+def _grant(user_id: str, *capabilities: str) -> None:
+    async def _insert() -> None:
+        async with TestSessionLocal() as session:
+            membership = await session.scalar(
+                select(WorkspaceMember).where(
+                    WorkspaceMember.user_id == uuid.UUID(user_id)
+                )
+            )
+            for capability in capabilities:
+                session.add(
+                    WorkspaceMemberCapability(
+                        workspace_id=membership.workspace_id,
+                        membership_id=membership.id,
+                        capability=capability,
+                        granted_by_user_id=membership.user_id,
+                        granted_at=datetime.now(UTC),
+                    )
+                )
+            await session.commit()
+
+    asyncio.run(_insert())
+
+
 def test_create_list_get_update_definition(client_db: TestClient) -> None:
     _, headers = _auth(client_db, "definitions@example.com")
     created = client_db.post(URL, headers=headers, json=_payload())
@@ -104,6 +129,13 @@ def test_member_can_read_but_cannot_manage_definitions(client_db: TestClient) ->
     definition_id = created.json()["data"]["id"]
     _set_role(user["id"], WorkspaceRole.MEMBER)
 
+    # Reading needs action.read; membership (dashboard.view) alone is denied.
+    hidden = client_db.get(URL, headers=headers)
+    assert hidden.status_code == 403
+    assert "action.read" in hidden.json()["message"]
+    assert "member_visible" not in hidden.text
+    # action.operate never extends to definition changes (OWNER/ADMIN-only).
+    _grant(user["id"], "action.read", "action.operate")
     assert client_db.get(URL, headers=headers).status_code == 200
     assert client_db.get(f"{URL}/{definition_id}", headers=headers).status_code == 200
     create_denied = client_db.post(URL, headers=headers, json=_payload("denied"))

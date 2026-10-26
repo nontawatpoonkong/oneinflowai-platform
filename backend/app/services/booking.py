@@ -10,6 +10,7 @@ from sqlalchemy import case, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AppError, NotFoundError
+from app.models.audit import AuditActorType, AuditArea
 from app.models.booking import (
     Booking,
     BookingEvent,
@@ -20,9 +21,18 @@ from app.models.booking import (
 from app.models.conversation import Conversation
 from app.models.customer import Customer
 from app.models.hotel import InventoryDate, Property, RatePlan, RoomType
-from app.schemas.booking import BookingHoldCreate
+from app.models.promotion import BookingAttribution, PromotionSource
+from app.schemas.booking import BookingHoldCreate, ManualBookingQuoteRequest
+from app.schemas.hotel import AvailabilitySearchRequest
+from app.schemas.promotion import PromotionValidationRequest
+from app.services.audit import AuditService
 from app.services.automation_events import emit_booking_event
-from app.services.hotel import HotelCatalogService
+from app.services.hotel import HotelAvailabilityService, HotelCatalogService
+from app.services.promotion import PromotionRejectedError, PromotionService
+from app.services.workspace_capability import (
+    WorkspaceCapability,
+    WorkspaceCapabilityService,
+)
 
 HOLD_DURATION = timedelta(minutes=15)
 ACTIVE_STATES = (BookingStatus.HELD, BookingStatus.PENDING_PAYMENT)
@@ -58,7 +68,9 @@ class BookingService:
         self.catalog = HotelCatalogService(session)
 
     async def require_admin(self, workspace_id, user_id) -> None:
-        await self.catalog.require_admin(workspace_id, user_id)
+        await WorkspaceCapabilityService(self.session).require(
+            workspace_id, user_id, WorkspaceCapability.BOOKING_MANAGE
+        )
 
     async def create_hold(
         self,
@@ -146,6 +158,7 @@ class BookingService:
                 raise BookingValidationError("Occupancy exceeds room capacity")
 
             customer_id = request.customer_id
+            conversation = None
             if customer_id is not None:
                 customer = await self.session.scalar(
                     select(Customer).where(
@@ -205,7 +218,9 @@ class BookingService:
                 children=request.children,
                 currency=plan.currency,
                 subtotal=subtotal,
+                discount_amount=Decimal("0.00"),
                 total_amount=subtotal,
+                promotion_snapshot=None,
                 hold_expires_at=None if draft else now + HOLD_DURATION,
                 idempotency_key=request.idempotency_key,
                 request_fingerprint=fingerprint,
@@ -214,6 +229,49 @@ class BookingService:
             )
             self.session.add(booking)
             await self.session.flush()
+            promotion_source = self._promotion_source(conversation, source)
+            attribution = BookingAttribution(
+                workspace_id=workspace_id,
+                booking_id=booking.id,
+                source=promotion_source,
+            )
+            self.session.add(attribution)
+            await self.session.flush()
+            if request.promotion_code:
+                validation = PromotionValidationRequest(
+                    code=request.promotion_code,
+                    property_id=prop.id,
+                    room_type_id=room.id,
+                    rate_plan_id=plan.id,
+                    check_in=request.check_in,
+                    check_out=request.check_out,
+                    subtotal=subtotal,
+                    currency=plan.currency,
+                    customer_id=customer_id,
+                    source=promotion_source,
+                )
+                if draft:
+                    result = await PromotionService(self.session).validate(
+                        workspace_id, validation
+                    )
+                    if not result.valid:
+                        raise PromotionRejectedError(result.reason_code)
+                else:
+                    _, result = await PromotionService(
+                        self.session
+                    ).reserve_for_booking(
+                        workspace_id=workspace_id,
+                        booking_id=booking.id,
+                        customer_id=customer_id,
+                        hold_expires_at=booking.hold_expires_at,
+                        data=validation,
+                        actor_user_id=actor_user_id,
+                    )
+                booking.discount_amount = result.discount_amount
+                booking.total_amount = result.final_total
+                booking.promotion_snapshot = self._promotion_snapshot(
+                    result, frozen=not draft
+                )
             self.session.add(
                 BookingItem(
                     workspace_id=workspace_id,
@@ -254,13 +312,180 @@ class BookingService:
                     BookingEventType.HOLD_CREATED,
                     actor_type,
                     actor_user_id,
-                    {"quantity": request.quantity},
+                    {
+                        "quantity": request.quantity,
+                        "source": source,
+                        "promotion_applied": bool(request.promotion_code),
+                    },
                 )
             await self.session.commit()
             return booking
         except Exception:
             await self.session.rollback()
             raise
+
+    async def manual_quote(
+        self, workspace_id: uuid.UUID, request: ManualBookingQuoteRequest
+    ) -> dict:
+        """Read-only staff preview that reserves nothing and consumes no quota.
+
+        Pricing uses the same availability/rate data and PromotionService that
+        ``create_hold`` re-runs under row locks; the Hold remains authoritative.
+        """
+
+        room = await self.session.scalar(
+            select(RoomType).where(
+                RoomType.workspace_id == workspace_id,
+                RoomType.property_id == request.property_id,
+                RoomType.id == request.room_type_id,
+            )
+        )
+        plan = await self.session.scalar(
+            select(RatePlan).where(
+                RatePlan.workspace_id == workspace_id,
+                RatePlan.property_id == request.property_id,
+                RatePlan.room_type_id == request.room_type_id,
+                RatePlan.id == request.rate_plan_id,
+            )
+        )
+        property_currency = await self.session.scalar(
+            select(Property.currency).where(
+                Property.workspace_id == workspace_id,
+                Property.id == request.property_id,
+            )
+        )
+        if room is None or plan is None or property_currency is None:
+            raise NotFoundError("Hotel booking catalog resource not found")
+        if request.customer_id is not None:
+            customer = await self.session.scalar(
+                select(Customer.id).where(
+                    Customer.workspace_id == workspace_id,
+                    Customer.id == request.customer_id,
+                    Customer.deleted_at.is_(None),
+                )
+            )
+            if customer is None:
+                raise NotFoundError("Customer not found")
+        nights = (request.check_out - request.check_in).days
+        base = {
+            "property_id": request.property_id,
+            "room_type_id": room.id,
+            "room_type_name": room.name,
+            "rate_plan_id": plan.id,
+            "rate_plan_name": plan.name,
+            "check_in": request.check_in,
+            "check_out": request.check_out,
+            "nights": nights,
+            "adults": request.adults,
+            "children": request.children,
+            "quantity": request.quantity,
+            "currency": plan.currency,
+            "refundable": plan.refundable,
+            "cancellation_policy_summary": plan.cancellation_policy_summary,
+            "hold_minutes": int(HOLD_DURATION.total_seconds() // 60),
+            "authoritative": False,
+            "notice": (
+                "Preview only. Creating the Hold re-checks availability, price, "
+                "and promotion eligibility and reserves inventory atomically."
+            ),
+        }
+        unavailable = {
+            **base,
+            "available": False,
+            "available_units": 0,
+            "nightly_rates": [],
+            "unit_subtotal": None,
+            "subtotal": None,
+            "discount_amount": None,
+            "total": None,
+            "promotion": None,
+        }
+        # Mirrors create_hold, which rejects a rate plan priced in another
+        # currency than its property.
+        if plan.currency != property_currency:
+            return {**unavailable, "reason_code": "RATE_CURRENCY_MISMATCH"}
+        if (
+            request.adults > room.max_adults
+            or request.children > room.max_children
+            or request.adults + request.children > room.max_occupancy
+        ):
+            return {**unavailable, "reason_code": "OCCUPANCY_EXCEEDED"}
+        search = await HotelAvailabilityService(self.session).search(
+            workspace_id,
+            AvailabilitySearchRequest(
+                property_id=request.property_id,
+                check_in=request.check_in,
+                check_out=request.check_out,
+                adults=request.adults,
+                children=request.children,
+                room_type_id=room.id,
+                rate_plan_id=plan.id,
+            ),
+        )
+        match = next(
+            (
+                item
+                for item in search.results
+                if item.room_type_id == room.id and item.rate_plan_id == plan.id
+            ),
+            None,
+        )
+        if match is None:
+            return {**unavailable, "reason_code": "NOT_AVAILABLE"}
+        if match.available_units < request.quantity:
+            return {
+                **unavailable,
+                "available_units": match.available_units,
+                "reason_code": "INSUFFICIENT_UNITS",
+            }
+        subtotal = match.subtotal * request.quantity
+        discount = Decimal("0.00")
+        promotion = None
+        if request.promotion_code:
+            validation = PromotionValidationRequest(
+                code=request.promotion_code,
+                property_id=request.property_id,
+                room_type_id=room.id,
+                rate_plan_id=plan.id,
+                check_in=request.check_in,
+                check_out=request.check_out,
+                subtotal=subtotal,
+                currency=match.currency,
+                customer_id=request.customer_id,
+                source=PromotionSource.MANUAL,
+            )
+            try:
+                result = await PromotionService(self.session).validate(
+                    workspace_id, validation
+                )
+            except PromotionRejectedError as exc:
+                promotion = {
+                    "valid": False,
+                    "reason_code": exc.details["reason_code"],
+                }
+            else:
+                if result.valid:
+                    discount = result.discount_amount
+                promotion = {
+                    "valid": result.valid,
+                    "reason_code": result.reason_code,
+                    "code": result.code,
+                    "promotion_name": result.promotion_name,
+                    "discount_type": result.discount_type,
+                    "discount_value": result.discount_value,
+                }
+        return {
+            **base,
+            "available": True,
+            "reason_code": None,
+            "available_units": match.available_units,
+            "nightly_rates": match.nightly_rates,
+            "unit_subtotal": match.subtotal,
+            "subtotal": subtotal,
+            "discount_amount": discount,
+            "total": subtotal - discount,
+            "promotion": promotion,
+        }
 
     async def create_draft(self, workspace_id, actor_user_id, request):
         return await self.create_hold(workspace_id, actor_user_id, request, draft=True)
@@ -343,6 +568,7 @@ class BookingService:
             booking.property_name_snapshot = prop.name
             booking.currency = plan.currency
             booking.subtotal = subtotal
+            booking.discount_amount = Decimal("0.00")
             booking.total_amount = subtotal
             booking.hold_expires_at = datetime.now(UTC) + HOLD_DURATION
             item.nightly_rates = [
@@ -365,6 +591,42 @@ class BookingService:
                 "refundable": plan.refundable,
                 "cancellation_policy_summary": plan.cancellation_policy_summary,
             }
+            requested_code = (
+                booking.promotion_snapshot.get("code")
+                if booking.promotion_snapshot
+                else None
+            )
+            if requested_code:
+                attribution = await self.session.scalar(
+                    select(BookingAttribution).where(
+                        BookingAttribution.workspace_id == workspace_id,
+                        BookingAttribution.booking_id == booking.id,
+                    )
+                )
+                _, result = await PromotionService(self.session).reserve_for_booking(
+                    workspace_id=workspace_id,
+                    booking_id=booking.id,
+                    customer_id=booking.customer_id,
+                    hold_expires_at=booking.hold_expires_at,
+                    data=PromotionValidationRequest(
+                        code=requested_code,
+                        property_id=booking.property_id,
+                        room_type_id=item.room_type_id,
+                        rate_plan_id=item.rate_plan_id,
+                        check_in=booking.check_in,
+                        check_out=booking.check_out,
+                        subtotal=subtotal,
+                        currency=booking.currency,
+                        customer_id=booking.customer_id,
+                        source=attribution.source,
+                    ),
+                    actor_user_id=actor_user_id,
+                )
+                booking.discount_amount = result.discount_amount
+                booking.total_amount = result.final_total
+                booking.promotion_snapshot = self._promotion_snapshot(
+                    result, frozen=True
+                )
             for row in rows:
                 row.reserved_units += item.quantity
             booking.status = BookingStatus.HELD
@@ -581,6 +843,9 @@ class BookingService:
                     raise BookingConflictError("Reserved inventory is inconsistent")
                 for row in rows:
                     row.reserved_units -= item.quantity
+                await PromotionService(self.session).release_reservation(
+                    workspace_id, booking.id
+                )
                 booking.status = target
                 self._event(
                     booking,
@@ -614,3 +879,47 @@ class BookingService:
                 event_metadata=metadata or {},
             )
         )
+        action = {
+            BookingEventType.HOLD_CREATED: "BOOKING_HELD",
+            BookingEventType.PENDING_PAYMENT_STARTED: "BOOKING_ADVANCED_TO_PAYMENT",
+            BookingEventType.HOLD_EXPIRED: "BOOKING_EXPIRED",
+        }.get(event_type, event_type.value)
+        AuditService(self.session).record(
+            workspace_id=booking.workspace_id,
+            actor_user_id=actor_user_id,
+            actor_type=(
+                AuditActorType.USER if actor_type == "HUMAN" else AuditActorType.SYSTEM
+            ),
+            action=action,
+            area=AuditArea.BOOKINGS,
+            resource_type="Booking",
+            resource_id=booking.id,
+            metadata=metadata,
+        )
+
+    @staticmethod
+    def _promotion_source(conversation, source):
+        if conversation is not None:
+            return {
+                "web": PromotionSource.WEBCHAT,
+                "line": PromotionSource.LINE,
+                "facebook": PromotionSource.FACEBOOK,
+                "instagram": PromotionSource.INSTAGRAM,
+            }.get(conversation.channel.value, PromotionSource.OTHER)
+        if source == "STAFF":
+            return PromotionSource.MANUAL
+        return PromotionSource.OTHER
+
+    @staticmethod
+    def _promotion_snapshot(result, *, frozen):
+        return {
+            "promotion_id": str(result.promotion_id),
+            "campaign_id": str(result.campaign_id),
+            "promotion_code_id": str(result.promotion_code_id),
+            "code": result.code,
+            "promotion_name": result.promotion_name,
+            "discount_type": result.discount_type.value,
+            "discount_value": str(result.discount_value),
+            "discount_amount": str(result.discount_amount),
+            "frozen": frozen,
+        }

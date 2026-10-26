@@ -11,6 +11,7 @@ from sqlalchemy import select, update
 import app.payment.router as payment_router
 import app.services.payment as payment_module
 from app.core.exceptions import PaymentVerificationInProgressError
+from app.models.audit import WorkspaceAuditEvent
 from app.models.booking import BookingEvent, BookingEventType, BookingStatus
 from app.models.payment import (
     Payment,
@@ -18,6 +19,7 @@ from app.models.payment import (
     PaymentApplicationStatus,
     PaymentStatus,
 )
+from app.models.workspace_access import WorkspaceMemberCapability
 from app.models.workspace_member import WorkspaceMember, WorkspaceRole
 from app.services.booking import BookingService, BookingTransitionError
 from app.services.booking_payment_reconciliation import (
@@ -126,6 +128,20 @@ def test_verified_after_expiry_requires_review_without_resurrection(client_db):
         "account_number",
     ):
         assert forbidden not in listing.text
+
+    async def global_audit():
+        async with TestSessionLocal() as session:
+            return await session.scalar(
+                select(WorkspaceAuditEvent).where(
+                    WorkspaceAuditEvent.workspace_id == workspace_id,
+                    WorkspaceAuditEvent.resource_id == uuid.UUID(payment_id),
+                    WorkspaceAuditEvent.action == "PAYMENT_REQUIRES_REVIEW",
+                )
+            )
+
+    audit = asyncio.run(global_audit())
+    assert audit.actor_user_id == uuid.UUID(user["user"]["id"])
+    assert "payment_evidence" not in audit.safe_metadata
 
 
 @pytest.mark.parametrize(
@@ -344,6 +360,29 @@ def test_member_can_read_exceptions_but_cannot_resolve_them(client_db):
             await session.commit()
 
     asyncio.run(demote())
+    # F3: membership alone no longer exposes payment exceptions.
+    denied = _exceptions(client_db, token)
+    assert denied.status_code == 403
+    assert denied.json()["error"]["code"] == "FORBIDDEN"
+
+    async def grant_payment_read():
+        async with TestSessionLocal() as session:
+            member = await session.scalar(
+                select(WorkspaceMember).where(
+                    WorkspaceMember.workspace_id == workspace_id
+                )
+            )
+            session.add(
+                WorkspaceMemberCapability(
+                    workspace_id=workspace_id,
+                    membership_id=member.id,
+                    capability="payment.read",
+                    granted_at=datetime.now(UTC),
+                )
+            )
+            await session.commit()
+
+    asyncio.run(grant_payment_read())
     assert _exceptions(client_db, token).status_code == 200
     assert _retry(client_db, token, payment_id).status_code == 403
     assert (

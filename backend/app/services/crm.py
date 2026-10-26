@@ -1,8 +1,9 @@
 """Guest CRM aggregation over authoritative workspace-scoped domains."""
 
 import uuid
+from dataclasses import dataclass
 
-from sqlalchemy import delete, exists, func, or_, select
+from sqlalchemy import delete, exists, func, literal, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -55,6 +56,31 @@ from app.schemas.crm import (
 )
 
 
+@dataclass(frozen=True)
+class Customer360Visibility:
+    """Which Customer360 sections the caller may read.
+
+    guest.read only covers the guest profile. Each other section needs its own
+    capability; hidden sections are never queried.
+    """
+
+    bookings: bool = True
+    stays: bool = True
+    conversations: bool = True
+    payments: bool = True
+
+
+FULL_VISIBILITY = Customer360Visibility()
+
+# Booking events that describe payment activity; hidden without payment.read.
+_PAYMENT_BOOKING_EVENTS = (
+    BookingEventType.PAYMENT_LINKED,
+    BookingEventType.REPLACEMENT_PAYMENT_LINKED,
+    BookingEventType.PAYMENT_REQUIRES_REVIEW,
+    BookingEventType.PAYMENT_REVIEW_ACKNOWLEDGED,
+)
+
+
 class Customer360Service:
     """Compose CRM views without copying Booking, Payment, or Conversation state."""
 
@@ -104,9 +130,13 @@ class Customer360Service:
         has_payment_exception: bool | None,
         repeat_guest: bool | None,
         needs_attention: bool | None,
+        visibility: Customer360Visibility = FULL_VISIBILITY,
         page: int,
         page_size: int,
     ) -> CustomerListResponse:
+        show_bookings = visibility.bookings
+        show_conversations = visibility.conversations
+        include_payments = visibility.payments
         booking_count = (
             select(func.count(Booking.id))
             .where(
@@ -184,14 +214,24 @@ class Customer360Service:
                 Payment.booking_applied_at.is_(None),
             )
         )
+        # Hidden sections select NULL instead of their subqueries, so their
+        # tables are not read at all for this caller.
         query = select(
             Customer,
-            booking_count.label("booking_count"),
-            confirmed_count.label("confirmed_count"),
-            latest_status.label("latest_status"),
-            last_conversation.label("last_conversation"),
-            exception_exists.label("has_exception"),
-            attention_exists.label("needs_attention"),
+            (booking_count if show_bookings else literal(None)).label("booking_count"),
+            (confirmed_count if show_bookings else literal(None)).label(
+                "confirmed_count"
+            ),
+            (latest_status if show_bookings else literal(None)).label("latest_status"),
+            (last_conversation if show_conversations else literal(None)).label(
+                "last_conversation"
+            ),
+            (exception_exists if include_payments else literal(None)).label(
+                "has_exception"
+            ),
+            (attention_exists if show_conversations else literal(None)).label(
+                "needs_attention"
+            ),
         ).where(
             Customer.workspace_id == workspace_id,
             Customer.deleted_at.is_(None),
@@ -216,13 +256,15 @@ class Customer360Service:
                     )
                 )
             )
-        if has_active_booking is not None:
+        # Callers reject section filters without the section capability; the
+        # service never applies them for hidden sections either.
+        if has_active_booking is not None and show_bookings:
             query = query.where(active_booking_exists == has_active_booking)
-        if has_payment_exception is not None:
+        if has_payment_exception is not None and include_payments:
             query = query.where(exception_exists == has_payment_exception)
-        if repeat_guest is not None:
+        if repeat_guest is not None and show_bookings:
             query = query.where((confirmed_count >= 2) == repeat_guest)
-        if needs_attention is not None:
+        if needs_attention is not None and show_conversations:
             query = query.where(attention_exists == needs_attention)
 
         total = int(
@@ -270,13 +312,19 @@ class Customer360Service:
                     CustomerTagResponse.model_validate(tag)
                     for tag in tags_by_customer[row[0].id]
                 ],
-                booking_count=int(row.booking_count),
-                confirmed_bookings=int(row.confirmed_count),
-                repeat_guest=int(row.confirmed_count) >= 2,
+                booking_count=int(row.booking_count) if show_bookings else None,
+                confirmed_bookings=(
+                    int(row.confirmed_count) if show_bookings else None
+                ),
+                repeat_guest=int(row.confirmed_count) >= 2 if show_bookings else None,
                 latest_booking_status=row.latest_status,
-                has_payment_exception=bool(row.has_exception),
+                has_payment_exception=(
+                    bool(row.has_exception) if include_payments else None
+                ),
                 last_conversation_at=row.last_conversation,
-                needs_attention=bool(row.needs_attention),
+                needs_attention=(
+                    bool(row.needs_attention) if show_conversations else None
+                ),
             )
             for row in rows
         ]
@@ -286,6 +334,9 @@ class Customer360Service:
             page=page,
             page_size=page_size,
             total_pages=(total + page_size - 1) // page_size if total else 0,
+            bookings_visible=show_bookings,
+            conversations_visible=show_conversations,
+            payments_visible=include_payments,
         )
 
     async def get_customer_360(
@@ -295,6 +346,7 @@ class Customer360Service:
         user_id: uuid.UUID,
         *,
         limit: int = 20,
+        visibility: Customer360Visibility = FULL_VISIBILITY,
     ) -> Customer360Response:
         customer = await self._customer(workspace_id, customer_id)
         await self._role(workspace_id, user_id)
@@ -346,25 +398,31 @@ class Customer360Service:
             .correlate(Conversation)
             .scalar_subquery()
         )
+        # Sections the caller may not read are never queried.
         conversation_rows = (
-            await self.session.execute(
-                select(Conversation, preview, ConversationReadState.last_read_at)
-                .outerjoin(
-                    ConversationReadState,
-                    (ConversationReadState.conversation_id == Conversation.id)
-                    & (ConversationReadState.workspace_id == workspace_id)
-                    & (ConversationReadState.user_id == user_id),
+            (
+                await self.session.execute(
+                    select(Conversation, preview, ConversationReadState.last_read_at)
+                    .outerjoin(
+                        ConversationReadState,
+                        (ConversationReadState.conversation_id == Conversation.id)
+                        & (ConversationReadState.workspace_id == workspace_id)
+                        & (ConversationReadState.user_id == user_id),
+                    )
+                    .where(
+                        Conversation.workspace_id == workspace_id,
+                        Conversation.customer_id == customer_id,
+                    )
+                    .order_by(
+                        Conversation.last_message_at.desc().nullslast(),
+                        Conversation.id,
+                    )
+                    .limit(limit)
                 )
-                .where(
-                    Conversation.workspace_id == workspace_id,
-                    Conversation.customer_id == customer_id,
-                )
-                .order_by(
-                    Conversation.last_message_at.desc().nullslast(), Conversation.id
-                )
-                .limit(limit)
-            )
-        ).all()
+            ).all()
+            if visibility.conversations
+            else []
+        )
         confirmed_at = (
             select(func.max(BookingEvent.created_at))
             .where(
@@ -375,56 +433,70 @@ class Customer360Service:
             .scalar_subquery()
         )
         booking_rows = (
-            await self.session.execute(
-                select(Booking, BookingItem.room_type_name_snapshot, confirmed_at)
-                .outerjoin(
-                    BookingItem,
-                    (BookingItem.booking_id == Booking.id)
-                    & (BookingItem.workspace_id == Booking.workspace_id),
-                )
-                .where(
-                    Booking.workspace_id == workspace_id,
-                    Booking.customer_id == customer_id,
-                )
-                .order_by(Booking.created_at.desc(), Booking.id.desc())
-                .limit(limit)
-            )
-        ).all()
-        customer_booking_ids = select(Booking.id).where(
-            Booking.workspace_id == workspace_id, Booking.customer_id == customer_id
-        )
-        payments = list(
             (
-                await self.session.scalars(
-                    select(Payment)
-                    .where(
-                        Payment.workspace_id == workspace_id,
-                        or_(
-                            Payment.customer_id == customer_id,
-                            Payment.booking_id.in_(customer_booking_ids),
-                        ),
+                await self.session.execute(
+                    select(Booking, BookingItem.room_type_name_snapshot, confirmed_at)
+                    .outerjoin(
+                        BookingItem,
+                        (BookingItem.booking_id == Booking.id)
+                        & (BookingItem.workspace_id == Booking.workspace_id),
                     )
-                    .order_by(Payment.created_at.desc(), Payment.id.desc())
+                    .where(
+                        Booking.workspace_id == workspace_id,
+                        Booking.customer_id == customer_id,
+                    )
+                    .order_by(Booking.created_at.desc(), Booking.id.desc())
                     .limit(limit)
                 )
             ).all()
+            if visibility.bookings
+            else []
+        )
+        customer_booking_ids = select(Booking.id).where(
+            Booking.workspace_id == workspace_id, Booking.customer_id == customer_id
+        )
+        # Payment rows are never loaded for callers without payment.read. The
+        # booking subquery only scopes payments; it returns no booking data.
+        payments = (
+            list(
+                (
+                    await self.session.scalars(
+                        select(Payment)
+                        .where(
+                            Payment.workspace_id == workspace_id,
+                            or_(
+                                Payment.customer_id == customer_id,
+                                Payment.booking_id.in_(customer_booking_ids),
+                            ),
+                        )
+                        .order_by(Payment.created_at.desc(), Payment.id.desc())
+                        .limit(limit)
+                    )
+                ).all()
+            )
+            if visibility.payments
+            else []
         )
         stay_rows = (
-            await self.session.execute(
-                select(Stay, Property.name)
-                .join(
-                    Property,
-                    (Property.id == Stay.property_id)
-                    & (Property.workspace_id == Stay.workspace_id),
+            (
+                await self.session.execute(
+                    select(Stay, Property.name)
+                    .join(
+                        Property,
+                        (Property.id == Stay.property_id)
+                        & (Property.workspace_id == Stay.workspace_id),
+                    )
+                    .where(
+                        Stay.workspace_id == workspace_id,
+                        Stay.customer_id == customer_id,
+                    )
+                    .order_by(Stay.created_at.desc(), Stay.id.desc())
+                    .limit(limit)
                 )
-                .where(
-                    Stay.workspace_id == workspace_id,
-                    Stay.customer_id == customer_id,
-                )
-                .order_by(Stay.created_at.desc(), Stay.id.desc())
-                .limit(limit)
-            )
-        ).all()
+            ).all()
+            if visibility.stays
+            else []
+        )
         stay_ids = [stay.id for stay, _ in stay_rows]
         rooms_by_stay: dict[uuid.UUID, list[str]] = {
             stay_id: [] for stay_id in stay_ids
@@ -447,7 +519,11 @@ class Customer360Service:
             ).all()
             for stay_id, room_code in assignment_rows:
                 rooms_by_stay[stay_id].append(room_code)
-        repeat = await self._repeat_summary(workspace_id, customer_id)
+        repeat = (
+            await self._repeat_summary(workspace_id, customer_id)
+            if visibility.bookings
+            else None
+        )
         return Customer360Response(
             customer=CRMCustomer.model_validate(customer),
             identities=[
@@ -520,6 +596,10 @@ class Customer360Service:
                 for stay, property_name in stay_rows
             ],
             repeat_guest_summary=repeat,
+            bookings_visible=visibility.bookings,
+            stays_visible=visibility.stays,
+            conversations_visible=visibility.conversations,
+            payments_visible=visibility.payments,
         )
 
     async def create_tag(
@@ -735,7 +815,9 @@ class Customer360Service:
         *,
         page: int,
         page_size: int,
+        visibility: Customer360Visibility = FULL_VISIBILITY,
     ) -> TimelineResponse:
+        include_payments = visibility.payments
         await self._customer(workspace_id, customer_id)
         await self._role(workspace_id, user_id)
         # Customer timelines are operationally bounded per source. Fetching the
@@ -772,22 +854,35 @@ class Customer360Service:
             )
             for event in crm_events
         )
+        # Each source is read only when the caller holds its capability, so
+        # hidden sections affect neither items nor the total.
         booking_events = (
-            await self.session.execute(
-                select(BookingEvent)
-                .join(
-                    Booking,
-                    (Booking.id == BookingEvent.booking_id)
-                    & (Booking.workspace_id == BookingEvent.workspace_id),
+            (
+                await self.session.execute(
+                    select(BookingEvent)
+                    .join(
+                        Booking,
+                        (Booking.id == BookingEvent.booking_id)
+                        & (Booking.workspace_id == BookingEvent.workspace_id),
+                    )
+                    .where(
+                        BookingEvent.workspace_id == workspace_id,
+                        Booking.customer_id == customer_id,
+                        *(
+                            ()
+                            if include_payments
+                            else (
+                                BookingEvent.event_type.not_in(_PAYMENT_BOOKING_EVENTS),
+                            )
+                        ),
+                    )
+                    .order_by(BookingEvent.created_at.desc(), BookingEvent.id)
+                    .limit(source_limit)
                 )
-                .where(
-                    BookingEvent.workspace_id == workspace_id,
-                    Booking.customer_id == customer_id,
-                )
-                .order_by(BookingEvent.created_at.desc(), BookingEvent.id)
-                .limit(source_limit)
-            )
-        ).scalars()
+            ).scalars()
+            if visibility.bookings
+            else []
+        )
         events.extend(
             TimelineEvent(
                 id=f"booking:{event.id}",
@@ -799,27 +894,32 @@ class Customer360Service:
                 metadata={
                     key: value
                     for key, value in event.event_metadata.items()
-                    if isinstance(value, (str, int, bool)) or value is None
+                    if (isinstance(value, (str, int, bool)) or value is None)
+                    and (include_payments or "payment" not in key.lower())
                 },
             )
             for event in booking_events
         )
         stay_events = (
-            await self.session.execute(
-                select(StayEvent)
-                .join(
-                    Stay,
-                    (Stay.id == StayEvent.stay_id)
-                    & (Stay.workspace_id == StayEvent.workspace_id),
+            (
+                await self.session.execute(
+                    select(StayEvent)
+                    .join(
+                        Stay,
+                        (Stay.id == StayEvent.stay_id)
+                        & (Stay.workspace_id == StayEvent.workspace_id),
+                    )
+                    .where(
+                        StayEvent.workspace_id == workspace_id,
+                        Stay.customer_id == customer_id,
+                    )
+                    .order_by(StayEvent.created_at.desc(), StayEvent.id)
+                    .limit(source_limit)
                 )
-                .where(
-                    StayEvent.workspace_id == workspace_id,
-                    Stay.customer_id == customer_id,
-                )
-                .order_by(StayEvent.created_at.desc(), StayEvent.id)
-                .limit(source_limit)
-            )
-        ).scalars()
+            ).scalars()
+            if visibility.stays
+            else []
+        )
         events.extend(
             TimelineEvent(
                 id=f"stay:{event.id}",
@@ -832,18 +932,22 @@ class Customer360Service:
             )
             for event in stay_events
         )
-        conversations = list(
-            (
-                await self.session.scalars(
-                    select(Conversation)
-                    .where(
-                        Conversation.workspace_id == workspace_id,
-                        Conversation.customer_id == customer_id,
+        conversations = (
+            list(
+                (
+                    await self.session.scalars(
+                        select(Conversation)
+                        .where(
+                            Conversation.workspace_id == workspace_id,
+                            Conversation.customer_id == customer_id,
+                        )
+                        .order_by(Conversation.created_at.desc(), Conversation.id)
+                        .limit(source_limit)
                     )
-                    .order_by(Conversation.created_at.desc(), Conversation.id)
-                    .limit(source_limit)
-                )
-            ).all()
+                ).all()
+            )
+            if visibility.conversations
+            else []
         )
         for conversation in conversations:
             events.append(
@@ -884,26 +988,30 @@ class Customer360Service:
                         summary="Conversation assigned",
                     )
                 )
-        payments = list(
-            (
-                await self.session.scalars(
-                    select(Payment)
-                    .outerjoin(
-                        Booking,
-                        (Payment.booking_id == Booking.id)
-                        & (Payment.workspace_id == Booking.workspace_id),
+        payments = (
+            list(
+                (
+                    await self.session.scalars(
+                        select(Payment)
+                        .outerjoin(
+                            Booking,
+                            (Payment.booking_id == Booking.id)
+                            & (Payment.workspace_id == Booking.workspace_id),
+                        )
+                        .where(
+                            Payment.workspace_id == workspace_id,
+                            or_(
+                                Payment.customer_id == customer_id,
+                                Booking.customer_id == customer_id,
+                            ),
+                        )
+                        .order_by(Payment.created_at.desc(), Payment.id)
+                        .limit(source_limit)
                     )
-                    .where(
-                        Payment.workspace_id == workspace_id,
-                        or_(
-                            Payment.customer_id == customer_id,
-                            Booking.customer_id == customer_id,
-                        ),
-                    )
-                    .order_by(Payment.created_at.desc(), Payment.id)
-                    .limit(source_limit)
-                )
-            ).all()
+                ).all()
+            )
+            if include_payments
+            else []
         )
         for payment in payments:
             events.append(
@@ -938,6 +1046,10 @@ class Customer360Service:
             page=page,
             page_size=page_size,
             total_pages=(total + page_size - 1) // page_size if total else 0,
+            bookings_visible=visibility.bookings,
+            stays_visible=visibility.stays,
+            conversations_visible=visibility.conversations,
+            payments_visible=include_payments,
         )
 
     async def _tags(

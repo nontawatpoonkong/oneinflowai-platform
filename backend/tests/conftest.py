@@ -8,7 +8,9 @@
 import asyncio
 import base64
 import os
+import uuid
 from collections.abc import AsyncGenerator, Iterator
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -23,6 +25,8 @@ from sqlalchemy.pool import NullPool
 os.environ.setdefault("OTP_HASH_SECRET", "test-only-otp-hash-secret")
 os.environ.setdefault("EMBEDDING_PROVIDER", "development")
 os.environ.setdefault("GENERATION_PROVIDER", "development")
+os.environ.setdefault("TRUSTED_HOSTS", "localhost,127.0.0.1,testserver")
+os.environ.setdefault("CHANNEL_WEBHOOK_MAX_BYTES", "1000000")
 os.environ.setdefault(
     "CHANNEL_CREDENTIAL_ENCRYPTION_KEY",
     base64.b64encode(b"0123456789abcdef0123456789abcdef").decode(),
@@ -36,6 +40,13 @@ from app.database.base import Base
 from app.database.session import get_db
 from app.integrations.email.base import EmailProvider
 from app.main import app
+from app.models.billing import (
+    BillingInterval,
+    SubscriptionStatus,
+    WorkspaceSubscription,
+)
+from app.services.account_billing import AccountBillingService
+from app.services.entitlement import EntitlementService
 
 TEST_DATABASE_URL = os.getenv(
     "TEST_DATABASE_URL",
@@ -113,6 +124,33 @@ class FakeEmailProvider(EmailProvider):
         )
 
 
+def provision_active_test_subscription(user_id: str) -> str:
+    """Create a trusted active Pilot subscription for test setup only."""
+
+    async def provision() -> str:
+        async with TestSessionLocal() as session:
+            account = await AccountBillingService(session).get_or_create_account(
+                uuid.UUID(user_id)
+            )
+            plan_id = await EntitlementService(session).ensure_reference_catalog()
+            now = datetime.now(UTC)
+            subscription = WorkspaceSubscription(
+                billing_account_id=account.id,
+                workspace_id=None,
+                plan_id=plan_id,
+                status=SubscriptionStatus.ACTIVE,
+                billing_interval=BillingInterval.MONTH,
+                current_period_start=now,
+                current_period_end=now + timedelta(days=30),
+                provider="test_manual_activation",
+                workspace_limit=1,
+            )
+            session.add(subscription)
+            await session.commit()
+            return str(subscription.id)
+
+    return asyncio.run(provision())
+
 @pytest.fixture
 def fake_email_provider(monkeypatch: pytest.MonkeyPatch) -> FakeEmailProvider:
     provider = FakeEmailProvider()
@@ -151,10 +189,16 @@ def register_verify_and_login(
     )
     assert login.status_code == 200
     token = login.json()["data"]["access_token"]
+    subscription_id = provision_active_test_subscription(
+        registered.json()["data"]["user"]["id"]
+    )
     workspace = client.post(
         "/api/v1/workspaces",
         headers={"Authorization": f"Bearer {token}"},
-        json={"name": email.rsplit("@", 1)[-1].split(".", 1)[0].title()},
+        json={
+            "name": email.rsplit("@", 1)[-1].split(".", 1)[0].title(),
+            "subscription_id": subscription_id,
+        },
     )
     assert workspace.status_code == 201
     data = registered.json()["data"]
@@ -173,6 +217,9 @@ async def _recreate_schema() -> None:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
     await engine.dispose()
+    async with TestSessionLocal() as session:
+        await EntitlementService(session).ensure_reference_catalog()
+        await session.commit()
 
 
 @pytest.fixture

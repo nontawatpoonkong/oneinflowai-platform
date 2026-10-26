@@ -13,6 +13,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.core.config import get_settings
 from app.core.exceptions import AppError, NotFoundError
+from app.models.audit import AuditActorType, AuditArea
 from app.models.automation import (
     AutomationDefinition,
     AutomationExecution,
@@ -27,6 +28,7 @@ from app.models.conversation import Conversation
 from app.models.hotel import Property
 from app.models.message import Message, MessageType, SenderType
 from app.models.notification import NotificationEntityType, NotificationType
+from app.models.workspace import Workspace, WorkspaceStatus
 from app.schemas.automation import (
     AutomationCondition,
     AutomationDefinitionCreate,
@@ -36,6 +38,7 @@ from app.schemas.automation import (
     ConditionOperator,
     validate_template,
 )
+from app.services.audit import AuditService, current_actor_user_id
 from app.services.channel_delivery import ChannelDeliveryService
 from app.services.notification import NotificationService
 
@@ -75,6 +78,17 @@ class AutomationService:
             **data.model_dump(mode="json"),
         )
         self.session.add(item)
+        await self.session.flush()
+        AuditService(self.session).record(
+            workspace_id=workspace_id,
+            actor_user_id=user_id,
+            actor_type=AuditActorType.USER,
+            action="AUTOMATION_CREATED",
+            area=AuditArea.AUTOMATIONS,
+            resource_type="AutomationDefinition",
+            resource_id=item.id,
+            metadata={"trigger_event_type": item.trigger_event_type},
+        )
         await self.session.commit()
         await self.session.refresh(item)
         return AutomationDefinitionResponse.model_validate(item)
@@ -117,6 +131,16 @@ class AutomationService:
         validated = AutomationDefinitionCreate.model_validate(current)
         for key, value in validated.model_dump(mode="json").items():
             setattr(item, key, value)
+        AuditService(self.session).record(
+            workspace_id=workspace_id,
+            actor_user_id=current_actor_user_id(),
+            actor_type=AuditActorType.USER,
+            action="AUTOMATION_UPDATED",
+            area=AuditArea.AUTOMATIONS,
+            resource_type="AutomationDefinition",
+            resource_id=item.id,
+            metadata={"changed_fields": sorted(data.model_fields_set)},
+        )
         await self.session.commit()
         await self.session.refresh(item)
         return AutomationDefinitionResponse.model_validate(item)
@@ -124,6 +148,15 @@ class AutomationService:
     async def set_active(self, workspace_id, automation_id, active: bool):
         item = await self.get(workspace_id, automation_id)
         item.active = active
+        AuditService(self.session).record(
+            workspace_id=workspace_id,
+            actor_user_id=current_actor_user_id(),
+            actor_type=AuditActorType.USER,
+            action="AUTOMATION_ENABLED" if active else "AUTOMATION_DISABLED",
+            area=AuditArea.AUTOMATIONS,
+            resource_type="AutomationDefinition",
+            resource_id=item.id,
+        )
         await self.session.commit()
         await self.session.refresh(item)
         return AutomationDefinitionResponse.model_validate(item)
@@ -204,7 +237,9 @@ class AutomationService:
         events = list(
             await self.session.scalars(
                 select(DomainEventOutbox)
+                .join(Workspace, Workspace.id == DomainEventOutbox.workspace_id)
                 .where(
+                    Workspace.status == WorkspaceStatus.ACTIVE.value,
                     DomainEventOutbox.state == OutboxState.PENDING.value,
                     DomainEventOutbox.available_at <= now,
                 )
@@ -264,7 +299,9 @@ class AutomationService:
         executions = list(
             await self.session.scalars(
                 select(AutomationExecution)
+                .join(Workspace, Workspace.id == AutomationExecution.workspace_id)
                 .where(
+                    Workspace.status == WorkspaceStatus.ACTIVE.value,
                     AutomationExecution.status
                     == AutomationExecutionStatus.RUNNING.value,
                     AutomationExecution.started_at <= stale_before,
@@ -313,7 +350,9 @@ class AutomationService:
         executions = list(
             await self.session.scalars(
                 select(AutomationExecution)
+                .join(Workspace, Workspace.id == AutomationExecution.workspace_id)
                 .where(
+                    Workspace.status == WorkspaceStatus.ACTIVE.value,
                     AutomationExecution.status
                     == AutomationExecutionStatus.PENDING.value,
                     AutomationExecution.scheduled_for <= now,
@@ -669,6 +708,16 @@ class AutomationService:
         execution.last_error_code = None
         execution.terminal_failure = False
         execution.claimed_by_worker_id = None
+        AuditService(self.session).record(
+            workspace_id=workspace_id,
+            actor_user_id=current_actor_user_id(),
+            actor_type=AuditActorType.USER,
+            action="AUTOMATION_MANUAL_RETRY",
+            area=AuditArea.AUTOMATIONS,
+            resource_type="AutomationExecution",
+            resource_id=execution.id,
+            metadata={"automation_id": str(execution.automation_id)},
+        )
         await self.session.commit()
         await self.session.refresh(execution)
         logger.info(

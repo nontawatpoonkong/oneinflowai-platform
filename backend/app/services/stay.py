@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AppError, NotFoundError
+from app.models.audit import AuditActorType, AuditArea
 from app.models.booking import Booking, BookingItem, BookingStatus
 from app.models.hotel import Property, RoomType
 from app.models.housekeeping import (
@@ -37,6 +38,7 @@ from app.schemas.stay import (
     StayResponse,
     StayRoomSummary,
 )
+from app.services.audit import AuditService, current_actor_user_id
 from app.services.automation_events import emit_housekeeping_event, emit_stay_event
 from app.services.hotel import HotelCatalogService
 
@@ -79,12 +81,17 @@ class StayOperationsService:
             room_type_id=room_type.id,
             code=data.code,
             floor=data.floor,
+            building=data.building,
+            wing=data.wing,
+            internal_notes=data.internal_notes,
             active=True,
             operational_status=RoomOperationalStatus.AVAILABLE,
             readiness_status=RoomReadinessStatus.READY,
         )
         self.session.add(room)
         try:
+            await self.session.flush()
+            self._room_audit(workspace_id, "ROOM_CREATED", room.id)
             await self.session.commit()
         except IntegrityError as exc:
             await self.session.rollback()
@@ -104,6 +111,12 @@ class StayOperationsService:
         for field, value in data.model_dump(exclude_unset=True).items():
             setattr(room, field, value)
         try:
+            self._room_audit(
+                workspace_id,
+                "ROOM_UPDATED",
+                room.id,
+                {"changed_fields": sorted(data.model_fields_set)},
+            )
             await self.session.commit()
         except IntegrityError as exc:
             await self.session.rollback()
@@ -120,6 +133,12 @@ class StayOperationsService:
             raise StayConflictError("An occupied room cannot be put out of service")
         await self._ensure_room_unassigned(room)
         room.operational_status = RoomOperationalStatus.OUT_OF_SERVICE
+        self._room_audit(
+            workspace_id,
+            "ROOM_UPDATED",
+            room.id,
+            {"new_operational_status": RoomOperationalStatus.OUT_OF_SERVICE.value},
+        )
         await self.session.commit()
         return await self.get_room(workspace_id, room_id)
 
@@ -130,6 +149,12 @@ class StayOperationsService:
         if room.operational_status == RoomOperationalStatus.OCCUPIED:
             raise StayConflictError("An occupied room cannot be reset")
         room.operational_status = RoomOperationalStatus.AVAILABLE
+        self._room_audit(
+            workspace_id,
+            "ROOM_UPDATED",
+            room.id,
+            {"new_operational_status": RoomOperationalStatus.AVAILABLE.value},
+        )
         await self.session.commit()
         return await self.get_room(workspace_id, room_id)
 
@@ -139,6 +164,9 @@ class StayOperationsService:
         *,
         property_id: uuid.UUID | None,
         room_type_id: uuid.UUID | None,
+        floor: str | None,
+        building: str | None,
+        wing: str | None,
         operational_status: RoomOperationalStatus | None,
         readiness_status: RoomReadinessStatus | None,
         active: bool | None,
@@ -173,6 +201,12 @@ class StayOperationsService:
             query = query.where(HotelRoom.property_id == property_id)
         if room_type_id is not None:
             query = query.where(HotelRoom.room_type_id == room_type_id)
+        if floor is not None:
+            query = query.where(HotelRoom.floor == floor)
+        if building is not None:
+            query = query.where(HotelRoom.building == building)
+        if wing is not None:
+            query = query.where(HotelRoom.wing == wing)
         if operational_status is not None:
             query = query.where(HotelRoom.operational_status == operational_status)
         if readiness_status is not None:
@@ -778,6 +812,9 @@ class StayOperationsService:
             room_type_name=room_type_name,
             code=room.code,
             floor=room.floor,
+            building=room.building,
+            wing=room.wing,
+            internal_notes=room.internal_notes,
             active=room.active,
             operational_status=room.operational_status,
             readiness_status=room.readiness_status,
@@ -828,4 +865,26 @@ class StayOperationsService:
                 actor_user_id=actor_user_id,
                 event_metadata={},
             )
+        )
+        AuditService(self.session).record(
+            workspace_id=stay.workspace_id,
+            actor_user_id=actor_user_id,
+            actor_type=AuditActorType.USER,
+            action=event_type.value,
+            area=AuditArea.STAYS,
+            resource_type="Stay",
+            resource_id=stay.id,
+            metadata={"room_id": str(room_id)} if room_id else None,
+        )
+
+    def _room_audit(self, workspace_id, action, room_id, metadata=None):
+        AuditService(self.session).record(
+            workspace_id=workspace_id,
+            actor_user_id=current_actor_user_id(),
+            actor_type=AuditActorType.USER,
+            action=action,
+            area=AuditArea.ROOMS,
+            resource_type="HotelRoom",
+            resource_id=room_id,
+            metadata=metadata,
         )

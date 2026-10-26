@@ -27,12 +27,24 @@ class SearchAvailabilityInput(StrictContract):
         return self
 
 
+class RoomCatalogFactsInput(StrictContract):
+    property_name: str | None = Field(default=None, min_length=1, max_length=255)
+    room_type_name: str = Field(min_length=1, max_length=255)
+
+
 class CreateBookingHoldInput(StrictContract):
     option_index: int = Field(default=1, ge=1, le=10)
     check_in: date | None = None
     check_out: date | None = None
     adults: int | None = Field(default=None, gt=0)
     children: int | None = Field(default=None, ge=0)
+    quantity: int = Field(default=1, gt=0, le=10)
+    promotion_code: str | None = Field(default=None, min_length=1, max_length=32)
+
+
+class ValidatePromotionCodeInput(StrictContract):
+    code: str = Field(min_length=1, max_length=32)
+    option_index: int = Field(default=1, ge=1, le=10)
     quantity: int = Field(default=1, gt=0, le=10)
 
 
@@ -73,7 +85,10 @@ class BookingHoldResult(StrictContract):
     check_in: date
     check_out: date
     currency: str
+    subtotal: Decimal
+    discount_amount: Decimal
     total_amount: Decimal
+    promotion_code: str | None
     hold_expires_at: datetime | None
 
 
@@ -85,7 +100,10 @@ class BookingStatusResult(StrictContract):
     check_in: date
     check_out: date
     currency: str
+    subtotal: Decimal
+    discount_amount: Decimal
     total_amount: Decimal
+    promotion_code: str | None
     hold_expires_at: datetime | None
     payment_status: str | None
     payment_application_status: str | None
@@ -118,6 +136,17 @@ class PaymentStatusResult(StrictContract):
 class HandoffResult(StrictContract):
     conversation_mode: str
     handoff_reason: str
+
+
+class PromotionValidationToolResult(StrictContract):
+    valid: bool
+    reason_code: str | None
+    code: str | None
+    promotion_name: str | None
+    discount_amount: Decimal
+    subtotal: Decimal
+    final_total: Decimal
+    currency: str
 
 
 ToolResult = dict[str, Any]

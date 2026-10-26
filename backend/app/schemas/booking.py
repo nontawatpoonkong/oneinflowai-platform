@@ -28,6 +28,7 @@ class BookingHoldCreate(BaseModel):
     conversation_id: uuid.UUID | None = None
     guest_name: str | None = Field(default=None, min_length=1, max_length=255)
     idempotency_key: str = Field(min_length=1, max_length=128)
+    promotion_code: str | None = Field(default=None, min_length=1, max_length=32)
 
     @model_validator(mode="after")
     def valid_hold(self):
@@ -35,6 +36,29 @@ class BookingHoldCreate(BaseModel):
             raise ValueError("check_out must be after check_in")
         if not (self.customer_id or self.conversation_id or self.guest_name):
             raise ValueError("customer_id, conversation_id or guest_name is required")
+        return self
+
+
+class ManualBookingQuoteRequest(BaseModel):
+    """Staff composer preview. Informational only; the Hold reprices."""
+
+    property_id: uuid.UUID
+    room_type_id: uuid.UUID
+    rate_plan_id: uuid.UUID
+    check_in: date
+    check_out: date
+    adults: int = Field(gt=0)
+    children: int = Field(default=0, ge=0)
+    quantity: int = Field(default=1, gt=0, le=50)
+    customer_id: uuid.UUID | None = None
+    promotion_code: str | None = Field(default=None, min_length=1, max_length=32)
+
+    @model_validator(mode="after")
+    def valid_stay(self):
+        if self.check_out <= self.check_in:
+            raise ValueError("check_out must be after check_in")
+        if (self.check_out - self.check_in).days > 60:
+            raise ValueError("stay cannot exceed 60 nights")
         return self
 
 
@@ -108,7 +132,9 @@ class BookingResponse(BaseModel):
     children: int
     currency: str
     subtotal: Decimal
+    discount_amount: Decimal
     total_amount: Decimal
+    promotion_snapshot: dict[str, Any] | None
     hold_expires_at: datetime | None
     source: str
     property_name_snapshot: str

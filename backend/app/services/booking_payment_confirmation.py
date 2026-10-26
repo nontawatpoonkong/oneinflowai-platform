@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AppError, NotFoundError
+from app.models.audit import AuditActorType, AuditArea
 from app.models.booking import Booking, BookingEvent, BookingEventType, BookingStatus
 from app.models.payment import (
     Payment,
@@ -15,7 +16,9 @@ from app.models.payment import (
     PaymentDestination,
     PaymentStatus,
 )
+from app.services.audit import AuditService
 from app.services.automation_events import emit_booking_event
+from app.services.promotion import PromotionService
 
 
 class BookingPaymentError(AppError):
@@ -128,6 +131,18 @@ class BookingPaymentConfirmationService:
                     },
                 )
             )
+            AuditService(self.session).record(
+                workspace_id=workspace_id,
+                actor_user_id=actor_user_id,
+                actor_type=(
+                    AuditActorType.USER if actor_user_id else AuditActorType.SYSTEM
+                ),
+                action="PAYMENT_REPLACED" if latest else "PAYMENT_CREATED",
+                area=AuditArea.PAYMENTS,
+                resource_type="Payment",
+                resource_id=payment.id,
+                metadata={"booking_id": str(booking.id)},
+            )
             await self.session.commit()
             return payment
         except Exception:
@@ -228,6 +243,11 @@ class BookingPaymentConfirmationService:
         *,
         actor_user_id: uuid.UUID | None,
     ) -> None:
+        # Promotion quota is finalized under the same locked booking/payment
+        # transaction. Repeated confirmation is idempotent by booking.
+        await PromotionService(self.session).confirm_redemption(
+            booking.workspace_id, booking.id
+        )
         payment.booking_applied_at = datetime.now(UTC)
         payment.booking_application_status = PaymentApplicationStatus.APPLIED
         payment.booking_application_reason = None
@@ -242,5 +262,29 @@ class BookingPaymentConfirmationService:
                 actor_user_id=actor_user_id,
                 event_metadata={"payment_id": str(payment.id)},
             )
+        )
+        AuditService(self.session).record(
+            workspace_id=booking.workspace_id,
+            actor_user_id=actor_user_id,
+            actor_type=(
+                AuditActorType.USER if actor_user_id else AuditActorType.SYSTEM
+            ),
+            action="PAYMENT_APPLIED",
+            area=AuditArea.PAYMENTS,
+            resource_type="Payment",
+            resource_id=payment.id,
+            metadata={"booking_id": str(booking.id)},
+        )
+        AuditService(self.session).record(
+            workspace_id=booking.workspace_id,
+            actor_user_id=actor_user_id,
+            actor_type=(
+                AuditActorType.USER if actor_user_id else AuditActorType.SYSTEM
+            ),
+            action="BOOKING_CONFIRMED",
+            area=AuditArea.BOOKINGS,
+            resource_type="Booking",
+            resource_id=booking.id,
+            metadata={"payment_id": str(payment.id)},
         )
         await emit_booking_event(self.session, booking, "hotel.booking.confirmed")

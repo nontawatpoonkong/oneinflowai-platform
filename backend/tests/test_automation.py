@@ -10,6 +10,7 @@ from sqlalchemy import func, select
 
 from app.core.channels import ChannelType
 from app.integrations.channels.provider import ChannelSendResult
+from app.models.audit import WorkspaceAuditEvent
 from app.models.automation import (
     AutomationDefinition,
     AutomationExecution,
@@ -21,11 +22,12 @@ from app.models.customer import Customer
 from app.models.customer_identity import CustomerIdentity
 from app.models.message import Message
 from app.models.notification import Notification
+from app.models.workspace_access import WorkspaceMemberCapability
 from app.models.workspace_member import WorkspaceMember, WorkspaceRole
 from app.schemas.automation import AutomationDefinitionCreate
 from app.services.automation import AutomationActionError, AutomationService
 from app.services.automation_events import emit_domain_event
-from tests.conftest import TestSessionLocal
+from tests.conftest import TestSessionLocal, provision_active_test_subscription
 from tests.test_booking import _setup
 from tests.test_booking_payment_confirmation import (
     _advance,
@@ -65,10 +67,13 @@ def _account(client, prefix):
     )
     assert login.status_code == 200, login.text
     token = login.json()["data"]["access_token"]
+    subscription_id = provision_active_test_subscription(
+        registered.json()["data"]["user"]["id"]
+    )
     workspace = client.post(
         "/api/v1/workspaces",
         headers=_headers(token),
-        json={"name": prefix},
+        json={"name": prefix, "subscription_id": subscription_id},
     )
     assert workspace.status_code == 201, workspace.text
     data = registered.json()["data"]
@@ -158,6 +163,22 @@ def test_create_list_enable_disable_validate_and_member_authorization(client_db)
     listed = client_db.get("/api/v1/automations", headers=headers).json()["data"]
     assert listed["total"] == 1
 
+    async def audit_actions():
+        async with TestSessionLocal() as session:
+            return set(
+                await session.scalars(
+                    select(WorkspaceAuditEvent.action).where(
+                        WorkspaceAuditEvent.resource_id == uuid.UUID(item["id"])
+                    )
+                )
+            )
+
+    assert {
+        "AUTOMATION_CREATED",
+        "AUTOMATION_DISABLED",
+        "AUTOMATION_ENABLED",
+    } <= asyncio.run(audit_actions())
+
     async def make_member():
         async with TestSessionLocal() as session:
             membership = await session.scalar(
@@ -168,6 +189,15 @@ def test_create_list_enable_disable_validate_and_member_authorization(client_db)
                 )
             )
             membership.role = WorkspaceRole.MEMBER
+            session.add(
+                WorkspaceMemberCapability(
+                    workspace_id=membership.workspace_id,
+                    membership_id=membership.id,
+                    capability="automation.read",
+                    granted_by_user_id=membership.user_id,
+                    granted_at=datetime.now(UTC),
+                )
+            )
             await session.commit()
 
     asyncio.run(make_member())

@@ -15,11 +15,15 @@ from app.ai_tools.contracts import (
     HandoffResult,
     PaymentRequestResult,
     PaymentStatusResult,
+    PromotionValidationToolResult,
     RequestBookingPaymentInput,
+    RoomCatalogFactsInput,
     SearchAvailabilityInput,
+    ValidatePromotionCodeInput,
 )
 from app.models.ai_tool import AIToolClassification
 from app.models.conversation import ConversationMode
+from app.schemas.hotel_catalog import CustomerRoomFacts
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,6 +79,22 @@ def create_ai_tool_registry() -> AIToolRegistry:
     return AIToolRegistry(
         (
             AIToolDefinition(
+                "get_room_catalog_facts",
+                "1",
+                "Read trusted customer-safe room facts such as beds and amenities.",
+                AIToolClassification.READ_ONLY,
+                RoomCatalogFactsInput,
+                CustomerRoomFacts,
+                (
+                    _field("property_name", "Property", "string", required=False),
+                    _field("room_type_name", "Room type", "string"),
+                ),
+                "get_room_catalog_facts",
+                False,
+                _MODES,
+                "hotel.catalog.read",
+            ),
+            AIToolDefinition(
                 "search_availability",
                 "1",
                 "Search authoritative room availability and trusted rates.",
@@ -117,6 +137,29 @@ def create_ai_tool_registry() -> AIToolRegistry:
                 "hotel.availability.read",
             ),
             AIToolDefinition(
+                "validate_promotion_code",
+                "1",
+                "Validate a customer promotion code against a trusted "
+                "availability option.",
+                AIToolClassification.READ_ONLY,
+                ValidatePromotionCodeInput,
+                PromotionValidationToolResult,
+                (
+                    _field("code", "Promotion code", "string"),
+                    _field(
+                        "option_index",
+                        "Selected option number",
+                        "integer",
+                        required=False,
+                    ),
+                    _field("quantity", "Rooms", "integer", required=False),
+                ),
+                "validate_promotion_code",
+                False,
+                _MODES,
+                "hotel.promotion.validate_customer",
+            ),
+            AIToolDefinition(
                 "create_booking_hold",
                 "1",
                 "Create a temporary booking hold for a previously selected option.",
@@ -135,6 +178,12 @@ def create_ai_tool_registry() -> AIToolRegistry:
                     _field("adults", "Adults", "integer", required=False),
                     _field("children", "Children", "integer", required=False),
                     _field("quantity", "Rooms", "integer", required=False),
+                    _field(
+                        "promotion_code",
+                        "Promotion code",
+                        "string",
+                        required=False,
+                    ),
                 ),
                 "create_booking_hold",
                 True,

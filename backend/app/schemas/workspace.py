@@ -14,6 +14,7 @@ AI_INSTRUCTIONS_MAX_LENGTH = 8_000
 class WorkspaceCreateRequest(BaseModel):
     # Existing contract (unchanged): kept at max_length=255.
     name: str = Field(min_length=1, max_length=255)
+    subscription_id: uuid.UUID
 
 
 class WorkspaceUpdateRequest(BaseModel):
@@ -39,6 +40,7 @@ class WorkspaceResponse(BaseModel):
     name: str
     slug: str
     owner_id: uuid.UUID
+    status: str
     created_at: datetime
     updated_at: datetime
 
@@ -68,4 +70,5 @@ class WorkspaceMemberResponse(BaseModel):
     email: EmailStr
     full_name: str | None
     role: WorkspaceRole
+    capabilities: list[str] = Field(default_factory=list)
     joined_at: datetime

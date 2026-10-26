@@ -19,6 +19,7 @@ from app.core.exceptions import (
 from app.core.logging import get_logger
 from app.integrations.embedding import EmbeddingProvider, create_embedding_provider
 from app.integrations.qdrant_knowledge import KnowledgeVectorStore
+from app.models.audit import AuditActorType, AuditArea
 from app.models.knowledge_document import (
     KnowledgeDocumentStatus,
     KnowledgeIndexStatus,
@@ -28,6 +29,7 @@ from app.repositories.knowledge_document import KnowledgeDocumentRepository
 from app.repositories.knowledge_document_content import (
     KnowledgeDocumentContentRepository,
 )
+from app.services.audit import AuditService, current_actor_user_id
 
 logger = get_logger(__name__)
 
@@ -76,6 +78,19 @@ class KnowledgeIndexingService:
 
         document.index_status = KnowledgeIndexStatus.INDEXING
         document.index_error_code = None
+        AuditService(self.session).record(
+            workspace_id=workspace_id,
+            actor_user_id=current_actor_user_id(),
+            actor_type=(
+                AuditActorType.USER
+                if current_actor_user_id()
+                else AuditActorType.SYSTEM
+            ),
+            action="REINDEX_REQUESTED",
+            area=AuditArea.KNOWLEDGE,
+            resource_type="KnowledgeDocument",
+            resource_id=document.id,
+        )
         await self.session.commit()
         try:
             vectors: list[list[float]] = []

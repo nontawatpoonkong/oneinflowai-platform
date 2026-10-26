@@ -23,6 +23,7 @@ from app.core.exceptions import (
 from app.core.logging import get_logger
 from app.document_parsers import DocumentParserRegistry
 from app.document_parsers.exceptions import DocumentExtractionError
+from app.models.audit import AuditActorType, AuditArea
 from app.models.knowledge_document import (
     KnowledgeDocument,
     KnowledgeDocumentStatus,
@@ -33,6 +34,7 @@ from app.repositories.knowledge_document import KnowledgeDocumentRepository
 from app.repositories.knowledge_document_content import (
     KnowledgeDocumentContentRepository,
 )
+from app.services.audit import AuditService, current_actor_user_id
 from app.services.chunking import ChunkingService
 from app.services.entitlement import KNOWLEDGE_DOCUMENTS, EntitlementService
 from app.storage import StorageProvider, create_storage_provider
@@ -110,6 +112,16 @@ class KnowledgeDocumentService:
         try:
             await self.storage.save(key=storage_key, data=data)
             document.status = KnowledgeDocumentStatus.PROCESSING
+            AuditService(self.session).record(
+                workspace_id=workspace_id,
+                actor_user_id=created_by,
+                actor_type=AuditActorType.USER,
+                action="DOCUMENT_ADDED",
+                area=AuditArea.KNOWLEDGE,
+                resource_type="KnowledgeDocument",
+                resource_id=document.id,
+                metadata={"mime_type": content_type, "file_size": len(data)},
+            )
             await self.session.commit()
             await self.session.refresh(document)
         except Exception:
@@ -233,4 +245,17 @@ class KnowledgeDocumentService:
         document = await self.get(workspace_id, document_id)
         await self.storage.delete(key=document.storage_key)
         document.status = KnowledgeDocumentStatus.DELETED
+        AuditService(self.session).record(
+            workspace_id=workspace_id,
+            actor_user_id=current_actor_user_id(),
+            actor_type=(
+                AuditActorType.USER
+                if current_actor_user_id()
+                else AuditActorType.SYSTEM
+            ),
+            action="DOCUMENT_DELETED",
+            area=AuditArea.KNOWLEDGE,
+            resource_type="KnowledgeDocument",
+            resource_id=document.id,
+        )
         await self.session.commit()

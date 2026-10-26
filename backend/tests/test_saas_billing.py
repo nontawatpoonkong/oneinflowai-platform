@@ -137,6 +137,7 @@ def test_workspace_subscription_isolation_and_single_effective_constraint(client
             )
             session.add(
                 WorkspaceSubscription(
+                    billing_account_id=existing.billing_account_id,
                     workspace_id=existing.workspace_id,
                     plan_id=existing.plan_id,
                     status=SubscriptionStatus.ACTIVE,

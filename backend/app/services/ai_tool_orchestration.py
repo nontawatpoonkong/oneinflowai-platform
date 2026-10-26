@@ -16,7 +16,9 @@ from app.ai_tools import AIToolDefinition, AIToolRegistry, create_ai_tool_regist
 from app.ai_tools.contracts import (
     CreateBookingHoldInput,
     RequestBookingPaymentInput,
+    RoomCatalogFactsInput,
     SearchAvailabilityInput,
+    ValidatePromotionCodeInput,
 )
 from app.core.config import Settings, get_settings
 from app.core.exceptions import AppError, NotFoundError
@@ -31,16 +33,22 @@ from app.models.ai_tool import (
     AIToolAuditEvent,
     AIToolAuditEventType,
 )
+from app.models.audit import AuditActorType, AuditArea, AuditResult
 from app.models.booking import Booking, BookingStatus
 from app.models.conversation import Conversation, ConversationMode, HandoffReason
 from app.models.hotel import Property, RatePlan, RoomType
 from app.models.payment import Payment, PaymentApplicationStatus, PaymentDestination
+from app.models.promotion import PromotionSource
 from app.schemas.booking import BookingHoldCreate
 from app.schemas.hotel import AvailabilitySearchRequest
+from app.schemas.promotion import PromotionValidationRequest
+from app.services.audit import AuditService
 from app.services.booking import BookingService
 from app.services.booking_payment_confirmation import BookingPaymentConfirmationService
 from app.services.conversation_handoff import ConversationHandoffService
 from app.services.hotel import HotelAvailabilityService
+from app.services.hotel_catalog import RichHotelCatalogService
+from app.services.promotion import PromotionService
 
 
 class AIToolError(AppError):
@@ -76,10 +84,12 @@ class AIToolExecutionError(AIToolError):
 _AI_PERMISSIONS = frozenset(
     {
         "hotel.availability.read",
+        "hotel.catalog.read",
         "hotel.booking.read_customer",
         "hotel.booking.hold.confirmed_customer",
         "hotel.payment.read_customer",
         "hotel.payment.request_confirmed_customer",
+        "hotel.promotion.validate_customer",
         "conversation.handoff",
     }
 )
@@ -403,10 +413,14 @@ class AIActionOrchestrationService:
             await self.session.commit()
 
     async def _trusted_args(self, conversation, tool, parsed):
+        if tool.handler == "get_room_catalog_facts":
+            return await self._room_catalog_args(conversation, parsed)
         if tool.handler == "search_availability":
             return await self._availability_args(conversation, parsed)
         if tool.handler == "create_booking_hold":
             return await self._hold_args(conversation, parsed)
+        if tool.handler == "validate_promotion_code":
+            return await self._promotion_args(conversation, parsed)
         if tool.handler == "request_booking_payment":
             return await self._payment_args(conversation, parsed)
         if tool.handler in {"get_booking_status", "get_payment_status"}:
@@ -417,6 +431,19 @@ class AIActionOrchestrationService:
         if tool.handler == "handoff_to_human":
             return {"reason": parsed.reason}
         raise AIToolEligibilityError()
+
+    async def _room_catalog_args(
+        self, conversation: Conversation, parsed: RoomCatalogFactsInput
+    ) -> dict[str, Any]:
+        prop = await self._resolve_property(
+            conversation.workspace_id, parsed.property_name
+        )
+        room = await self._resolve_room(
+            conversation.workspace_id, prop.id, parsed.room_type_name
+        )
+        if room is None:
+            raise AIToolEligibilityError("Room type is required")
+        return {"room_type_id": room.id}
 
     async def _availability_args(
         self, conversation: Conversation, parsed: SearchAvailabilityInput
@@ -469,6 +496,42 @@ class AIActionOrchestrationService:
             "customer_id": conversation.customer_id,
             "conversation_id": conversation.id,
             "guest_name": None,
+            "promotion_code": parsed.promotion_code,
+        }
+
+    async def _promotion_args(
+        self, conversation: Conversation, parsed: ValidatePromotionCodeInput
+    ) -> dict[str, Any]:
+        state = await self._state(conversation)
+        options = state.last_availability_options
+        if not options or parsed.option_index > len(options):
+            raise AIToolEligibilityError("Search availability before validating a code")
+        if not state.requested_check_in or not state.requested_check_out:
+            raise AIToolEligibilityError("Stay dates are incomplete")
+        option = options[parsed.option_index - 1]
+        plan = await self.session.scalar(
+            select(RatePlan).where(
+                RatePlan.workspace_id == conversation.workspace_id,
+                RatePlan.id == uuid.UUID(option["rate_plan_id"]),
+                RatePlan.room_type_id == uuid.UUID(option["room_type_id"]),
+                RatePlan.property_id == uuid.UUID(option["property_id"]),
+                RatePlan.active.is_(True),
+            )
+        )
+        if plan is None:
+            raise AIToolEligibilityError("Selected rate is no longer available")
+        nights = (state.requested_check_out - state.requested_check_in).days
+        return {
+            "code": parsed.code,
+            "property_id": uuid.UUID(option["property_id"]),
+            "room_type_id": uuid.UUID(option["room_type_id"]),
+            "rate_plan_id": plan.id,
+            "check_in": state.requested_check_in,
+            "check_out": state.requested_check_out,
+            "subtotal": plan.base_price * nights * parsed.quantity,
+            "currency": plan.currency,
+            "customer_id": conversation.customer_id,
+            "source": self._promotion_source(conversation),
         }
 
     async def _payment_args(
@@ -556,6 +619,28 @@ class AIActionOrchestrationService:
         state.last_availability_options = state_options
         await self.session.flush()
         return {"options": options}, None
+
+    async def _execute_get_room_catalog_facts(self, action):
+        facts = await RichHotelCatalogService(self.session).customer_facts(
+            action.workspace_id, uuid.UUID(action.validated_args["room_type_id"])
+        )
+        return facts.model_dump(), ("room_type", facts.room_type_id)
+
+    async def _execute_validate_promotion_code(self, action):
+        request = PromotionValidationRequest.model_validate(action.validated_args)
+        result = await PromotionService(self.session).validate(
+            action.workspace_id, request
+        )
+        return {
+            "valid": result.valid,
+            "reason_code": result.reason_code,
+            "code": result.code,
+            "promotion_name": result.promotion_name,
+            "discount_amount": result.discount_amount,
+            "subtotal": result.subtotal,
+            "final_total": result.final_total,
+            "currency": result.currency,
+        }, None
 
     async def _execute_create_booking_hold(self, action):
         request = BookingHoldCreate.model_validate(
@@ -765,9 +850,25 @@ class AIActionOrchestrationService:
             "check_in": detail["check_in"],
             "check_out": detail["check_out"],
             "currency": detail["currency"],
+            "subtotal": detail["subtotal"],
+            "discount_amount": detail["discount_amount"],
             "total_amount": detail["total_amount"],
+            "promotion_code": (
+                detail["promotion_snapshot"].get("code")
+                if detail["promotion_snapshot"]
+                else None
+            ),
             "hold_expires_at": detail["hold_expires_at"],
         }
+
+    @staticmethod
+    def _promotion_source(conversation):
+        return {
+            "web": PromotionSource.WEBCHAT,
+            "line": PromotionSource.LINE,
+            "facebook": PromotionSource.FACEBOOK,
+            "instagram": PromotionSource.INSTAGRAM,
+        }.get(conversation.channel.value, PromotionSource.OTHER)
 
     async def _state(self, conversation, *, for_update=False):
         return await self._state_for_ids(
@@ -864,6 +965,25 @@ class AIActionOrchestrationService:
                 error_code=error_code,
                 event_metadata={"classification": action.classification.value},
             )
+        )
+        AuditService(self.session).record(
+            workspace_id=action.workspace_id,
+            actor_user_id=None,
+            actor_type=AuditActorType.AI,
+            action=f"AI_ACTION_{event_type.value}",
+            area=AuditArea.AI_ACTIONS,
+            resource_type="AIToolAction",
+            resource_id=action.id,
+            result=(
+                AuditResult.FAILED
+                if event_type == AIToolAuditEventType.FAILED
+                else AuditResult.SUCCESS
+            ),
+            metadata={
+                "classification": action.classification.value,
+                "tool_name": action.tool_name,
+                **({"error_code": error_code} if error_code else {}),
+            },
         )
 
     @staticmethod

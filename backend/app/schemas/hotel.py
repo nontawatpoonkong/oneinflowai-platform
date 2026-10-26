@@ -67,11 +67,29 @@ class RoomTypeCreate(BaseModel):
     property_id: uuid.UUID
     code: str = Field(pattern=_CODE.pattern)
     name: str = Field(min_length=1, max_length=255)
-    description: str | None = None
+    short_description: str | None = Field(default=None, max_length=500)
+    description: str | None = Field(default=None, max_length=5000)
+    room_size_sqm: Decimal | None = Field(
+        default=None, gt=0, max_digits=7, decimal_places=2
+    )
     max_adults: int = Field(gt=0)
     max_children: int = Field(default=0, ge=0)
     max_occupancy: int = Field(gt=0)
     base_capacity: int = Field(gt=0)
+    smoking_policy: str = Field(
+        default="NON_SMOKING",
+        pattern=r"^(NON_SMOKING|SMOKING_ALLOWED|DESIGNATED_ONLY)$",
+    )
+    accessibility_available: bool = False
+    public_highlights: str | None = Field(default=None, max_length=2000)
+    view_type: str = Field(
+        default="NO_SPECIAL_VIEW",
+        pattern=(
+            r"^(CITY|GARDEN|POOL|MOUNTAIN|SEA|RIVER|COURTYARD|"
+            r"NO_SPECIAL_VIEW|CUSTOM)$"
+        ),
+    )
+    custom_view_label: str | None = Field(default=None, max_length=120)
     active: bool = True
 
     @model_validator(mode="after")
@@ -80,16 +98,38 @@ class RoomTypeCreate(BaseModel):
             raise ValueError("max_occupancy must be at least max_adults")
         if self.base_capacity > self.max_occupancy:
             raise ValueError("base_capacity cannot exceed max_occupancy")
+        if self.view_type == "CUSTOM" and not self.custom_view_label:
+            raise ValueError("custom_view_label is required for CUSTOM view")
+        if self.view_type != "CUSTOM" and self.custom_view_label is not None:
+            raise ValueError("custom_view_label is only valid for CUSTOM view")
         return self
 
 
 class RoomTypeUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
-    description: str | None = None
+    short_description: str | None = Field(default=None, max_length=500)
+    description: str | None = Field(default=None, max_length=5000)
+    room_size_sqm: Decimal | None = Field(
+        default=None, gt=0, max_digits=7, decimal_places=2
+    )
     max_adults: int | None = Field(default=None, gt=0)
     max_children: int | None = Field(default=None, ge=0)
     max_occupancy: int | None = Field(default=None, gt=0)
     base_capacity: int | None = Field(default=None, gt=0)
+    smoking_policy: str | None = Field(
+        default=None,
+        pattern=r"^(NON_SMOKING|SMOKING_ALLOWED|DESIGNATED_ONLY)$",
+    )
+    accessibility_available: bool | None = None
+    public_highlights: str | None = Field(default=None, max_length=2000)
+    view_type: str | None = Field(
+        default=None,
+        pattern=(
+            r"^(CITY|GARDEN|POOL|MOUNTAIN|SEA|RIVER|COURTYARD|"
+            r"NO_SPECIAL_VIEW|CUSTOM)$"
+        ),
+    )
+    custom_view_label: str | None = Field(default=None, max_length=120)
     active: bool | None = None
 
 

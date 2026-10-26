@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundError
+from app.models.audit import AuditActorType, AuditArea
 from app.models.booking import Booking, BookingEvent, BookingEventType, BookingStatus
 from app.models.payment import (
     Payment,
@@ -14,6 +15,7 @@ from app.models.payment import (
     PaymentApplicationStatus,
     PaymentStatus,
 )
+from app.services.audit import AuditService
 from app.services.automation_events import emit_domain_event
 from app.services.booking_payment_confirmation import (
     BookingPaymentConfirmationService,
@@ -225,4 +227,20 @@ class BookingPaymentReconciliationService:
                 actor_user_id=actor_user_id,
                 event_metadata={"payment_id": str(payment.id), **extra},
             )
+        )
+        AuditService(self.session).record(
+            workspace_id=booking.workspace_id,
+            actor_user_id=actor_user_id,
+            actor_type=(
+                AuditActorType.USER if actor_user_id else AuditActorType.SYSTEM
+            ),
+            action=(
+                "PAYMENT_REVIEW_RESOLVED"
+                if event_type == BookingEventType.PAYMENT_REVIEW_ACKNOWLEDGED
+                else event_type.value
+            ),
+            area=AuditArea.PAYMENTS,
+            resource_type="Payment",
+            resource_id=payment.id,
+            metadata={"booking_id": str(booking.id), **extra},
         )

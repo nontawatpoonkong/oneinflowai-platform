@@ -2,6 +2,7 @@
 
 import asyncio
 import uuid
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
@@ -12,6 +13,7 @@ from app.models.booking import Booking, BookingStatus
 from app.models.conversation import Conversation
 from app.models.crm import CustomerCRMEvent, CustomerPreference
 from app.models.customer_identity import CustomerIdentity
+from app.models.workspace_access import WorkspaceMemberCapability
 from app.models.workspace_member import WorkspaceMember, WorkspaceRole
 from tests.conftest import TestSessionLocal, register_verify_and_login
 from tests.test_booking import _hold, _payload, _setup
@@ -216,12 +218,24 @@ def test_member_can_add_note_and_preference_but_cannot_manage_tags(client_db):
 
     async def demote():
         async with TestSessionLocal() as session:
-            await session.execute(
-                update(WorkspaceMember)
-                .where(
-                    WorkspaceMember.workspace_id == uuid.UUID(user["workspace"]["id"])
+            membership = await session.scalar(
+                select(WorkspaceMember).where(
+                    WorkspaceMember.workspace_id
+                    == uuid.UUID(user["workspace"]["id"]),
+                    WorkspaceMember.user_id == uuid.UUID(user["user"]["id"]),
                 )
-                .values(role=WorkspaceRole.MEMBER)
+            )
+            assert membership is not None
+            membership.role = WorkspaceRole.MEMBER
+            session.add_all(
+                WorkspaceMemberCapability(
+                    workspace_id=membership.workspace_id,
+                    membership_id=membership.id,
+                    capability=capability,
+                    granted_by_user_id=membership.user_id,
+                    granted_at=datetime.now(UTC),
+                )
+                for capability in ("guest.note", "guest.preference.manage")
             )
             await session.commit()
 

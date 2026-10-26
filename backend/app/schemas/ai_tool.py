@@ -28,6 +28,9 @@ class AIToolActionResponse(BaseModel):
     executed_at: datetime | None
     cancelled_at: datetime | None
     result: dict[str, Any] | None
+    # False when the caller lacks the capability for this tool's result type;
+    # ``result`` is then withheld rather than absent.
+    result_visible: bool = True
     error_code: str | None
     created_at: datetime
     updated_at: datetime

@@ -2,7 +2,7 @@
 
 import enum
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import (
     TIMESTAMP,
@@ -36,11 +36,37 @@ class EntitlementKind(enum.StrEnum):
 
 
 class SubscriptionStatus(enum.StrEnum):
+    PENDING_ACTIVATION = "PENDING_ACTIVATION"
     TRIALING = "TRIALING"
     ACTIVE = "ACTIVE"
     PAST_DUE = "PAST_DUE"
     CANCELED = "CANCELED"
     EXPIRED = "EXPIRED"
+
+
+class BillingAccountStatus(enum.StrEnum):
+    ACTIVE = "ACTIVE"
+    SUSPENDED = "SUSPENDED"
+
+
+class BillingAccount(UUIDMixin, TimestampMixin, Base):
+    __tablename__ = "billing_accounts"
+    __table_args__ = (
+        UniqueConstraint("owner_user_id", name="uq_billing_account_owner"),
+        Index("ix_billing_accounts_owner_user_id", "owner_user_id"),
+    )
+
+    owner_user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    status: Mapped[BillingAccountStatus] = mapped_column(
+        SAEnum(BillingAccountStatus, name="billing_account_status"),
+        nullable=False,
+        default=BillingAccountStatus.ACTIVE,
+        server_default=BillingAccountStatus.ACTIVE.value,
+    )
 
 
 class SaaSPlan(UUIDMixin, TimestampMixin, Base):
@@ -84,6 +110,11 @@ class WorkspaceSubscription(UUIDMixin, TimestampMixin, Base):
     __table_args__ = (
         Index("ix_workspace_subscription_lookup", "workspace_id", "status"),
         Index(
+            "ix_workspace_subscriptions_billing_account",
+            "billing_account_id",
+            "status",
+        ),
+        Index(
             "uq_workspace_effective_subscription",
             "workspace_id",
             unique=True,
@@ -91,10 +122,15 @@ class WorkspaceSubscription(UUIDMixin, TimestampMixin, Base):
         ),
     )
 
-    workspace_id: Mapped[uuid.UUID] = mapped_column(
+    billing_account_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("billing_accounts.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    workspace_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("workspaces.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,
     )
     plan_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -122,6 +158,75 @@ class WorkspaceSubscription(UUIDMixin, TimestampMixin, Base):
     provider: Mapped[str | None] = mapped_column(String(64))
     provider_customer_ref: Mapped[str | None] = mapped_column(String(255))
     provider_subscription_ref: Mapped[str | None] = mapped_column(String(255))
+    workspace_limit: Mapped[int] = mapped_column(
+        BigInteger, nullable=False, default=1, server_default="1"
+    )
+
+
+class SubscriptionWorkspaceAllocation(UUIDMixin, TimestampMixin, Base):
+    __tablename__ = "subscription_workspace_allocations"
+    __table_args__ = (
+        UniqueConstraint(
+            "subscription_id", "workspace_id", name="uq_subscription_workspace"
+        ),
+        UniqueConstraint("workspace_id", name="uq_workspace_billing_allocation"),
+    )
+
+    subscription_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("workspace_subscriptions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    workspace_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("workspaces.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    allocated_by_user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+
+
+class BillingAuditEvent(UUIDMixin, Base):
+    __tablename__ = "billing_audit_events"
+    __table_args__ = (
+        Index("ix_billing_audit_account_created", "billing_account_id", "created_at"),
+    )
+
+    billing_account_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("billing_accounts.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    subscription_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("workspace_subscriptions.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    workspace_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("workspaces.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    actor_user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    action: Mapped[str] = mapped_column(String(64), nullable=False)
+    old_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    new_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+        server_default=text("now()"),
+    )
 
 
 class SaaSUsageRecord(UUIDMixin, Base):

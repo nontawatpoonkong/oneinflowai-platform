@@ -26,6 +26,15 @@ from app.models.ai_tool import (
     AIToolAuditEventType,
     AIToolClassification,
 )
+from app.models.audit import (
+    AuditActorType,
+    AuditArea,
+    AuditResult,
+    ProductFeature,
+    ProductUsageEvent,
+    ProductUsageEventName,
+    WorkspaceAuditEvent,
+)
 from app.models.automation import (
     AutomationActionType,
     AutomationDefinition,
@@ -36,6 +45,16 @@ from app.models.automation import (
     AutomationWorkerState,
     DomainEventOutbox,
     OutboxState,
+)
+from app.models.billing import (
+    BillingAccount,
+    BillingAccountStatus,
+    BillingAuditEvent,
+    PlanEntitlement,
+    SaaSPlan,
+    SaaSUsageRecord,
+    SubscriptionWorkspaceAllocation,
+    WorkspaceSubscription,
 )
 from app.models.booking import (
     Booking,
@@ -65,6 +84,15 @@ from app.models.crm import (
 from app.models.customer import Customer, CustomerStatus
 from app.models.customer_identity import CustomerIdentity
 from app.models.hotel import InventoryDate, Property, RatePlan, RoomType
+from app.models.hotel_catalog import (
+    AmenityDefinition,
+    AmenityValueType,
+    BedType,
+    RoomImageCategory,
+    RoomTypeAmenity,
+    RoomTypeBed,
+    RoomTypeImage,
+)
 from app.models.housekeeping import (
     HousekeepingEvent,
     HousekeepingEventType,
@@ -99,6 +127,36 @@ from app.models.payment import (
     PaymentVerification,
     VerificationStatus,
 )
+from app.models.pms import (
+    PMSConnection,
+    PMSConnectionStatus,
+    PMSEntityType,
+    PMSExternalMapping,
+    PMSInventoryAuthority,
+    PMSIssueStatus,
+    PMSReconciliationIssue,
+    PMSSyncMode,
+    PMSSyncRun,
+    PMSSyncRunStatus,
+)
+from app.models.promotion import (
+    BookingAttribution,
+    Promotion,
+    PromotionCampaign,
+    PromotionCampaignStatus,
+    PromotionCode,
+    PromotionCodeStatus,
+    PromotionDiscountType,
+    PromotionManagementOrigin,
+    PromotionProperty,
+    PromotionRatePlan,
+    PromotionRedemption,
+    PromotionRedemptionStatus,
+    PromotionRoomType,
+    PromotionSource,
+    PromotionSourceEligibility,
+)
+from app.models.scheduled_job import ScheduledJobState
 from app.models.stay import (
     HotelRoom,
     RoomOperationalStatus,
@@ -115,7 +173,15 @@ from app.models.verification_challenge import (
     VerificationPurpose,
 )
 from app.models.webchat_session import WebChatSession
-from app.models.workspace import Workspace
+from app.models.workspace import Workspace, WorkspaceStatus
+from app.models.workspace_access import (
+    WorkspaceAccessAuditAction,
+    WorkspaceAccessAuditEvent,
+    WorkspaceAccessRequest,
+    WorkspaceAccessRequestStatus,
+    WorkspaceJoinSetting,
+    WorkspaceMemberCapability,
+)
 from app.models.workspace_member import WorkspaceMember, WorkspaceRole
 
 __all__ = [
@@ -132,6 +198,9 @@ __all__ = [
     "AutomationScheduleMode",
     "AutomationWorkerHeartbeat",
     "AutomationWorkerState",
+    "AuditActorType",
+    "AuditArea",
+    "AuditResult",
     "DomainEventOutbox",
     "OutboxState",
     "Booking",
@@ -139,6 +208,9 @@ __all__ = [
     "BookingEventType",
     "BookingItem",
     "BookingStatus",
+    "BillingAccount",
+    "BillingAccountStatus",
+    "BillingAuditEvent",
     "ActionActorType",
     "ActionCollectionSession",
     "ActionCollectionStatus",
@@ -174,6 +246,13 @@ __all__ = [
     "Property",
     "RatePlan",
     "RoomType",
+    "RoomTypeBed",
+    "RoomTypeAmenity",
+    "RoomTypeImage",
+    "AmenityDefinition",
+    "AmenityValueType",
+    "BedType",
+    "RoomImageCategory",
     "KnowledgeIndexStatus",
     "KnowledgeDocumentStatus",
     "KnowledgeDocumentContent",
@@ -192,6 +271,35 @@ __all__ = [
     "PaymentEvidence",
     "PaymentStatus",
     "PaymentVerification",
+    "ProductFeature",
+    "ProductUsageEvent",
+    "ProductUsageEventName",
+    "PMSConnection",
+    "PMSConnectionStatus",
+    "PMSEntityType",
+    "PMSExternalMapping",
+    "PMSInventoryAuthority",
+    "PMSIssueStatus",
+    "PMSReconciliationIssue",
+    "PMSSyncMode",
+    "PMSSyncRun",
+    "PMSSyncRunStatus",
+    "BookingAttribution",
+    "Promotion",
+    "PromotionCampaign",
+    "PromotionCampaignStatus",
+    "PromotionCode",
+    "PromotionCodeStatus",
+    "PromotionDiscountType",
+    "PromotionManagementOrigin",
+    "PromotionProperty",
+    "PromotionRatePlan",
+    "PromotionRedemption",
+    "PromotionRedemptionStatus",
+    "PromotionRoomType",
+    "PromotionSource",
+    "PromotionSourceEligibility",
+    "ScheduledJobState",
     "HotelRoom",
     "HousekeepingEvent",
     "HousekeepingEventType",
@@ -211,18 +319,21 @@ __all__ = [
     "SenderType",
     "SaaSPlan",
     "SaaSUsageRecord",
+    "SubscriptionWorkspaceAllocation",
     "User",
     "VerificationChallenge",
     "VerificationPurpose",
     "Workspace",
+    "WorkspaceStatus",
+    "WorkspaceAuditEvent",
+    "WorkspaceAccessAuditAction",
+    "WorkspaceAccessAuditEvent",
+    "WorkspaceAccessRequest",
+    "WorkspaceAccessRequestStatus",
+    "WorkspaceJoinSetting",
     "WorkspaceMember",
+    "WorkspaceMemberCapability",
     "WorkspaceRole",
     "WorkspaceSubscription",
     "WebChatSession",
 ]
-from app.models.billing import (
-    PlanEntitlement,
-    SaaSPlan,
-    SaaSUsageRecord,
-    WorkspaceSubscription,
-)

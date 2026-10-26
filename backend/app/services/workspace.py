@@ -13,11 +13,17 @@ from app.core.exceptions import (
     WorkspaceAccessDeniedError,
     WorkspaceNotFoundError,
 )
+from app.models.audit import AuditActorType, AuditArea
 from app.models.workspace import Workspace
 from app.models.workspace_member import WorkspaceMember, WorkspaceRole
 from app.repositories.workspace import WorkspaceRepository
 from app.repositories.workspace_member import WorkspaceMemberRepository
-from app.services.entitlement import EntitlementService
+from app.services.audit import AuditService
+from app.services.workspace_capability import (
+    WorkspaceCapability,
+    WorkspaceCapabilityService,
+)
+from app.services.workspace_lifecycle import require_workspace_active
 from app.utils.slug import RESERVED_SLUGS, generate_unique_slug, slugify
 
 
@@ -47,16 +53,15 @@ class WorkspaceService:
             role=WorkspaceRole.OWNER,
         )
         await self.members.add(membership)
-        await EntitlementService(self.session).provision_reference_subscription(
-            workspace.id
+        AuditService(self.session).record(
+            workspace_id=workspace.id,
+            actor_user_id=owner_id,
+            actor_type=AuditActorType.USER,
+            action="WORKSPACE_CREATED",
+            area=AuditArea.WORKSPACE,
+            resource_type="Workspace",
+            resource_id=workspace.id,
         )
-        return workspace
-
-    async def create_workspace(self, *, owner_id: uuid.UUID, name: str) -> Workspace:
-        """Public unit of work: create workspace + owner membership, commit."""
-        workspace = await self.build_with_owner(owner_id=owner_id, name=name)
-        await self.session.commit()
-        await self.session.refresh(workspace)
         return workspace
 
     async def get_primary_workspace(self, user_id: uuid.UUID) -> Workspace:
@@ -80,9 +85,11 @@ class WorkspaceService:
         workspace = await self.workspaces.get_by_id(workspace_id)
         if workspace is None:
             raise WorkspaceNotFoundError()
-        # Only members may view a workspace's membership.
-        if await self.members.get_membership(workspace_id, requester_id) is None:
-            raise WorkspaceAccessDeniedError()
+        await WorkspaceCapabilityService(self.session).require(
+            workspace_id,
+            requester_id,
+            WorkspaceCapability.WORKSPACE_MEMBERS_READ,
+        )
         return await self.members.list_for_workspace(workspace_id)
 
     async def update_workspace(
@@ -91,9 +98,11 @@ class WorkspaceService:
         workspace = await self.workspaces.get_by_id(workspace_id)
         if workspace is None:
             raise WorkspaceNotFoundError()
-        # Authorization: only the owner may update.
-        if workspace.owner_id != requester_id:
-            raise WorkspaceAccessDeniedError("Only the workspace owner can update it")
+        await WorkspaceCapabilityService(self.session).require(
+            workspace_id,
+            requester_id,
+            WorkspaceCapability.WORKSPACE_SETTINGS_MANAGE,
+        )
 
         if name != workspace.name:
             new_slug = slugify(name)
@@ -106,6 +115,16 @@ class WorkspaceService:
                     raise SlugAlreadyExistsError()
                 workspace.slug = new_slug
             workspace.name = name
+            AuditService(self.session).record(
+                workspace_id=workspace.id,
+                actor_user_id=requester_id,
+                actor_type=AuditActorType.USER,
+                action="WORKSPACE_SETTINGS_UPDATED",
+                area=AuditArea.WORKSPACE,
+                resource_type="Workspace",
+                resource_id=workspace.id,
+                metadata={"changed_fields": ["name", "slug"]},
+            )
             await self.session.commit()
             await self.session.refresh(workspace)
 
@@ -117,6 +136,7 @@ class WorkspaceService:
         workspace = await self.workspaces.get_by_id(workspace_id)
         if workspace is None:
             raise WorkspaceNotFoundError()
+        await require_workspace_active(self.session, workspace_id)
         if await self.members.get_membership(workspace_id, requester_id) is None:
             raise WorkspaceNotFoundError()
         return workspace.ai_instructions
@@ -130,6 +150,7 @@ class WorkspaceService:
         workspace = await self.workspaces.get_by_id(workspace_id)
         if workspace is None:
             raise WorkspaceNotFoundError()
+        await require_workspace_active(self.session, workspace_id)
         membership = await self.members.get_membership(workspace_id, requester_id)
         if membership is None:
             raise WorkspaceNotFoundError()
@@ -138,6 +159,16 @@ class WorkspaceService:
                 "Only workspace owners and admins can update AI instructions"
             )
         workspace.ai_instructions = instructions
+        AuditService(self.session).record(
+            workspace_id=workspace.id,
+            actor_user_id=requester_id,
+            actor_type=AuditActorType.USER,
+            action="WORKSPACE_SETTINGS_UPDATED",
+            area=AuditArea.SETTINGS,
+            resource_type="Workspace",
+            resource_id=workspace.id,
+            metadata={"changed_fields": ["ai_instructions"]},
+        )
         await self.session.commit()
         await self.session.refresh(workspace)
         return workspace.ai_instructions

@@ -1,6 +1,7 @@
 """Customer payment creation, hardened evidence storage, and verification."""
 
 import hashlib
+import logging
 import re
 import uuid
 from contextlib import suppress
@@ -26,6 +27,7 @@ from app.integrations.slip_verification import (
     SlipVerificationRequest,
 )
 from app.models.action import ActionRequest
+from app.models.audit import AuditActorType, AuditArea, AuditResult
 from app.models.conversation import Conversation
 from app.models.customer import Customer
 from app.models.notification import NotificationEntityType, NotificationType
@@ -37,6 +39,7 @@ from app.models.payment import (
     PaymentVerification,
     VerificationStatus,
 )
+from app.models.workspace_member import WorkspaceMember
 from app.repositories.payment import (
     PaymentDestinationRepository,
     PaymentEvidenceRepository,
@@ -48,10 +51,27 @@ from app.schemas.payment import (
     PaymentDestinationCreate,
     PaymentDestinationUpdate,
 )
+from app.services.audit import AuditService, current_actor_user_id
 from app.services.automation_events import emit_domain_event
 from app.services.entitlement import SLIP_VERIFICATIONS, EntitlementService
 from app.services.notification import NotificationService
+from app.services.workspace_capability import (
+    WorkspaceCapability,
+    WorkspaceCapabilityService,
+)
 from app.storage import StorageProvider, create_storage_provider
+
+logger = logging.getLogger(__name__)
+
+# An assignee notified about a verified payment must be able to read it and
+# keep working the linked Action.
+_PAYMENT_FOLLOW_UP = frozenset(
+    {
+        WorkspaceCapability.PAYMENT_READ,
+        WorkspaceCapability.ACTION_READ,
+        WorkspaceCapability.ACTION_OPERATE,
+    }
+)
 
 
 class PaymentService:
@@ -135,6 +155,21 @@ class PaymentService:
         await self._validate_links(workspace_id, data)
         payment = Payment(workspace_id=workspace_id, **data.model_dump())
         await self.payments.add(payment)
+        await self.session.flush()
+        AuditService(self.session).record(
+            workspace_id=workspace_id,
+            actor_user_id=current_actor_user_id(),
+            actor_type=(
+                AuditActorType.USER
+                if current_actor_user_id()
+                else AuditActorType.SYSTEM
+            ),
+            action="PAYMENT_CREATED",
+            area=AuditArea.PAYMENTS,
+            resource_type="Payment",
+            resource_id=payment.id,
+            metadata={"currency": payment.currency},
+        )
         await self.session.commit()
         await self.session.refresh(payment)
         return payment
@@ -346,15 +381,9 @@ class PaymentVerificationService:
             payment.verified_at = verification.verified_at
             payment.paid_at = result.transferred_at
             notifications = NotificationService(self.session)
-            recipients = []
-            if payment.action_request_id:
-                linked_action = await self.session.get(
-                    ActionRequest, payment.action_request_id
-                )
-                if linked_action and linked_action.assigned_to_user_id:
-                    recipients = [linked_action.assigned_to_user_id]
-            if not recipients:
-                recipients = await notifications.administrative_recipients(workspace_id)
+            recipients = await self._verified_payment_recipients(
+                workspace_id, payment, notifications
+            )
             await notifications.create_for_recipients(
                 workspace_id,
                 recipients,
@@ -383,6 +412,34 @@ class PaymentVerificationService:
             )
         else:
             payment.status = PaymentStatus.REJECTED
+        AuditService(self.session).record(
+            workspace_id=workspace_id,
+            actor_user_id=current_actor_user_id(),
+            actor_type=(
+                AuditActorType.USER
+                if current_actor_user_id()
+                else AuditActorType.SYSTEM
+            ),
+            action=(
+                "PAYMENT_VERIFIED"
+                if payment.status == PaymentStatus.VERIFIED
+                else "PAYMENT_REQUIRES_REVIEW"
+            ),
+            area=AuditArea.PAYMENTS,
+            resource_type="Payment",
+            resource_id=payment.id,
+            result=(
+                AuditResult.SUCCESS
+                if payment.status == PaymentStatus.VERIFIED
+                else AuditResult.FAILED
+            ),
+            metadata={
+                "status": payment.status.value,
+                "currency": payment.currency,
+                "amount_match": amount_match,
+                "receiver_match": receiver_match,
+            },
+        )
         await self.session.commit()
         await self.session.refresh(payment)
         await self.session.refresh(verification)
@@ -415,7 +472,59 @@ class PaymentVerificationService:
             error_code=code,
         )
         await self.verifications.add(verification)
+        AuditService(self.session).record(
+            workspace_id=workspace_id,
+            actor_user_id=None,
+            actor_type=AuditActorType.SYSTEM,
+            action="PAYMENT_VERIFICATION_FAILED",
+            area=AuditArea.PAYMENTS,
+            resource_type="Payment",
+            resource_id=payment.id,
+            result=AuditResult.FAILED,
+            metadata={"error_code": code},
+        )
         await self.session.commit()
+
+    async def _verified_payment_recipients(
+        self, workspace_id, payment, notifications: NotificationService
+    ) -> list[uuid.UUID]:
+        """Who is told that a payment verified.
+
+        The linked Action's assignee only while they are still a member who can
+        read the payment and work the Action; otherwise owners and admins. The
+        membership and grants are read from the database now, not at assignment.
+        """
+
+        if payment.action_request_id:
+            linked_action = await self.session.get(
+                ActionRequest, payment.action_request_id
+            )
+            assignee_id = linked_action.assigned_to_user_id if linked_action else None
+            if assignee_id and await self._may_follow_up(workspace_id, assignee_id):
+                return [assignee_id]
+        recipients = await notifications.administrative_recipients(workspace_id)
+        if not recipients:
+            # The verification stands; audit and the domain event outbox still
+            # record it. Ids only, never payment or guest details.
+            logger.warning(
+                "payment.verified.no_notification_recipient",
+                extra={"payment_id": str(payment.id)},
+            )
+        return recipients
+
+    async def _may_follow_up(self, workspace_id, user_id) -> bool:
+        member = await self.session.scalar(
+            select(WorkspaceMember).where(
+                WorkspaceMember.workspace_id == workspace_id,
+                WorkspaceMember.user_id == user_id,
+            )
+        )
+        if member is None:
+            return False
+        capabilities = await WorkspaceCapabilityService(
+            self.session
+        ).effective_for_member(member)
+        return capabilities >= _PAYMENT_FOLLOW_UP
 
     @staticmethod
     def _receiver_matches(destination, result) -> bool:

@@ -7,6 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundError, WorkspaceAccessDeniedError
+from app.models.audit import AuditActorType, AuditArea
 from app.models.hotel import Property, RoomType
 from app.models.housekeeping import (
     HousekeepingEvent,
@@ -30,6 +31,7 @@ from app.schemas.housekeeping import (
     RoomReadinessOverrideEventResponse,
     RoomReadinessOverrideResponse,
 )
+from app.services.audit import AuditService
 from app.services.automation_events import emit_housekeeping_event
 from app.services.stay import StayConflictError, StayTransitionError
 from app.services.workspace_capability import (
@@ -280,6 +282,19 @@ class HousekeepingService:
             reason=reason,
         )
         self.session.add(event)
+        AuditService(self.session).record(
+            workspace_id=workspace_id,
+            actor_user_id=actor_id,
+            actor_type=AuditActorType.USER,
+            action="ROOM_READINESS_OVERRIDDEN",
+            area=AuditArea.HOUSEKEEPING,
+            resource_type="HotelRoom",
+            resource_id=room.id,
+            metadata={
+                "previous_readiness": previous.value,
+                "new_readiness": new_readiness.value,
+            },
+        )
         await self.session.commit()
         await self.session.refresh(event)
         return RoomReadinessOverrideResponse(
@@ -382,6 +397,16 @@ class HousekeepingService:
                 actor_user_id=actor_id,
                 event_metadata=metadata or {},
             )
+        )
+        AuditService(self.session).record(
+            workspace_id=task.workspace_id,
+            actor_user_id=actor_id,
+            actor_type=(AuditActorType.USER if actor_id else AuditActorType.SYSTEM),
+            action=event_type.value,
+            area=AuditArea.HOUSEKEEPING,
+            resource_type="HousekeepingTask",
+            resource_id=task.id,
+            metadata={"room_id": str(task.room_id), **(metadata or {})},
         )
 
     @staticmethod

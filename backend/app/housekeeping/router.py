@@ -17,6 +17,10 @@ from app.schemas.housekeeping import (
 )
 from app.schemas.response import success_response
 from app.services.housekeeping import HousekeepingService
+from app.services.workspace_capability import (
+    WorkspaceCapability,
+    WorkspaceCapabilityService,
+)
 from app.workspace.dependencies import get_current_workspace
 
 router = APIRouter()
@@ -33,8 +37,12 @@ async def list_tasks(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=50, ge=1, le=100),
     workspace: Workspace = Depends(get_current_workspace),
+    user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ):
+    await WorkspaceCapabilityService(session).require(
+        workspace.id, user.id, WorkspaceCapability.HOUSEKEEPING_READ
+    )
     data = await HousekeepingService(session).list_tasks(
         workspace.id,
         property_id=property_id,
@@ -71,8 +79,12 @@ async def override_room_readiness(
 async def get_task(
     task_id: uuid.UUID,
     workspace: Workspace = Depends(get_current_workspace),
+    user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ):
+    await WorkspaceCapabilityService(session).require(
+        workspace.id, user.id, WorkspaceCapability.HOUSEKEEPING_READ
+    )
     data = await HousekeepingService(session).get_task(workspace.id, task_id)
     return success_response(data.model_dump(mode="json"))
 

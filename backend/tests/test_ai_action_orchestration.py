@@ -17,11 +17,13 @@ from app.models.ai_tool import (
     AIToolActionStatus,
     AIToolAuditEvent,
     AIToolAuditEventType,
+    AIToolClassification,
 )
 from app.models.automation import DomainEventOutbox
 from app.models.booking import Booking, BookingStatus
 from app.models.conversation import Conversation, ConversationMode
 from app.models.hotel import InventoryDate
+from app.models.hotel_catalog import RoomTypeAmenity
 from app.models.payment import (
     DestinationType,
     Payment,
@@ -41,6 +43,7 @@ from app.services.ai_tool_orchestration import (
 from app.services.booking import BookingService
 from tests.conftest import TestSessionLocal, register_verify_and_login
 from tests.test_hotel import _auth, _inventory, _property, _rate, _room
+from tests.test_promotions import _promotion
 
 
 class FakeExtraction:
@@ -117,6 +120,8 @@ def test_registry_is_code_defined_versioned_and_excludes_forbidden_tools():
     assert {
         "search_availability",
         "quote_availability",
+        "get_room_catalog_facts",
+        "validate_promotion_code",
         "create_booking_hold",
         "get_booking_status",
         "request_booking_payment",
@@ -208,6 +213,103 @@ def test_read_only_availability_uses_authoritative_service_and_bounded_state(cli
             assert quote_token is None
             assert quote.status is AIToolActionStatus.SUCCEEDED
             assert quote.result["options"][0]["subtotal"] == "4500.75"
+
+    asyncio.run(run())
+
+
+def test_promotion_validation_tool_and_hold_use_authoritative_pricing(client_db):
+    setup = _setup(client_db, "ai-promotion@example.com")
+    _promotion(
+        client_db,
+        setup["token"],
+        setup["property"],
+        setup["room"],
+        setup["rate"],
+        sources=["WEBCHAT"],
+    )
+
+    async def run():
+        conversation = await _conversation(setup)
+        async with TestSessionLocal() as session:
+            await _search(session, conversation, setup, key="promotion-search")
+            service = AIActionOrchestrationService(session, FakeExtraction())
+            validation, token = await service.propose(
+                conversation,
+                service.registry.get("validate_promotion_code"),
+                {"code": "welcome10", "option_index": 1},
+                idempotency_key="promotion-validation",
+            )
+            assert token is None
+            assert validation.status is AIToolActionStatus.SUCCEEDED
+            assert validation.result == {
+                "valid": True,
+                "reason_code": None,
+                "code": "WELCOME10",
+                "promotion_name": "Rule WELCOME10",
+                "discount_amount": "450.08",
+                "subtotal": "4500.75",
+                "final_total": "4050.67",
+                "currency": "THB",
+            }
+            hold, confirmation = await service.propose(
+                conversation,
+                service.registry.get("create_booking_hold"),
+                {"option_index": 1, "promotion_code": "WELCOME10"},
+                idempotency_key="promotion-hold",
+            )
+            assert confirmation
+            executed = await service.confirm(
+                conversation.workspace_id,
+                conversation.id,
+                conversation.customer_id,
+                hold.id,
+                confirmation,
+            )
+            assert executed.result["subtotal"] == "4500.75"
+            assert executed.result["discount_amount"] == "450.08"
+            assert executed.result["total_amount"] == "4050.67"
+            assert executed.result["promotion_code"] == "WELCOME10"
+
+    asyncio.run(run())
+
+
+def test_room_catalog_tool_reads_structured_facts_without_mutation(client_db):
+    setup = _setup(client_db, "ai-catalog@example.com")
+    response = client_db.put(
+        f"/api/v1/hotel/catalog/room-types/{setup['room']['id']}/amenities",
+        headers=setup["headers"],
+        json=[
+            {"code": "hair_dryer", "boolean_value": True},
+            {"code": "tv_size_inches", "number_value": "55"},
+        ],
+    )
+    assert response.status_code == 200, response.text
+
+    async def run():
+        conversation = await _conversation(setup)
+        async with TestSessionLocal() as session:
+            before = await session.scalar(select(func.count(RoomTypeAmenity.id)))
+            service = AIActionOrchestrationService(session, FakeExtraction())
+            tool = service.registry.get("get_room_catalog_facts")
+            action, token = await service.propose(
+                conversation,
+                tool,
+                {
+                    "property_name": setup["property"]["name"],
+                    "room_type_name": setup["room"]["name"],
+                },
+                idempotency_key="catalog-facts-1",
+            )
+            after = await session.scalar(select(func.count(RoomTypeAmenity.id)))
+            amenities = {item["code"]: item for item in action.result["amenities"]}
+            assert tool.classification is AIToolClassification.READ_ONLY
+            assert tool.confirmation_required is False
+            assert token is None
+            assert action.status is AIToolActionStatus.SUCCEEDED
+            assert amenities["hair_dryer"]["boolean_value"] is True
+            assert amenities["tv_size_inches"]["number_value"] == "55.00"
+            assert "internal_notes" not in action.result
+            assert before == after
 
     asyncio.run(run())
 

@@ -99,6 +99,9 @@ class HotelRoom(UUIDMixin, TimestampMixin, Base):
     room_type_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
     code: Mapped[str] = mapped_column(String(64))
     floor: Mapped[str | None] = mapped_column(String(32))
+    building: Mapped[str | None] = mapped_column(String(80))
+    wing: Mapped[str | None] = mapped_column(String(80))
+    internal_notes: Mapped[str | None] = mapped_column(String(1000))
     active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     operational_status: Mapped[RoomOperationalStatus] = mapped_column(
         _enum(RoomOperationalStatus, "hotel_room_operational_status"),

@@ -11,7 +11,11 @@ import uuid
 from fastapi.testclient import TestClient
 
 from app.models.workspace_member import WorkspaceMember, WorkspaceRole
-from tests.conftest import TestSessionLocal, register_verify_and_login
+from tests.conftest import (
+    TestSessionLocal,
+    provision_active_test_subscription,
+    register_verify_and_login,
+)
 
 
 def _register(client: TestClient, email: str, full_name: str = "User") -> dict:
@@ -77,10 +81,14 @@ def test_get_workspace_by_slug_not_found(client_db: TestClient) -> None:
 
 # --------------------------------------------------------------- GET list
 def test_list_user_workspaces(client_db: TestClient) -> None:
-    token = _register(client_db, "founder@acme.com")["token"]["access_token"]
+    data = _register(client_db, "founder@acme.com")
+    token = data["token"]["access_token"]
     # One from registration + one explicitly created = 2.
+    subscription_id = provision_active_test_subscription(data["user"]["id"])
     client_db.post(
-        "/api/v1/workspaces", json={"name": "Side Project"}, headers=_auth(token)
+        "/api/v1/workspaces",
+        json={"name": "Side Project", "subscription_id": subscription_id},
+        headers=_auth(token),
     )
 
     response = client_db.get("/api/v1/workspaces", headers=_auth(token))

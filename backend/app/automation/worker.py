@@ -6,6 +6,7 @@ import logging
 import os
 import signal
 import socket
+import time
 import uuid
 from contextlib import suppress
 from datetime import UTC, datetime, timedelta
@@ -16,6 +17,10 @@ from app.core.config import Settings, get_settings
 from app.database.session import AsyncSessionLocal
 from app.models.automation import AutomationWorkerHeartbeat, AutomationWorkerState
 from app.services.automation import AutomationService
+from app.services.promotion_lifecycle import (
+    PromotionLifecycleService,
+    safe_error_code,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +56,41 @@ async def _heartbeat_loop(
             continue
 
 
+async def run_promotion_lifecycle_once(worker_id: str, settings: Settings) -> float:
+    """Run one bounded lifecycle batch; return seconds until the next run.
+
+    Isolated from the automation phase so a failure in one never blocks the
+    other. A full batch is followed immediately by another batch on the next
+    poll cycle; a failure waits a normal interval before retrying.
+    """
+
+    try:
+        async with AsyncSessionLocal() as session:
+            result = await PromotionLifecycleService(session).process_due(
+                batch_size=settings.PROMOTION_LIFECYCLE_BATCH_SIZE,
+                worker_id=worker_id,
+            )
+    except Exception as exc:
+        logger.error(
+            "promotion.lifecycle.failed",
+            extra={"worker_id": worker_id, "error_code": safe_error_code(exc)},
+        )
+        return float(settings.PROMOTION_LIFECYCLE_INTERVAL_SECONDS)
+    logger.info(
+        "promotion.lifecycle.succeeded",
+        extra={
+            "worker_id": worker_id,
+            "expired": result["expired"],
+            "started": result["started"],
+        },
+    )
+    return (
+        0.0
+        if result["batch_full"]
+        else float(settings.PROMOTION_LIFECYCLE_INTERVAL_SECONDS)
+    )
+
+
 async def run_worker(
     *,
     stop_event: asyncio.Event | None = None,
@@ -81,6 +121,7 @@ async def run_worker(
         _heartbeat_loop(worker_id, heartbeat_stop, settings)
     )
     cycles = 0
+    next_lifecycle_at = 0.0
     try:
         while not stop_event.is_set():
             try:
@@ -121,6 +162,15 @@ async def run_worker(
                             AutomationWorkerState.ERROR,
                             build_identifier=settings.AUTOMATION_WORKER_BUILD_IDENTIFIER,
                         )
+            if (
+                settings.PROMOTION_LIFECYCLE_ENABLED
+                and not stop_event.is_set()
+                and time.monotonic() >= next_lifecycle_at
+            ):
+                next_lifecycle_at = (
+                    time.monotonic()
+                    + await run_promotion_lifecycle_once(worker_id, settings)
+                )
             cycles += 1
             if max_cycles is not None and cycles >= max_cycles:
                 break

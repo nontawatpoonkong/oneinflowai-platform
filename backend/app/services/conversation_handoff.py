@@ -12,6 +12,10 @@ from app.models.notification import NotificationEntityType, NotificationType
 from app.models.workspace_member import WorkspaceMember
 from app.services.conversation import ConversationService
 from app.services.notification import NotificationService
+from app.services.workspace_capability import WorkspaceCapability
+
+# Conversation notices may only reach people who can open the conversation.
+CONVERSATION_FOLLOW_UP = frozenset({WorkspaceCapability.CONVERSATION_READ})
 
 
 class ConversationAssignmentError(AppError):
@@ -49,10 +53,8 @@ class ConversationHandoffService:
         if actor_user_id:
             conversation.taken_over_by = actor_user_id
             conversation.taken_over_at = datetime.now(UTC)
-        recipients = (
-            [conversation.assigned_user_id]
-            if conversation.assigned_user_id
-            else await self.notifications.administrative_recipients(workspace_id)
+        recipients = await self.notifications.assignee_or_administrators(
+            workspace_id, conversation.assigned_user_id, CONVERSATION_FOLLOW_UP
         )
         await self.notifications.create_for_recipients(
             workspace_id,
@@ -78,6 +80,14 @@ class ConversationHandoffService:
         )
         if not member:
             raise ConversationAssignmentError()
+        # Refused before any change or notice: the assignee must be able to
+        # read the conversation they are given.
+        if not await self.notifications.may_follow_up(
+            workspace_id, assignee_id, CONVERSATION_FOLLOW_UP
+        ):
+            raise ConversationAssignmentError(
+                "Assignee needs the conversation.read permission"
+            )
         conversation = await self.conversations.get_conversation(
             workspace_id, conversation_id
         )

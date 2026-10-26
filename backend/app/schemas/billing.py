@@ -3,9 +3,14 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.billing import BillingInterval, EntitlementKind, SubscriptionStatus
+from app.models.billing import (
+    BillingAccountStatus,
+    BillingInterval,
+    EntitlementKind,
+    SubscriptionStatus,
+)
 
 
 class EntitlementResponse(BaseModel):
@@ -32,7 +37,8 @@ class PlanResponse(BaseModel):
 
 class SubscriptionResponse(BaseModel):
     id: uuid.UUID
-    workspace_id: uuid.UUID
+    billing_account_id: uuid.UUID
+    workspace_id: uuid.UUID | None
     plan: PlanResponse
     status: SubscriptionStatus
     billing_interval: BillingInterval
@@ -41,6 +47,24 @@ class SubscriptionResponse(BaseModel):
     trial_end: datetime | None
     cancel_at_period_end: bool
     provider: str | None
+    workspace_limit: int
+    allocated_workspaces: int
+
+
+class BillingAccountResponse(BaseModel):
+    id: uuid.UUID
+    owner_user_id: uuid.UUID
+    status: BillingAccountStatus
+    subscriptions: list[SubscriptionResponse]
+
+
+class SubscriptionCreateRequest(BaseModel):
+    plan_id: uuid.UUID
+
+
+class SubscriptionActivationRequest(BaseModel):
+    status: SubscriptionStatus = SubscriptionStatus.ACTIVE
+    reason: str | None = Field(default=None, max_length=500)
 
 
 class UsageResponse(BaseModel):

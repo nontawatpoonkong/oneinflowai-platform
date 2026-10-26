@@ -1,8 +1,10 @@
 """Workspace-scoped Hotel catalog, inventory, availability, and quote APIs."""
 
 import uuid
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Query, status
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
@@ -17,6 +19,7 @@ from app.schemas.booking import (
     BookingPaymentExceptionResponse,
     BookingPaymentReviewAcknowledge,
     BookingResponse,
+    ManualBookingQuoteRequest,
 )
 from app.schemas.hotel import (
     AvailabilitySearchRequest,
@@ -43,6 +46,10 @@ from app.services.booking_payment_reconciliation import (
     BookingPaymentReconciliationService,
 )
 from app.services.hotel import HotelAvailabilityService, HotelCatalogService
+from app.services.workspace_capability import (
+    WorkspaceCapability,
+    WorkspaceCapabilityService,
+)
 from app.workspace.dependencies import get_current_workspace
 
 router = APIRouter()
@@ -77,11 +84,17 @@ async def _admin(service, workspace, user):
     await service.require_admin(workspace.id, user.id)
 
 
+async def _capability(session, workspace, user, capability):
+    await WorkspaceCapabilityService(session).require(workspace.id, user.id, capability)
+
+
 @router.get("/properties")
 async def list_properties(
     workspace: Workspace = Depends(get_current_workspace),
+    user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ):
+    await _capability(session, workspace, user, WorkspaceCapability.ROOM_READ)
     values = await HotelCatalogService(session).list_properties(workspace.id)
     return success_response([_data(PropertyResponse, value) for value in values])
 
@@ -105,8 +118,10 @@ async def create_property(
 async def get_property(
     property_id: uuid.UUID,
     workspace: Workspace = Depends(get_current_workspace),
+    user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ):
+    await _capability(session, workspace, user, WorkspaceCapability.ROOM_READ)
     return success_response(
         _data(
             PropertyResponse,
@@ -137,8 +152,10 @@ async def update_property(
 async def list_room_types(
     property_id: uuid.UUID | None = None,
     workspace: Workspace = Depends(get_current_workspace),
+    user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ):
+    await _capability(session, workspace, user, WorkspaceCapability.ROOM_READ)
     values = await HotelCatalogService(session).list_room_types(
         workspace.id, property_id
     )
@@ -164,8 +181,10 @@ async def create_room_type(
 async def get_room_type(
     room_type_id: uuid.UUID,
     workspace: Workspace = Depends(get_current_workspace),
+    user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ):
+    await _capability(session, workspace, user, WorkspaceCapability.ROOM_READ)
     return success_response(
         _data(
             RoomTypeResponse,
@@ -199,8 +218,10 @@ async def list_rate_plans(
     property_id: uuid.UUID | None = None,
     room_type_id: uuid.UUID | None = None,
     workspace: Workspace = Depends(get_current_workspace),
+    user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ):
+    await _capability(session, workspace, user, WorkspaceCapability.ROOM_READ)
     values = await HotelCatalogService(session).list_rate_plans(
         workspace.id, property_id, room_type_id
     )
@@ -226,8 +247,10 @@ async def create_rate_plan(
 async def get_rate_plan(
     rate_plan_id: uuid.UUID,
     workspace: Workspace = Depends(get_current_workspace),
+    user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ):
+    await _capability(session, workspace, user, WorkspaceCapability.ROOM_READ)
     return success_response(
         _data(
             RatePlanResponse,
@@ -277,8 +300,10 @@ async def list_inventory(
     start_date: str = Query(...),
     end_date: str = Query(...),
     workspace: Workspace = Depends(get_current_workspace),
+    user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ):
+    await _capability(session, workspace, user, WorkspaceCapability.ROOM_READ)
     request = AvailabilitySearchRequest(
         property_id=property_id, check_in=start_date, check_out=end_date, adults=1
     )
@@ -294,8 +319,11 @@ async def list_inventory(
 async def search_availability(
     payload: AvailabilitySearchRequest,
     workspace: Workspace = Depends(get_current_workspace),
+    user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ):
+    # Read-only over the catalog, inventory and prices, like GET /inventory.
+    await _capability(session, workspace, user, WorkspaceCapability.ROOM_READ)
     data = await HotelAvailabilityService(session).search(workspace.id, payload)
     return success_response(data.model_dump(mode="json"))
 
@@ -304,8 +332,10 @@ async def search_availability(
 async def quote(
     payload: AvailabilitySearchRequest,
     workspace: Workspace = Depends(get_current_workspace),
+    user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ):
+    await _capability(session, workspace, user, WorkspaceCapability.ROOM_READ)
     data = await HotelAvailabilityService(session).quote(workspace.id, payload)
     return success_response(data.model_dump(mode="json"))
 
@@ -318,12 +348,26 @@ async def create_booking_hold(
     session: AsyncSession = Depends(get_db),
 ):
     service = BookingService(session)
-    await service.require_admin(workspace.id, user.id)
+    await _capability(session, workspace, user, WorkspaceCapability.BOOKING_CREATE)
+    await _capability(session, workspace, user, WorkspaceCapability.ROOM_READ)
     booking = await service.create_hold(workspace.id, user.id, payload)
     return success_response(
         _data(BookingResponse, await service.detail(workspace.id, booking.id)),
         "Booking hold created",
     )
+
+
+@router.post("/bookings/manual-quote")
+async def manual_booking_quote(
+    payload: ManualBookingQuoteRequest,
+    workspace: Workspace = Depends(get_current_workspace),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+):
+    await _capability(session, workspace, user, WorkspaceCapability.BOOKING_CREATE)
+    await _capability(session, workspace, user, WorkspaceCapability.ROOM_READ)
+    data = await BookingService(session).manual_quote(workspace.id, payload)
+    return success_response(jsonable_encoder(data, custom_encoder={Decimal: str}))
 
 
 @router.post("/bookings/draft", status_code=status.HTTP_201_CREATED)
@@ -334,7 +378,7 @@ async def create_booking_draft(
     session: AsyncSession = Depends(get_db),
 ):
     service = BookingService(session)
-    await service.require_admin(workspace.id, user.id)
+    await _capability(session, workspace, user, WorkspaceCapability.BOOKING_CREATE)
     booking = await service.create_draft(workspace.id, user.id, payload)
     return success_response(
         _data(BookingResponse, await service.detail(workspace.id, booking.id)),
@@ -349,7 +393,7 @@ async def list_bookings(
     session: AsyncSession = Depends(get_db),
 ):
     service = BookingService(session)
-    await service.require_admin(workspace.id, user.id)
+    await _capability(session, workspace, user, WorkspaceCapability.BOOKING_READ)
     bookings = await service.list(workspace.id)
     return success_response(
         [
@@ -365,8 +409,12 @@ async def list_booking_payment_exceptions(
     application_status: PaymentApplicationStatus | None = None,
     limit: int = Query(default=100, ge=1, le=100),
     workspace: Workspace = Depends(get_current_workspace),
+    user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ):
+    # Payment exception data (amounts, customer links, review notes) needs
+    # payment.read; Workspace membership alone is not sufficient.
+    await _capability(session, workspace, user, WorkspaceCapability.PAYMENT_READ)
     rows = await BookingPaymentReconciliationService(session).list_exceptions(
         workspace.id,
         reason=reason,
@@ -431,7 +479,7 @@ async def get_booking(
     session: AsyncSession = Depends(get_db),
 ):
     service = BookingService(session)
-    await service.require_admin(workspace.id, user.id)
+    await _capability(session, workspace, user, WorkspaceCapability.BOOKING_READ)
     return success_response(
         _data(BookingResponse, await service.detail(workspace.id, booking_id))
     )
@@ -445,7 +493,7 @@ async def cancel_booking(
     session: AsyncSession = Depends(get_db),
 ):
     service = BookingService(session)
-    await service.require_admin(workspace.id, user.id)
+    await _capability(session, workspace, user, WorkspaceCapability.BOOKING_CANCEL)
     await service.cancel(workspace.id, user.id, booking_id)
     return success_response(
         _data(BookingResponse, await service.detail(workspace.id, booking_id))

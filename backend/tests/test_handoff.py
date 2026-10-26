@@ -6,7 +6,8 @@ from app.models.workspace_member import WorkspaceRole
 from tests.conftest import register_verify_and_login
 from tests.test_conversation import _create_conversation, _create_customer
 from tests.test_webchat_ai import _install_fake_grounded, _send, _session, _workspace
-from tests.test_workspace_management import _add_member
+from tests.test_workspace_access import _add_member as _add_membership
+from tests.test_workspace_access import _headers
 
 
 def _setup(client: TestClient, email: str):
@@ -38,7 +39,17 @@ def test_manual_handoff_self_assign_reassign_and_return_to_ai(client_db: TestCli
     assert self_assigned.json()["data"]["assigned_user_id"] == owner["user"]["id"]
 
     member, _ = register_verify_and_login(client_db, email="handoff-member@example.com")
-    _add_member(owner["workspace"]["id"], member["user"]["id"], WorkspaceRole.MEMBER)
+    membership_id = _add_membership(
+        owner["workspace"]["id"], member["user"]["id"], WorkspaceRole.MEMBER
+    )
+    # Assignees must be able to read the conversation they are given.
+    granted = client_db.put(
+        f"/api/v1/workspaces/{owner['workspace']['id']}/members/{membership_id}"
+        "/capabilities",
+        headers=_headers(headers["Authorization"].removeprefix("Bearer ")),
+        json={"capabilities": ["conversation.read"]},
+    )
+    assert granted.status_code == 200, granted.text
     reassigned = client_db.post(
         f"/api/v1/conversations/{conversation['id']}/assign",
         headers=headers,
@@ -115,9 +126,9 @@ def test_webchat_explicit_handoff_is_idempotent_and_stops_ai(
     later = _send(client_db, webchat, "handoff-2", "normal question")
     assert later.json()["data"]["assistant"]["type"] == "HUMAN_MODE"
     assert grounded.calls == 0
-    notifications = client_db.get(
-        "/api/v1/notifications", headers=headers
-    ).json()["data"]["items"]
+    notifications = client_db.get("/api/v1/notifications", headers=headers).json()[
+        "data"
+    ]["items"]
     handoffs = [
         item for item in notifications if item["type"] == "CONVERSATION_HANDOFF"
     ]

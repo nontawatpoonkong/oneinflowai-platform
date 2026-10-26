@@ -5,6 +5,7 @@ import uuid
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.action.router import require_link_access
 from app.auth.dependencies import get_current_user
 from app.database.session import get_db
 from app.integrations.action_extraction import create_action_field_extraction_provider
@@ -20,9 +21,34 @@ from app.schemas.action_collection import (
 )
 from app.schemas.response import success_response
 from app.services.action_collection import ActionCollectionService
-from app.workspace.dependencies import get_current_workspace
+from app.services.workspace_capability import (
+    WorkspaceCapability,
+    WorkspaceCapabilityService,
+)
+from app.workspace.dependencies import require_workspace_capability
 
 router = APIRouter()
+
+_action_read = require_workspace_capability(WorkspaceCapability.ACTION_READ)
+_action_operate = require_workspace_capability(WorkspaceCapability.ACTION_OPERATE)
+
+
+async def _collection_operator(
+    workspace: Workspace = Depends(_action_operate),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> Workspace:
+    """Collection changes need action.operate and action.read.
+
+    Every change returns the collected guest data and the confirmation summary
+    that staff must review before confirming, so operators must also be allowed
+    to read them. Both checks run before any provider call or write.
+    """
+
+    await WorkspaceCapabilityService(session).require(
+        workspace.id, user.id, WorkspaceCapability.ACTION_READ
+    )
+    return workspace
 
 
 def _service(session):
@@ -52,9 +78,18 @@ def _result(service, collection, definition, *, token=None, action=None):
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_collection(
     payload: ActionCollectionCreate,
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_collection_operator),
+    user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ):
+    _, capabilities = await WorkspaceCapabilityService(session).effective(
+        workspace.id, user.id
+    )
+    require_link_access(
+        capabilities,
+        customer_id=payload.customer_id,
+        conversation_id=payload.conversation_id,
+    )
     service = _service(session)
     collection, definition, token = await service.create(workspace.id, payload)
     return success_response(
@@ -67,7 +102,7 @@ async def create_collection(
 async def add_collection_input(
     collection_id: uuid.UUID,
     payload: ActionCollectionInput,
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_collection_operator),
     session: AsyncSession = Depends(get_db),
 ):
     service = _service(session)
@@ -80,7 +115,7 @@ async def add_collection_input(
 @router.get("/{collection_id}")
 async def get_collection(
     collection_id: uuid.UUID,
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_action_read),
     session: AsyncSession = Depends(get_db),
 ):
     service = _service(session)
@@ -92,7 +127,7 @@ async def get_collection(
 async def confirm_collection(
     collection_id: uuid.UUID,
     payload: ActionCollectionConfirm,
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_collection_operator),
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ):
@@ -109,7 +144,7 @@ async def confirm_collection(
 @router.post("/{collection_id}/cancel")
 async def cancel_collection(
     collection_id: uuid.UUID,
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_collection_operator),
     session: AsyncSession = Depends(get_db),
 ):
     service = _service(session)

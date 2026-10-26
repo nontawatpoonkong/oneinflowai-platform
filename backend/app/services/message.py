@@ -16,6 +16,7 @@ from app.repositories.conversation import ConversationRepository
 from app.repositories.message import MessageRepository
 from app.schemas.message import MessageCreate
 from app.services.notification import NotificationService
+from app.services.workspace_capability import WorkspaceCapability
 
 
 class MessageService:
@@ -62,10 +63,10 @@ class MessageService:
         if data.sender_type is SenderType.CUSTOMER:
             conversation.needs_attention = True
             notifications = NotificationService(self.session)
-            recipients = (
-                [conversation.assigned_user_id]
-                if conversation.assigned_user_id
-                else await notifications.administrative_recipients(workspace_id)
+            recipients = await notifications.assignee_or_administrators(
+                workspace_id,
+                conversation.assigned_user_id,
+                frozenset({WorkspaceCapability.CONVERSATION_READ}),
             )
             await notifications.create_for_recipients(
                 workspace_id,

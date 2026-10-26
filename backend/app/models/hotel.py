@@ -54,6 +54,9 @@ class RoomType(UUIDMixin, TimestampMixin, Base):
         UniqueConstraint(
             "workspace_id", "property_id", "id", name="uq_hotel_room_type_scope"
         ),
+        UniqueConstraint(
+            "workspace_id", "id", name="uq_hotel_room_type_workspace_id"
+        ),
         CheckConstraint("max_adults > 0", name="ck_hotel_room_type_adults"),
         CheckConstraint("max_children >= 0", name="ck_hotel_room_type_children"),
         CheckConstraint("max_occupancy > 0", name="ck_hotel_room_type_occupancy"),
@@ -66,17 +69,43 @@ class RoomType(UUIDMixin, TimestampMixin, Base):
             "base_capacity <= max_occupancy",
             name="ck_hotel_room_type_base_capacity",
         ),
+        CheckConstraint(
+            "room_size_sqm IS NULL OR room_size_sqm > 0",
+            name="ck_hotel_room_type_size",
+        ),
+        CheckConstraint(
+            "view_type IN ('CITY','GARDEN','POOL','MOUNTAIN','SEA','RIVER',"
+            "'COURTYARD','NO_SPECIAL_VIEW','CUSTOM')",
+            name="ck_hotel_room_type_view",
+        ),
+        CheckConstraint(
+            "smoking_policy IN ('NON_SMOKING','SMOKING_ALLOWED','DESIGNATED_ONLY')",
+            name="ck_hotel_room_type_smoking",
+        ),
     )
 
     workspace_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), index=True)
     property_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), index=True)
     code: Mapped[str] = mapped_column(String(64))
     name: Mapped[str] = mapped_column(String(255))
+    short_description: Mapped[str | None] = mapped_column(String(500), nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    room_size_sqm: Mapped[Decimal | None] = mapped_column(Numeric(7, 2), nullable=True)
     max_adults: Mapped[int] = mapped_column(Integer)
     max_children: Mapped[int] = mapped_column(Integer, default=0)
     max_occupancy: Mapped[int] = mapped_column(Integer)
     base_capacity: Mapped[int] = mapped_column(Integer)
+    smoking_policy: Mapped[str] = mapped_column(
+        String(24), default="NON_SMOKING", server_default="NON_SMOKING"
+    )
+    accessibility_available: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false"
+    )
+    public_highlights: Mapped[str | None] = mapped_column(Text, nullable=True)
+    view_type: Mapped[str] = mapped_column(
+        String(24), default="NO_SPECIAL_VIEW", server_default="NO_SPECIAL_VIEW"
+    )
+    custom_view_label: Mapped[str | None] = mapped_column(String(120), nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
 
 
@@ -100,6 +129,9 @@ class RatePlan(UUIDMixin, TimestampMixin, Base):
             "room_type_id",
             "id",
             name="uq_hotel_rate_plan_scope",
+        ),
+        UniqueConstraint(
+            "workspace_id", "id", name="uq_hotel_rate_plan_workspace_id"
         ),
         CheckConstraint("base_price >= 0", name="ck_hotel_rate_plan_base_price"),
     )

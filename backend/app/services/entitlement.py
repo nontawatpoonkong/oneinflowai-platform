@@ -5,7 +5,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,9 +22,11 @@ from app.models.billing import (
     SaaSPlan,
     SaaSUsageRecord,
     SubscriptionStatus,
+    SubscriptionWorkspaceAllocation,
     WorkspaceSubscription,
 )
 from app.models.knowledge_document import KnowledgeDocument, KnowledgeDocumentStatus
+from app.models.workspace import Workspace
 from app.models.workspace_member import WorkspaceMember
 
 TEAM_MEMBERS = "team.members"
@@ -67,8 +69,8 @@ class EntitlementService:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def provision_reference_subscription(self, workspace_id: uuid.UUID) -> None:
-        """Development/reference bootstrap; pricing and limits remain data rows."""
+    async def ensure_reference_catalog(self) -> uuid.UUID:
+        """Ensure deterministic reference plan data for tests/development."""
         plan_id = uuid.UUID("92000000-0000-4000-8000-000000000001")
         await self.session.execute(
             insert(SaaSPlan)
@@ -98,36 +100,58 @@ class EntitlementService:
                 )
                 .on_conflict_do_nothing(constraint="uq_plan_entitlement_key")
             )
+        return plan_id
+
+    async def provision_reference_subscription(self, workspace_id: uuid.UUID) -> None:
+        """Test/development bootstrap for an already-created legacy Workspace."""
+        plan_id = await self.ensure_reference_catalog()
+        existing = await self.latest_subscription(workspace_id)
+        if existing is not None:
+            return
+        workspace = await self.session.get(Workspace, workspace_id)
+        if workspace is None:
+            return
+        from app.services.account_billing import AccountBillingService
+
+        account = await AccountBillingService(self.session).get_or_create_account(
+            workspace.owner_id
+        )
         now = datetime.now(UTC)
-        await self.session.execute(
-            insert(WorkspaceSubscription)
-            .values(
-                id=uuid.uuid4(),
+        subscription = WorkspaceSubscription(
+            billing_account_id=account.id,
+            workspace_id=workspace_id,
+            plan_id=plan_id,
+            status=SubscriptionStatus.ACTIVE,
+            billing_interval=BillingInterval.MONTH,
+            current_period_start=now,
+            current_period_end=now + timedelta(days=30),
+            provider="development",
+            workspace_limit=1,
+        )
+        self.session.add(subscription)
+        await self.session.flush()
+        self.session.add(
+            SubscriptionWorkspaceAllocation(
+                subscription_id=subscription.id,
                 workspace_id=workspace_id,
-                plan_id=plan_id,
-                status=SubscriptionStatus.ACTIVE,
-                billing_interval=BillingInterval.MONTH,
-                current_period_start=now,
-                current_period_end=now + timedelta(days=30),
-                provider="development",
-            )
-            .on_conflict_do_nothing(
-                index_elements=["workspace_id"],
-                index_where=WorkspaceSubscription.status.in_(
-                    [
-                        SubscriptionStatus.TRIALING,
-                        SubscriptionStatus.ACTIVE,
-                        SubscriptionStatus.PAST_DUE,
-                    ]
-                ),
+                allocated_by_user_id=workspace.owner_id,
             )
         )
+        await self.session.flush()
 
     async def current_subscription(self, workspace_id: uuid.UUID):
         return await self.session.scalar(
             select(WorkspaceSubscription)
+            .outerjoin(
+                SubscriptionWorkspaceAllocation,
+                SubscriptionWorkspaceAllocation.subscription_id
+                == WorkspaceSubscription.id,
+            )
             .where(
-                WorkspaceSubscription.workspace_id == workspace_id,
+                or_(
+                    SubscriptionWorkspaceAllocation.workspace_id == workspace_id,
+                    WorkspaceSubscription.workspace_id == workspace_id,
+                ),
                 WorkspaceSubscription.status.in_(
                     [
                         SubscriptionStatus.TRIALING,
@@ -142,7 +166,17 @@ class EntitlementService:
     async def latest_subscription(self, workspace_id: uuid.UUID):
         return await self.session.scalar(
             select(WorkspaceSubscription)
-            .where(WorkspaceSubscription.workspace_id == workspace_id)
+            .outerjoin(
+                SubscriptionWorkspaceAllocation,
+                SubscriptionWorkspaceAllocation.subscription_id
+                == WorkspaceSubscription.id,
+            )
+            .where(
+                or_(
+                    SubscriptionWorkspaceAllocation.workspace_id == workspace_id,
+                    WorkspaceSubscription.workspace_id == workspace_id,
+                )
+            )
             .order_by(WorkspaceSubscription.created_at.desc())
             .limit(1)
         )

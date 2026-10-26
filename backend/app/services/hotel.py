@@ -8,10 +8,10 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import AppError, NotFoundError, WorkspaceAccessDeniedError
+from app.core.exceptions import AppError, NotFoundError
+from app.models.audit import AuditActorType, AuditArea
 from app.models.booking import Booking, BookingItem, BookingStatus
 from app.models.hotel import InventoryDate, Property, RatePlan, RoomType
-from app.models.workspace_member import WorkspaceMember, WorkspaceRole
 from app.repositories.hotel import (
     InventoryRepository,
     PropertyRepository,
@@ -30,6 +30,11 @@ from app.schemas.hotel import (
     RoomAvailabilityResult,
     RoomTypeCreate,
     RoomTypeUpdate,
+)
+from app.services.audit import AuditService, current_actor_user_id
+from app.services.workspace_capability import (
+    WorkspaceCapability,
+    WorkspaceCapabilityService,
 )
 
 
@@ -54,20 +59,15 @@ class HotelCatalogService:
         self.inventory = InventoryRepository(session)
 
     async def require_admin(self, workspace_id, user_id) -> None:
-        role = await self.session.scalar(
-            select(WorkspaceMember.role).where(
-                WorkspaceMember.workspace_id == workspace_id,
-                WorkspaceMember.user_id == user_id,
-            )
+        await WorkspaceCapabilityService(self.session).require(
+            workspace_id, user_id, WorkspaceCapability.ROOM_MANAGE
         )
-        if role not in {WorkspaceRole.OWNER, WorkspaceRole.ADMIN}:
-            raise WorkspaceAccessDeniedError(
-                "Only workspace owners and admins can manage Hotel data"
-            )
 
     async def create_property(self, workspace_id, data: PropertyCreate):
         value = Property(workspace_id=workspace_id, **data.model_dump())
         self.session.add(value)
+        await self.session.flush()
+        self._audit(workspace_id, "PROPERTY_CREATED", "Property", value.id)
         await self.session.commit()
         await self.session.refresh(value)
         return value
@@ -85,6 +85,13 @@ class HotelCatalogService:
         value = await self.get_property(workspace_id, property_id)
         for key, item in data.model_dump(exclude_unset=True).items():
             setattr(value, key, item)
+        self._audit(
+            workspace_id,
+            "PROPERTY_UPDATED",
+            "Property",
+            value.id,
+            {"changed_fields": sorted(data.model_fields_set)},
+        )
         await self.session.commit()
         await self.session.refresh(value)
         return value
@@ -101,6 +108,8 @@ class HotelCatalogService:
         value = RoomType(workspace_id=workspace_id, **data.model_dump())
         self.session.add(value)
         try:
+            await self.session.flush()
+            self._audit(workspace_id, "ROOM_TYPE_CREATED", "RoomType", value.id)
             await self.session.commit()
         except IntegrityError as exc:
             await self.session.rollback()
@@ -124,18 +133,37 @@ class HotelCatalogService:
     async def update_room_type(self, workspace_id, room_type_id, data: RoomTypeUpdate):
         value = await self.get_room_type(workspace_id, room_type_id)
         changes = data.model_dump(exclude_unset=True)
+        if changes.get("view_type") not in {None, "CUSTOM"}:
+            changes.setdefault("custom_view_label", None)
         state = {
             "max_adults": changes.get("max_adults", value.max_adults),
             "max_children": changes.get("max_children", value.max_children),
             "max_occupancy": changes.get("max_occupancy", value.max_occupancy),
             "base_capacity": changes.get("base_capacity", value.base_capacity),
+            "view_type": changes.get("view_type", value.view_type),
+            "custom_view_label": changes.get(
+                "custom_view_label", value.custom_view_label
+            ),
         }
         if state["max_occupancy"] < state["max_adults"]:
             raise HotelValidationError("max_occupancy must be at least max_adults")
         if state["base_capacity"] > state["max_occupancy"]:
             raise HotelValidationError("base_capacity cannot exceed max_occupancy")
+        if state["view_type"] == "CUSTOM" and not state["custom_view_label"]:
+            raise HotelValidationError("custom_view_label is required for CUSTOM view")
+        if state["view_type"] != "CUSTOM" and state["custom_view_label"] is not None:
+            raise HotelValidationError(
+                "custom_view_label is only valid for CUSTOM view"
+            )
         for key, item in changes.items():
             setattr(value, key, item)
+        self._audit(
+            workspace_id,
+            "ROOM_TYPE_UPDATED",
+            "RoomType",
+            value.id,
+            {"changed_fields": sorted(changes)},
+        )
         await self.session.commit()
         await self.session.refresh(value)
         return value
@@ -242,6 +270,17 @@ class HotelCatalogService:
             value.blocked_units = data.blocked_units
             values.append(value)
             day += timedelta(days=1)
+        self._audit(
+            workspace_id,
+            "INVENTORY_UPDATED",
+            "RoomType",
+            room_type.id,
+            {
+                "start_date": data.start_date.isoformat(),
+                "end_date": data.end_date.isoformat(),
+                "days": len(values),
+            },
+        )
         try:
             await self.session.commit()
         except IntegrityError as exc:
@@ -250,6 +289,18 @@ class HotelCatalogService:
         for value in values:
             await self.session.refresh(value)
         return values
+
+    def _audit(self, workspace_id, action, resource_type, resource_id, metadata=None):
+        AuditService(self.session).record(
+            workspace_id=workspace_id,
+            actor_user_id=current_actor_user_id(),
+            actor_type=AuditActorType.USER,
+            action=action,
+            area=AuditArea.ROOMS,
+            resource_type=resource_type,
+            resource_id=resource_id,
+            metadata=metadata,
+        )
 
 
 class HotelAvailabilityService:

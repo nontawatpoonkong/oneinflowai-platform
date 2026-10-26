@@ -13,6 +13,7 @@ class UserResponse(BaseModel):
     email: EmailStr
     full_name: str | None
     is_active: bool
+    is_platform_admin: bool
     email_verified: bool
     email_verified_at: datetime | None
     created_at: datetime

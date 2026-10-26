@@ -197,19 +197,31 @@ class Customer360Response(BaseModel):
     payments: list[PaymentSummary]
     payment_exceptions: list[PaymentExceptionSummary]
     stays: list[StaySummary]
-    repeat_guest_summary: RepeatGuestSummary
+    # None when the caller lacks booking.read (the summary is booking-derived).
+    repeat_guest_summary: RepeatGuestSummary | None
+    # A False flag means the caller lacks that section's capability: its list
+    # is then empty because it was never loaded, not because none exist.
+    # bookings: booking.read, stays: stay.read, conversations:
+    # conversation.read, payments: payment.read.
+    bookings_visible: bool = True
+    stays_visible: bool = True
+    conversations_visible: bool = True
+    payments_visible: bool = True
 
 
 class CustomerListItem(BaseModel):
     customer: CRMCustomer
     tags: list[CustomerTagResponse]
-    booking_count: int
-    confirmed_bookings: int
-    repeat_guest: bool
+    # Booking-derived; None when the caller lacks booking.read.
+    booking_count: int | None
+    confirmed_bookings: int | None
+    repeat_guest: bool | None
     latest_booking_status: BookingStatus | None
-    has_payment_exception: bool
+    # None when the caller lacks payment.read.
+    has_payment_exception: bool | None
+    # Conversation-derived; None when the caller lacks conversation.read.
     last_conversation_at: datetime | None
-    needs_attention: bool
+    needs_attention: bool | None
 
 
 class CustomerListResponse(BaseModel):
@@ -218,6 +230,9 @@ class CustomerListResponse(BaseModel):
     page: int
     page_size: int
     total_pages: int
+    bookings_visible: bool = True
+    conversations_visible: bool = True
+    payments_visible: bool = True
 
 
 class TimelineEvent(BaseModel):
@@ -236,3 +251,7 @@ class TimelineResponse(BaseModel):
     page: int
     page_size: int
     total_pages: int
+    bookings_visible: bool = True
+    stays_visible: bool = True
+    conversations_visible: bool = True
+    payments_visible: bool = True

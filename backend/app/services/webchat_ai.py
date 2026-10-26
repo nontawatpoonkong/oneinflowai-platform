@@ -613,7 +613,9 @@ class WebChatAIOrchestrator:
             "ai_tool_action_id": data.get("ai_tool_action_id"),
             "ai_tool_name": data.get("ai_tool_name"),
             "ai_tool_status": data.get("ai_tool_status"),
-            "ai_tool_result": data.get("ai_tool_result"),
+            # The structured result stays on the AI tool action, where staff
+            # access follows the result's own capability; replays rebuild it
+            # from there. Only the id is stored with the message.
             "confirmation_expires_at": data.get("confirmation_expires_at"),
         }
         return await self.message_service.create_message(
@@ -655,7 +657,6 @@ class WebChatAIOrchestrator:
                             "ai_tool_action_id": data.get("ai_tool_action_id"),
                             "ai_tool_name": data.get("ai_tool_name"),
                             "ai_tool_status": data.get("ai_tool_status"),
-                            "ai_tool_result": data.get("ai_tool_result"),
                         },
                         external_message_id=external_id,
                     ),

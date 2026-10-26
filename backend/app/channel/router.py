@@ -27,9 +27,15 @@ from app.services.channel_ingestion import (
     ChannelInboundUnavailableError,
     ChannelMessageIngestionService,
 )
-from app.workspace.dependencies import get_current_workspace
+from app.services.workspace_capability import WorkspaceCapability
+from app.services.workspace_lifecycle import require_workspace_active
+from app.workspace.dependencies import require_workspace_capability
 
 router = APIRouter()
+
+_channel_manage = require_workspace_capability(
+    WorkspaceCapability.WORKSPACE_SETTINGS_MANAGE
+)
 
 
 class InvalidWebhookError(AppError):
@@ -44,7 +50,7 @@ def _data(item):
 
 @router.get("")
 async def list_connections(
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_channel_manage),
     session: AsyncSession = Depends(get_db),
 ):
     items = await ChannelConnectionService(session).list(workspace.id)
@@ -54,7 +60,7 @@ async def list_connections(
 @router.get("/connections/{connection_id}")
 async def get_connection(
     connection_id: uuid.UUID,
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_channel_manage),
     session: AsyncSession = Depends(get_db),
 ):
     return success_response(
@@ -65,7 +71,7 @@ async def get_connection(
 @router.post("/line", status_code=status.HTTP_201_CREATED)
 async def create_line(
     payload: LineConnectionCreate,
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_channel_manage),
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ):
@@ -86,7 +92,7 @@ async def create_line(
 
 @router.post("/webchat")
 async def connect_webchat(
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_channel_manage),
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ):
@@ -97,7 +103,7 @@ async def connect_webchat(
 @router.post("/facebook", status_code=status.HTTP_201_CREATED)
 async def create_facebook(
     payload: FacebookConnectionCreate,
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_channel_manage),
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ):
@@ -120,7 +126,7 @@ async def create_facebook(
 @router.delete("/connections/{connection_id}")
 async def disconnect(
     connection_id: uuid.UUID,
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_channel_manage),
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ):
@@ -143,6 +149,7 @@ async def _body(request: Request) -> bytes:
 async def _process(connection_id, body, signature, request, session, provider_cls):
     connections = ChannelConnectionService(session)
     connection = await connections.get_public(connection_id)
+    await require_workspace_active(session, connection.workspace_id)
     if connection.status is not ChannelConnectionStatus.CONNECTED:
         raise AuthenticationError("Channel connection is inactive")
     provider = provider_cls(
@@ -195,6 +202,7 @@ async def facebook_verify(
 ):
     connections = ChannelConnectionService(session)
     connection = await connections.get_public(connection_id)
+    await require_workspace_active(session, connection.workspace_id)
     provider = FacebookMessengerChannelProvider(
         connections.credentials(connection),
         timeout=get_settings().CHANNEL_PROVIDER_TIMEOUT_SECONDS,
