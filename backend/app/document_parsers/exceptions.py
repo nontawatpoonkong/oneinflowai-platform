@@ -29,6 +29,10 @@ class PageLimitExceededError(DocumentExtractionError):
     """The PDF declares more pages than the configured maximum."""
 
 
+class ArchiveExpansionLimitError(DocumentExtractionError):
+    """The DOCX archive declares more inflated content than allowed."""
+
+
 class ParseTimeoutError(DocumentExtractionError):
     """Parsing ran past its deadline and the parser process was stopped."""
 

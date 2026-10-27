@@ -112,9 +112,12 @@ def test_startup_warns_about_default_secrets_by_name_only(caplog, monkeypatch) -
     warned = [
         record.setting
         for record in caplog.records
-        if record.getMessage() == "config.insecure_secret"
+        if record.getMessage().startswith("config.insecure_secret")
     ]
     assert warned == ["JWT_SECRET_KEY", "WEBCHAT_METADATA_HASH_SECRET"]
+    # The console formatter drops `extra`, so the name must be in the message.
+    assert "setting=JWT_SECRET_KEY" in caplog.text
+    assert "setting=WEBCHAT_METADATA_HASH_SECRET" in caplog.text
     assert _JWT_DEFAULT not in caplog.text
     assert _WEBCHAT_DEFAULT not in caplog.text
 

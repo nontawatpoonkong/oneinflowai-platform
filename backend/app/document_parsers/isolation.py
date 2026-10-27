@@ -1,12 +1,13 @@
 """Run document extraction in a child process that can be stopped.
 
-A thread running pypdf cannot be interrupted: cancelling the awaiting task
-leaves the parse consuming CPU and memory until it ends on its own. Each
-isolated extraction therefore runs in its own spawned process. The parent
+A thread running pypdf or python-docx cannot be interrupted: cancelling the
+awaiting task leaves the parse consuming CPU and memory until it ends on its
+own. Every extraction therefore runs in its own spawned process. The parent
 waits up to the deadline for a result and kills the child otherwise, so a
-hostile PDF costs at most `timeout_seconds` of one CPU. On Linux the child
-also caps its own address space and CPU time; Windows has no equivalent in
-the standard library, so only the wall-clock deadline applies there.
+hostile document costs at most `timeout_seconds` of one CPU. On Linux the
+child also caps its own address space and CPU time; Windows has no
+equivalent in the standard library, so only the wall-clock deadline and the
+parsers' own input limits (PDF pages, inflated DOCX size) apply there.
 
 The child receives the bytes and limits as arguments and never reads
 settings, the database, or storage. It reports failures by exception class
@@ -42,6 +43,7 @@ _RAW_CHARACTER_HEADROOM = 2
 class ParseLimits:
     maximum_characters: int
     maximum_pages: int
+    maximum_docx_uncompressed_bytes: int
     timeout_seconds: float
     memory_limit_bytes: int
 
@@ -114,7 +116,9 @@ def _child_main(
                     character_ceiling=limits.maximum_characters
                     * _RAW_CHARACTER_HEADROOM,
                 ),
-                DocxDocumentParser(),
+                DocxDocumentParser(
+                    maximum_uncompressed_bytes=limits.maximum_docx_uncompressed_bytes
+                ),
                 MarkdownDocumentParser(),
                 TextDocumentParser(),
             )

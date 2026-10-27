@@ -45,6 +45,8 @@ from app.services.hotel import (
 )
 from app.storage import StorageProvider, create_storage_provider
 
+ROOM_IMAGE_MAX_BYTES = 10 * 1024 * 1024
+
 _AMENITIES: dict[str, tuple[str, str, str, str]] = {}
 
 
@@ -448,7 +450,7 @@ class RichHotelCatalogService:
         await self.catalog.get_room_type(workspace_id, room_type_id)
         if mime_type not in {"image/jpeg", "image/png", "image/webp"}:
             raise HotelValidationError("Only JPEG, PNG, and WebP images are supported")
-        if not data or len(data) > 10 * 1024 * 1024:
+        if not data or len(data) > ROOM_IMAGE_MAX_BYTES:
             raise HotelValidationError("Room image must be between 1 byte and 10 MB")
         signatures = {
             "image/jpeg": data.startswith(b"\xff\xd8\xff"),
