@@ -34,7 +34,21 @@ ActionDefinition management authorization:
 - `GET|PUT /workspaces/{workspace_id}/ai-instructions` (members may read;
   owner/admin may update)
 - `PATCH /workspaces/{workspace_id}`
+- `GET /workspaces/current/access`, `GET /workspaces/capabilities`
+- `GET /workspaces/{workspace_id}/access-requests`
+- `POST /workspaces/{workspace_id}/access-requests/{request_id}/approve|reject`
+- `PATCH|DELETE /workspaces/{workspace_id}/members/{membership_id}`
+- `PUT /workspaces/{workspace_id}/members/{membership_id}/capabilities`
+- `GET|PATCH /workspaces/{workspace_id}/join-settings`
+- `POST /workspaces/{workspace_id}/join-code/regenerate`
+- `POST /workspace-access/resolve-code`, `POST /workspace-access/requests`
+- `GET /workspace-access/my-requests`
+- `POST /workspace-access/requests/{request_id}/cancel`
 - `GET|POST /customers`, `GET|PATCH|DELETE /customers/{customer_id}`
+
+Join-code resolution is authenticated and rate-limited, returns minimal
+Workspace identity, and never creates membership. Approval atomically creates
+membership plus validated code-defined capability grants.
 
 ## Conversations and messages
 
@@ -107,6 +121,18 @@ half-open range `[start, end)`, and is restricted to entitled Workspace
 owners/admins. Responses contain typed aggregates only and no customer content
 or payment evidence.
 
+`POST /analytics/events` accepts only authenticated, controlled `PAGE_VIEW`
+telemetry. Workspace and user identity come from server context, the route must
+be a normalized dashboard path, session/navigation identifiers are UUIDs, and
+arbitrary properties are rejected.
+
+## Audit
+
+`GET /audit/events` and `GET /audit/events/{id}` require `audit.read`, apply the
+trusted Workspace context, and return safe metadata only. List filters are
+bounded and ordering is stable. There is no public create, edit, or delete audit
+endpoint.
+
 - `POST|GET /payments/destinations`
 - `PATCH /payments/destinations/{destination_id}`
 - `POST|GET /payments`, `GET /payments/{payment_id}`
@@ -143,3 +169,34 @@ Billing endpoints are authenticated and scoped to the current Workspace:
 `/billing/usage`. There is no public mutation, checkout, or self-upgrade API.
 Quota failures use `ENTITLEMENT_QUOTA_EXCEEDED`; unavailable subscriptions and
 capabilities use structured subscription/entitlement errors.
+
+## Rich Hotel catalog API
+
+Catalog endpoints live under `/api/v1/hotel/catalog`: reads require
+`room.read`, while mutations require `room.manage`. The bounded calendar is
+`GET /api/v1/hotel/availability-calendar?property_id=...&start_date=...&days=7|14|30`.
+Each cell returns total, reserved, blocked, available, used, ratio, semantic
+color bucket, inventory presence, and LOCAL/PMS authority. Clients must not
+independently recalculate those critical values.
+
+## Promotion API
+
+Promotion administration and validation live under `/api/v1/promotions`.
+Reads require `promotion.read`; mutations and lifecycle actions require
+`promotion.manage`. `POST /validate` returns a deterministic result and safe
+reason code, but is only a preview: Booking Hold always revalidates using
+server-derived price, catalog, customer, Workspace, and source context.
+
+Campaigns use explicit activate/pause/archive actions. Codes use explicit
+disable/archive actions and are never hard-deleted after use. Public responses
+contain no internal exception detail.
+
+## Platform Administration API
+
+All `/api/v1/platform/*` endpoints require `User.is_platform_admin`; Workspace
+roles and `X-Workspace-ID` do not grant or choose platform query scope. Global
+Users, Workspaces, subscriptions, campaigns, codes, attribution, and audit use
+server pagination capped at 100. High-impact POST actions require `confirmed:
+true` and a bounded reason. The API exposes no generic PATCH/DELETE, arbitrary
+database search, impersonation, credentials, prompts, payment evidence, or
+audit mutation endpoint.

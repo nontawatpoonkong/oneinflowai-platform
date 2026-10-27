@@ -104,7 +104,17 @@ class ActionCollectionService:
         return collection, definition, token
 
     async def get(self, workspace_id, session_id):
-        collection = await self._get_active(workspace_id, session_id)
+        # Reads never write: an overdue session is reported as expired here,
+        # and the next locked change (input, confirm, cancel) persists EXPIRED.
+        collection = await self.collections.get(workspace_id, session_id)
+        if not collection:
+            raise ActionCollectionNotFoundError()
+        if collection.status is ActionCollectionStatus.EXPIRED or (
+            collection.status
+            not in {ActionCollectionStatus.CONFIRMED, ActionCollectionStatus.CANCELLED}
+            and collection.expires_at <= datetime.now(UTC)
+        ):
+            raise ActionCollectionStateError("Action collection session has expired")
         definition = await self._definition(
             workspace_id, collection.action_definition_id
         )

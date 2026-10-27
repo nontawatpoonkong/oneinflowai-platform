@@ -1,6 +1,7 @@
 import axios, { type AxiosResponse } from "axios";
 
 import { clearToken, getToken } from "@/services/auth/token";
+import { getActiveWorkspaceId } from "@/services/workspace/active-workspace";
 import { normalizeError } from "@/services/api/errors";
 import type { ApiEnvelope } from "@/types/api";
 
@@ -23,6 +24,8 @@ export const api = axios.create({
 api.interceptors.request.use((config) => {
   const token = getToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  const workspaceId = getActiveWorkspaceId();
+  if (workspaceId) config.headers["X-Workspace-ID"] = workspaceId;
   return config;
 });
 

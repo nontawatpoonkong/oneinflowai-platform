@@ -1,0 +1,1 @@
+"""Hotel Stay operations package."""

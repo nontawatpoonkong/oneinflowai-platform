@@ -2,6 +2,7 @@ import { publicApi, unwrapPublic } from "@/services/api/public-client";
 import type { ApiEnvelope } from "@/types/api";
 import type {
   WebChatAIResponse,
+  WebChatAIToolDecision,
   WebChatActionDecision,
   WebChatAssistantResult,
   WebChatMessageCreate,
@@ -51,6 +52,20 @@ export const webchatService = {
   ): Promise<WebChatAssistantResult> {
     const response = await publicApi.post<ApiEnvelope<WebChatAssistantResult>>(
       `/webchat/sessions/${encodeURIComponent(conversationId)}/action-collections/${encodeURIComponent(collectionId)}/${decision}`,
+      payload,
+      { headers: tokenHeaders(token) },
+    );
+    return unwrapPublic(response);
+  },
+  async decideAITool(
+    conversationId: string,
+    actionId: string,
+    token: string,
+    decision: "confirm" | "cancel",
+    payload: WebChatAIToolDecision,
+  ): Promise<WebChatAssistantResult> {
+    const response = await publicApi.post<ApiEnvelope<WebChatAssistantResult>>(
+      `/webchat/sessions/${encodeURIComponent(conversationId)}/ai-actions/${encodeURIComponent(actionId)}/${decision}`,
       payload,
       { headers: tokenHeaders(token) },
     );

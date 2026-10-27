@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import TIMESTAMP, Boolean, ForeignKey, String
+from sqlalchemy import TIMESTAMP, Boolean, ForeignKey, String, UniqueConstraint
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -46,6 +46,9 @@ class HandoffReason(enum.StrEnum):
 
 class Conversation(UUIDMixin, TimestampMixin, Base):
     __tablename__ = "conversations"
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "id", name="uq_conversation_workspace_id"),
+    )
 
     workspace_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),

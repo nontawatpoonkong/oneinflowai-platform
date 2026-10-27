@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.channels import ChannelType
 from app.core.exceptions import AppError, NotFoundError
+from app.models.channel import ChannelConnection
 from app.models.conversation import Conversation, ConversationMode
 from app.models.workspace_member import WorkspaceMember
 from app.repositories.conversation import ConversationRepository
@@ -39,6 +40,16 @@ class ConversationService:
         customer = await self.customers.get_active(workspace_id, data.customer_id)
         if customer is None:
             raise NotFoundError("Customer not found in this workspace")
+        connection_id = getattr(data, "channel_connection_id", None)
+        if connection_id and not await self.session.scalar(
+            select(ChannelConnection.id).where(
+                ChannelConnection.id == connection_id,
+                ChannelConnection.workspace_id == workspace_id,
+            )
+        ):
+            raise NotFoundError("Channel connection not found")
+        if data.assigned_user_id is not None:
+            await self._require_assignable(workspace_id, data.assigned_user_id)
 
         conversation = Conversation(
             workspace_id=workspace_id,
@@ -54,6 +65,22 @@ class ConversationService:
         await self.session.commit()
         await self.session.refresh(conversation)
         return conversation
+
+    async def _require_assignable(self, workspace_id, user_id) -> None:
+        # Same rule as POST /conversations/{id}/assign: the assignee must be a
+        # member who can read the conversation.
+        from app.services.conversation_handoff import (
+            CONVERSATION_FOLLOW_UP,
+            ConversationAssignmentError,
+        )
+        from app.services.notification import NotificationService
+
+        if not await NotificationService(self.session).may_follow_up(
+            workspace_id, user_id, CONVERSATION_FOLLOW_UP
+        ):
+            raise ConversationAssignmentError(
+                "Assignee needs the conversation.read permission"
+            )
 
     async def get_conversation(
         self, workspace_id: uuid.UUID, conversation_id: uuid.UUID

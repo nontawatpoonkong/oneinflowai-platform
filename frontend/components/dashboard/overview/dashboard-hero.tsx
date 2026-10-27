@@ -56,7 +56,7 @@ export function DashboardHero() {
       variants={scaleIn}
       initial="hidden"
       animate="visible"
-      className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-soft sm:p-8"
+      className="relative overflow-hidden rounded-md border border-border bg-card p-6 shadow-soft sm:p-8"
     >
       <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-brand/15 blur-3xl" />
       <div className="relative flex flex-col items-start justify-between gap-8 md:flex-row md:items-center">

@@ -21,6 +21,7 @@ import {
 
 import {
   useCreateWebChatSession,
+  useDecideWebChatAITool,
   useDecideWebChatAction,
   useSendWebChatMessage,
   useWebChatMessages,
@@ -40,7 +41,7 @@ interface WebChatWidgetProps {
 
 export function WebChatWidget({
   workspaceKey,
-  workspaceName = "OneInFlow",
+  workspaceName = "OneInFlowAI",
   defaultOpen = false,
 }: WebChatWidgetProps) {
   const [session, setSession] = useState<StoredWebChatSession | null>(null);
@@ -63,6 +64,7 @@ export function WebChatWidget({
   const messages = useWebChatMessages(session);
   const sendMessage = useSendWebChatMessage(session);
   const decideAction = useDecideWebChatAction(session);
+  const decideAITool = useDecideWebChatAITool(session);
 
   useEffect(() => {
     const storedSession = sessionStorage.getItem(sessionKey(workspaceKey));
@@ -185,6 +187,23 @@ export function WebChatWidget({
         confirmation_token:
           decision === "confirm"
             ? collection.confirmation_token ?? undefined
+            : undefined,
+      },
+    });
+    setLatestAssistant(result);
+  }
+
+  async function submitAITool(decision: "confirm" | "cancel") {
+    const action = latestAssistant?.ai_tool_action;
+    if (!action) return;
+    const result = await decideAITool.mutateAsync({
+      actionId: action.id,
+      decision,
+      payload: {
+        client_message_id: crypto.randomUUID(),
+        confirmation_token:
+          decision === "confirm"
+            ? action.confirmation_token ?? undefined
             : undefined,
       },
     });
@@ -329,6 +348,16 @@ export function WebChatWidget({
                   </div>
                 </div>
               )}
+              {latestAssistant?.type === "AI_TOOL_CONFIRMATION" && latestAssistant.ai_tool_action && (
+                <div className="ml-9 rounded-2xl border border-amber-200 bg-white p-4 text-sm shadow-sm">
+                  <p className="font-semibold text-slate-900">Confirm this action</p>
+                  <p className="mt-1 text-xs text-slate-600">{latestAssistant.message}</p>
+                  <div className="mt-3 flex gap-2">
+                    <button type="button" disabled={decideAITool.isPending} onClick={() => void submitAITool("confirm")} className="rounded-lg bg-brand px-3 py-2 text-xs font-semibold text-brand-foreground disabled:opacity-50">Confirm</button>
+                    <button type="button" disabled={decideAITool.isPending} onClick={() => void submitAITool("cancel")} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 disabled:opacity-50">Cancel</button>
+                  </div>
+                </div>
+              )}
               <div ref={messagesEndRef} />
             </div>
             <form onSubmit={(event) => { event.preventDefault(); void submitMessage(); }} className="border-t border-slate-100 bg-white px-3 pb-3 pt-2">
@@ -339,7 +368,7 @@ export function WebChatWidget({
                   {sendMessage.isPending ? <Loader2 className="size-4 animate-spin" /> : <ArrowUp className="size-4 stroke-[2.5]" />}
                 </button>
               </div>
-              <p className="mt-2 text-center text-[9px] font-medium tracking-wide text-slate-400">Powered by OneInFlow</p>
+              <p className="mt-2 text-center text-[9px] font-medium tracking-wide text-slate-400">Powered by OneInFlowAI</p>
             </form>
           </>
         )}

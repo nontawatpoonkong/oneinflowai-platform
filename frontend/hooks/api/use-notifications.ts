@@ -6,8 +6,8 @@ import { notificationService } from "@/services/notification/notification.servic
 
 const key = ["notifications"] as const;
 
-export function useNotifications() {
-  return useQuery({ queryKey: key, queryFn: notificationService.list, refetchInterval: 5_000 });
+export function useNotifications(enabled = true) {
+  return useQuery({ queryKey: key, queryFn: notificationService.list, enabled, refetchInterval: enabled ? 5_000 : false });
 }
 
 export function useNotificationActions() {

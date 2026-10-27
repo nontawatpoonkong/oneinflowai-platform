@@ -19,8 +19,11 @@ class Settings(BaseSettings):
     )
 
     # ------------------------------------------------------------- AI
+    AI_PROVIDER: str = "openai"
     OPENAI_API_KEY: str | None = None
     OPENAI_MODEL: str = "gpt-5.6-terra"
+    GEMINI_API_KEY: str | None = None
+    GEMINI_MODEL: str = "gemini-2.5-pro"
     GENERATION_PROVIDER: str = "openai"
     GENERATION_TEMPERATURE: float = 0.2
     GENERATION_MAX_OUTPUT_TOKENS: int = 800
@@ -53,6 +56,19 @@ class Settings(BaseSettings):
     STORAGE_LOCAL_PATH: str = "storage"
     KNOWLEDGE_MAX_FILE_SIZE_BYTES: int = 10 * 1024 * 1024
     KNOWLEDGE_MAX_EXTRACTED_CHARACTERS: int = 2_000_000
+    # Multipart framing plus the title/language fields on top of the file.
+    KNOWLEDGE_UPLOAD_REQUEST_OVERHEAD_BYTES: int = 64 * 1024
+    # PDF parsing runs in a child process that is killed at the deadline.
+    KNOWLEDGE_MAX_PDF_PAGES: int = 500
+    KNOWLEDGE_PARSE_TIMEOUT_SECONDS: float = 60.0
+    # Address-space cap for the parser process; enforced where the OS allows
+    # it (Linux containers), not on Windows development hosts.
+    KNOWLEDGE_PARSE_MEMORY_LIMIT_BYTES: int = 1024 * 1024 * 1024
+    KNOWLEDGE_MAX_CONCURRENT_PARSES: int = 2  # per application process
+    KNOWLEDGE_MAX_CONCURRENT_PARSES_PER_WORKSPACE: int = 2  # across instances
+    KNOWLEDGE_UPLOAD_RATE_LIMIT_PER_USER: int = 10
+    KNOWLEDGE_UPLOAD_RATE_LIMIT_PER_WORKSPACE: int = 30
+    KNOWLEDGE_UPLOAD_RATE_LIMIT_WINDOW_SECONDS: int = 60
     KNOWLEDGE_CHUNK_SIZE: int = 1200
     KNOWLEDGE_CHUNK_OVERLAP: int = 200
     KNOWLEDGE_MAX_CHUNKS_PER_DOCUMENT: int = 10_000
@@ -112,6 +128,20 @@ class Settings(BaseSettings):
             raise ValueError("RAG_MAX_CONTEXT_CHARACTERS must be positive")
         if self.RAG_MAX_SOURCES <= 0:
             raise ValueError("RAG_MAX_SOURCES must be positive")
+        for name in (
+            "KNOWLEDGE_MAX_FILE_SIZE_BYTES",
+            "KNOWLEDGE_UPLOAD_REQUEST_OVERHEAD_BYTES",
+            "KNOWLEDGE_MAX_PDF_PAGES",
+            "KNOWLEDGE_PARSE_TIMEOUT_SECONDS",
+            "KNOWLEDGE_PARSE_MEMORY_LIMIT_BYTES",
+            "KNOWLEDGE_MAX_CONCURRENT_PARSES",
+            "KNOWLEDGE_MAX_CONCURRENT_PARSES_PER_WORKSPACE",
+            "KNOWLEDGE_UPLOAD_RATE_LIMIT_PER_USER",
+            "KNOWLEDGE_UPLOAD_RATE_LIMIT_PER_WORKSPACE",
+            "KNOWLEDGE_UPLOAD_RATE_LIMIT_WINDOW_SECONDS",
+        ):
+            if getattr(self, name) <= 0:
+                raise ValueError(f"{name} must be positive")
         if self.PAYMENT_EVIDENCE_MAX_FILE_SIZE_BYTES <= 0:
             raise ValueError("PAYMENT_EVIDENCE_MAX_FILE_SIZE_BYTES must be positive")
         if not self.SLIP_VERIFICATION_PROVIDER.strip():
@@ -138,6 +168,47 @@ class Settings(BaseSettings):
             raise ValueError("DEMO_CHAT_RATE_LIMIT_WINDOW_SECONDS must be positive")
         if self.DEMO_CHAT_MAX_INPUT_CHARS <= 0:
             raise ValueError("DEMO_CHAT_MAX_INPUT_CHARS must be positive")
+        if not 0 < self.AUTOMATION_WORKER_POLL_SECONDS <= 300:
+            raise ValueError("AUTOMATION_WORKER_POLL_SECONDS must be between 0 and 300")
+        if not 1 <= self.AUTOMATION_WORKER_BATCH_SIZE <= 500:
+            raise ValueError("AUTOMATION_WORKER_BATCH_SIZE must be between 1 and 500")
+        if not 0 < self.AUTOMATION_WORKER_HEARTBEAT_SECONDS <= 300:
+            raise ValueError(
+                "AUTOMATION_WORKER_HEARTBEAT_SECONDS must be between 0 and 300"
+            )
+        if self.AUTOMATION_WORKER_STALE_SECONDS < (
+            self.AUTOMATION_WORKER_HEARTBEAT_SECONDS * 2
+        ):
+            raise ValueError(
+                "AUTOMATION_WORKER_STALE_SECONDS must be at least two "
+                "heartbeat intervals"
+            )
+        if self.AUTOMATION_EXECUTION_STALE_SECONDS <= 0:
+            raise ValueError("AUTOMATION_EXECUTION_STALE_SECONDS must be positive")
+        if self.AUTOMATION_BACKLOG_ALERT_THRESHOLD_SECONDS <= 0:
+            raise ValueError(
+                "AUTOMATION_BACKLOG_ALERT_THRESHOLD_SECONDS must be positive"
+            )
+        if self.AUTOMATION_BACKLOG_ALERT_COUNT <= 0:
+            raise ValueError("AUTOMATION_BACKLOG_ALERT_COUNT must be positive")
+        if not 5 <= self.PROMOTION_LIFECYCLE_INTERVAL_SECONDS <= 3600:
+            raise ValueError(
+                "PROMOTION_LIFECYCLE_INTERVAL_SECONDS must be between 5 and 3600"
+            )
+        if not 1 <= self.PROMOTION_LIFECYCLE_BATCH_SIZE <= 500:
+            raise ValueError("PROMOTION_LIFECYCLE_BATCH_SIZE must be between 1 and 500")
+        if self.PROMOTION_LIFECYCLE_STALE_SECONDS < (
+            self.PROMOTION_LIFECYCLE_INTERVAL_SECONDS * 2
+        ):
+            raise ValueError(
+                "PROMOTION_LIFECYCLE_STALE_SECONDS must be at least two intervals"
+            )
+        if not 1 <= self.AI_TOOL_MAX_CALLS_PER_TURN <= 3:
+            raise ValueError("AI_TOOL_MAX_CALLS_PER_TURN must be between 1 and 3")
+        if not 1 <= self.AI_TOOL_CONFIRMATION_TTL_MINUTES <= 60:
+            raise ValueError(
+                "AI_TOOL_CONFIRMATION_TTL_MINUTES must be between 1 and 60"
+            )
         return self
 
     # ------------------------------------------------------------------ App
@@ -194,6 +265,25 @@ class Settings(BaseSettings):
     CHANNEL_PROVIDER_TIMEOUT_SECONDS: float = 10.0
     CHANNEL_WEBHOOK_MAX_BYTES: int = 1_000_000
 
+    # ---------------------------------------------- Automation worker operations
+    AUTOMATION_WORKER_POLL_SECONDS: float = 5.0
+    AUTOMATION_WORKER_BATCH_SIZE: int = 20
+    AUTOMATION_WORKER_HEARTBEAT_SECONDS: float = 15.0
+    AUTOMATION_WORKER_STALE_SECONDS: int = 45
+    AUTOMATION_EXECUTION_STALE_SECONDS: int = 300
+    AUTOMATION_BACKLOG_ALERT_THRESHOLD_SECONDS: int = 300
+    AUTOMATION_BACKLOG_ALERT_COUNT: int = 1000
+    AUTOMATION_WORKER_BUILD_IDENTIFIER: str | None = None
+    # Scheduled campaign lifecycle runs inside the supervised automation worker.
+    PROMOTION_LIFECYCLE_ENABLED: bool = True
+    PROMOTION_LIFECYCLE_INTERVAL_SECONDS: int = 60
+    PROMOTION_LIFECYCLE_BATCH_SIZE: int = 100
+    PROMOTION_LIFECYCLE_STALE_SECONDS: int = 300
+
+    # ------------------------------------------------ AI action orchestration
+    AI_TOOL_MAX_CALLS_PER_TURN: int = 3
+    AI_TOOL_CONFIRMATION_TTL_MINUTES: int = 10
+
     # -------------------------------------------------- Derived / computed
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -224,17 +314,60 @@ class Settings(BaseSettings):
         return [item.strip() for item in self.TRUSTED_HOSTS.split(",") if item.strip()]
 
 
+# Only local work and the test suite may run on the published defaults; any
+# other APP_ENV (staging, a typo such as "prod") is treated as deployed.
+_LOCAL_ENVIRONMENTS = frozenset({"development", "test"})
+_MINIMUM_SECRET_BYTES = 32
+# Secrets checked on every deployed environment. The defaults above and in
+# .env.example are public, so keeping one is the same as having no secret.
+_STARTUP_SECRETS = ("JWT_SECRET_KEY", "WEBCHAT_METADATA_HASH_SECRET", "OTP_HASH_SECRET")
+_PUBLISHED_DEFAULT_PREFIX = "change-me"
+
+
+def _secret_problem(name: str, value: str | None) -> str | None:
+    """Describe why a secret is unusable, without ever echoing its value."""
+    secret = (value or "").strip()
+    if not secret:
+        return f"{name} must be set"
+    if secret.lower().startswith(_PUBLISHED_DEFAULT_PREFIX):
+        return f"{name} must not be a published default"
+    if len(secret.encode()) < _MINIMUM_SECRET_BYTES:
+        return f"{name} must contain at least {_MINIMUM_SECRET_BYTES} bytes"
+    return None
+
+
+def is_local_environment(settings: Settings) -> bool:
+    return settings.APP_ENV.strip().lower() in _LOCAL_ENVIRONMENTS
+
+
+def insecure_secret_names(settings: Settings) -> list[str]:
+    """Names of the signing/hashing secrets that fail the deployed policy."""
+    return [
+        name
+        for name in ("JWT_SECRET_KEY", "WEBCHAT_METADATA_HASH_SECRET")
+        if _secret_problem(name, getattr(settings, name))
+    ]
+
+
 def validate_production_settings(settings: Settings) -> None:
-    """Fail startup closed on unsafe production-only configuration."""
-    if settings.APP_ENV != "production":
+    """Fail startup closed on unsafe deployed configuration.
+
+    Secrets are enforced on every non-local environment; the remaining rules
+    apply to production only.
+    """
+    if is_local_environment(settings):
         return
-    errors: list[str] = []
+    errors = [
+        problem
+        for name in _STARTUP_SECRETS
+        if (problem := _secret_problem(name, getattr(settings, name)))
+    ]
+    if settings.APP_ENV.strip().lower() != "production":
+        if errors:
+            raise ValueError("Unsafe deployed configuration: " + "; ".join(errors))
+        return
     if settings.DEBUG:
         errors.append("DEBUG must be false")
-    if len(settings.JWT_SECRET_KEY.encode()) < 32:
-        errors.append("JWT_SECRET_KEY must contain at least 32 bytes")
-    if not settings.OTP_HASH_SECRET or len(settings.OTP_HASH_SECRET.encode()) < 32:
-        errors.append("OTP_HASH_SECRET must contain at least 32 bytes")
     if "*" in settings.cors_origins or not settings.cors_origins:
         errors.append("CORS_ORIGINS must contain explicit origins")
     if "*" in settings.trusted_hosts or not settings.trusted_hosts:

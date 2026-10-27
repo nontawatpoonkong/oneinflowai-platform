@@ -41,3 +41,8 @@ class AnalyticsOverview(BaseModel):
     verified_amounts: list[MoneyTotal]
     verification_statuses: list[NamedCount]
     current_queue: dict[str, int]
+    sales: dict
+    operations: dict
+    ai_conversations: dict
+    automation: dict
+    usage: dict

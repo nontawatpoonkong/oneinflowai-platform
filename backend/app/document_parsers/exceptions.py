@@ -22,4 +22,16 @@ class NoExtractableTextError(DocumentExtractionError):
 
 
 class ExtractionLimitExceededError(DocumentExtractionError):
-    """Normalized output exceeds the configured character limit."""
+    """Extracted output exceeds the configured character limit."""
+
+
+class PageLimitExceededError(DocumentExtractionError):
+    """The PDF declares more pages than the configured maximum."""
+
+
+class ParseTimeoutError(DocumentExtractionError):
+    """Parsing ran past its deadline and the parser process was stopped."""
+
+
+class ParserWorkerFailedError(DocumentExtractionError):
+    """The isolated parser process exited without a usable result."""

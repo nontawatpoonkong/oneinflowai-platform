@@ -5,8 +5,12 @@ import uuid
 from fastapi import APIRouter, Depends, File, Query, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.action.router import require_link_access
+from app.auth.dependencies import get_current_user
+from app.core.exceptions import WorkspaceAccessDeniedError
 from app.database.session import get_db
 from app.integrations.slip_verification import create_slip_verification_provider
+from app.models.user import User
 from app.models.workspace import Workspace
 from app.schemas.payment import (
     PaymentCreate,
@@ -19,9 +23,33 @@ from app.schemas.payment import (
 )
 from app.schemas.response import success_response
 from app.services.payment import PaymentService, PaymentVerificationService
-from app.workspace.dependencies import get_current_workspace
+from app.services.workspace_capability import (
+    WorkspaceCapability,
+    WorkspaceCapabilityService,
+)
+from app.workspace.dependencies import require_workspace_capability
 
 router = APIRouter()
+
+_payment_read = require_workspace_capability(WorkspaceCapability.PAYMENT_READ)
+_payment_review = require_workspace_capability(WorkspaceCapability.PAYMENT_REVIEW)
+
+
+async def _payment_reviewer(
+    workspace: Workspace = Depends(_payment_review),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> Workspace:
+    """Payment changes need payment.review and payment.read.
+
+    Every change returns the destination or payment it touched, so reviewers
+    must also be allowed to read payments.
+    """
+
+    await WorkspaceCapabilityService(session).require(
+        workspace.id, user.id, WorkspaceCapability.PAYMENT_READ
+    )
+    return workspace
 
 
 def _destination(value):
@@ -35,7 +63,7 @@ def _payment(value):
 @router.post("/destinations", status_code=status.HTTP_201_CREATED)
 async def create_destination(
     payload: PaymentDestinationCreate,
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_payment_reviewer),
     session: AsyncSession = Depends(get_db),
 ):
     return success_response(
@@ -48,7 +76,7 @@ async def create_destination(
 
 @router.get("/destinations")
 async def list_destinations(
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_payment_read),
     session: AsyncSession = Depends(get_db),
 ):
     return success_response(
@@ -63,7 +91,7 @@ async def list_destinations(
 async def update_destination(
     destination_id: uuid.UUID,
     payload: PaymentDestinationUpdate,
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_payment_reviewer),
     session: AsyncSession = Depends(get_db),
 ):
     return success_response(
@@ -78,9 +106,27 @@ async def update_destination(
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_payment(
     payload: PaymentCreate,
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_payment_reviewer),
+    user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ):
+    # Linking a guest record or an Action needs the right to read it, checked
+    # before the id is looked up so existence is not revealed.
+    _, capabilities = await WorkspaceCapabilityService(session).effective(
+        workspace.id, user.id
+    )
+    require_link_access(
+        capabilities,
+        customer_id=payload.customer_id,
+        conversation_id=payload.conversation_id,
+    )
+    if (
+        payload.action_request_id is not None
+        and WorkspaceCapability.ACTION_READ not in capabilities
+    ):
+        raise WorkspaceAccessDeniedError(
+            f"Workspace capability required: {WorkspaceCapability.ACTION_READ.value}"
+        )
     return success_response(
         _payment(await PaymentService(session).create(workspace.id, payload)),
         "Payment created",
@@ -91,7 +137,7 @@ async def create_payment(
 async def list_payments(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=50, ge=1, le=100),
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_payment_read),
     session: AsyncSession = Depends(get_db),
 ):
     return success_response(
@@ -107,7 +153,7 @@ async def list_payments(
 @router.get("/{payment_id}")
 async def get_payment(
     payment_id: uuid.UUID,
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_payment_read),
     session: AsyncSession = Depends(get_db),
 ):
     return success_response(
@@ -119,7 +165,7 @@ async def get_payment(
 async def submit_evidence(
     payment_id: uuid.UUID,
     file: UploadFile = File(...),
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_payment_reviewer),
     session: AsyncSession = Depends(get_db),
 ):
     evidence = await PaymentService(session).submit_evidence(
@@ -136,7 +182,7 @@ async def submit_evidence(
 @router.get("/{payment_id}/evidence")
 async def get_evidence(
     payment_id: uuid.UUID,
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_payment_read),
     session: AsyncSession = Depends(get_db),
 ):
     evidence = await PaymentService(session).get_evidence(workspace.id, payment_id)
@@ -150,7 +196,7 @@ async def get_evidence(
 @router.post("/{payment_id}/verify")
 async def verify_payment(
     payment_id: uuid.UUID,
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_payment_reviewer),
     session: AsyncSession = Depends(get_db),
 ):
     payment, verification = await PaymentVerificationService(
@@ -173,7 +219,7 @@ async def list_verifications(
     payment_id: uuid.UUID,
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=50, ge=1, le=100),
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_payment_read),
     session: AsyncSession = Depends(get_db),
 ):
     items = await PaymentVerificationService(

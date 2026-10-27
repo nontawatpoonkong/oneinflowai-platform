@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Header, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.session import get_db
+from app.schemas.ai_tool import AIToolCancellationRequest, AIToolConfirmationRequest
 from app.schemas.message import MessageListResponse, MessageResponse
 from app.schemas.response import success_response
 from app.schemas.webchat import (
@@ -112,6 +113,36 @@ async def cancel_action(
         session, request.app.state.qdrant
     ).cancel(conversation_id, token, collection_id, payload)
     return success_response(data=assistant, message="Action cancelled")
+
+
+@router.post("/sessions/{conversation_id}/ai-actions/{action_id}/confirm")
+async def confirm_ai_tool_action(
+    conversation_id: uuid.UUID,
+    action_id: uuid.UUID,
+    payload: AIToolConfirmationRequest,
+    request: Request,
+    token: str = Header(alias="X-WebChat-Token", min_length=1),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    assistant = await create_webchat_ai_orchestrator(
+        session, request.app.state.qdrant
+    ).confirm_ai_tool(conversation_id, token, action_id, payload)
+    return success_response(data=assistant, message="AI tool action confirmed")
+
+
+@router.post("/sessions/{conversation_id}/ai-actions/{action_id}/cancel")
+async def cancel_ai_tool_action(
+    conversation_id: uuid.UUID,
+    action_id: uuid.UUID,
+    payload: AIToolCancellationRequest,
+    request: Request,
+    token: str = Header(alias="X-WebChat-Token", min_length=1),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    assistant = await create_webchat_ai_orchestrator(
+        session, request.app.state.qdrant
+    ).cancel_ai_tool(conversation_id, token, action_id, payload)
+    return success_response(data=assistant, message="AI tool action cancelled")
 
 
 @router.get("/sessions/{conversation_id}/messages")

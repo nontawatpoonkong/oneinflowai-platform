@@ -24,9 +24,16 @@ const config: Config = {
           DEFAULT: "hsl(var(--brand))",
           foreground: "hsl(var(--brand-foreground))",
           soft: "hsl(var(--brand-soft))",
+          secondary: "hsl(var(--brand-secondary))",
+          "secondary-soft": "hsl(var(--brand-secondary-soft))",
+        },
+        surface: {
+          DEFAULT: "hsl(var(--surface))",
+          elevated: "hsl(var(--surface-elevated))",
         },
         positive: "hsl(var(--positive))",
         warning: "hsl(var(--warning))",
+        info: "hsl(var(--info))",
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
@@ -65,12 +72,12 @@ const config: Config = {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
       },
       boxShadow: {
-        soft: "0 8px 30px -12px hsl(var(--foreground) / 0.12)",
-        glow: "0 0 40px -8px hsl(var(--brand) / 0.55)",
+        soft: "0 8px 24px -18px hsl(var(--foreground) / 0.28)",
+        glow: "0 1px 2px hsl(var(--foreground) / 0.08)",
       },
       backgroundImage: {
         "brand-gradient":
-          "linear-gradient(120deg, hsl(var(--brand)) 0%, hsl(210 100% 60%) 100%)",
+          "linear-gradient(135deg, hsl(var(--brand)) 0%, hsl(var(--brand-secondary)) 100%)",
         "grid-fade":
           "radial-gradient(circle at center, hsl(var(--foreground) / 0.06) 1px, transparent 1px)",
       },

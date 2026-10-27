@@ -18,7 +18,8 @@ PostgreSQL rows.
 Registration persists only the User and verification challenge. Workspace,
 owner membership, and reference subscription are created atomically only by
 the explicit Workspace creation service. Authenticated users with no membership
-cannot enter tenant-scoped APIs and are routed to Workspace onboarding.
+cannot enter tenant-scoped APIs and are routed to Workspace onboarding, where
+they may create a Workspace or submit a rate-limited join-code access request.
 
 ## Implemented WebChat orchestration
 
@@ -162,3 +163,43 @@ Customer Payment tables do not reference or mutate SaaS subscriptions.
 Sprint 9.4 uses `PostgreSQL → AnalyticsService aggregate queries → typed API →
 Analytics dashboard`. Every query is Workspace-scoped; no warehouse, ETL,
 duplicate counters, or analytics cache is introduced.
+
+## Sprint 10.9C Hotel catalog architecture
+
+Normalized room beds, typed amenity values, and image metadata extend the
+Hotel bounded context. Binary images remain behind `StorageProvider` and are
+not stored in PostgreSQL. `AvailabilityCalendarService` batch-loads room types
+and daily inventory and reads existing PMS mappings for authority labels; it
+does not change Booking, Stay, Housekeeping, or PMS write authority.
+The code-defined `get_room_catalog_facts` AI tool is read-only and returns the
+customer-safe structured catalog contract; internal physical-room notes are
+excluded.
+
+## Sprint 10.9D audit and analytics architecture
+
+`Domain event + minimal WorkspaceAuditEvent` preserves each bounded context as
+the authoritative lifecycle history while enabling a safe cross-domain operator
+view. Audit rows are append-only at ORM and PostgreSQL levels. Separately, the
+dashboard shell emits trusted `PAGE_VIEW` telemetry to `ProductUsageEvent`.
+`AnalyticsService` performs bounded grouped SQL over authoritative domain and
+usage tables; API contracts remain stable if materialized views or an analytics
+store are introduced later.
+
+## Sprint 10.9E promotion architecture
+
+`PromotionService -> BookingService -> Payment` is the only authoritative
+pricing path. Preview validation does not consume quota. Booking Hold locks the
+normalized code row, validates trusted booking context, creates one reserved
+redemption, and persists an immutable price snapshot in the same transaction.
+Cancellation/expiry releases it; confirmation converts it idempotently.
+Frontend and AI consume typed results and contain no duplicate pricing logic.
+
+## Sprint 10.9F platform control plane
+
+`require_platform_admin -> PlatformAdminService -> authoritative domain tables`
+is a distinct cross-tenant boundary under `/api/v1/platform`. It does not reuse
+Workspace role/capability dependencies. The separate `/platform` frontend shell
+uses the same typed API and performs no authoritative calculation. Platform
+mutations call bounded lifecycle/state-machine operations and append to the
+existing immutable `WorkspaceAuditEvent` ledger with actor type
+`PLATFORM_ADMIN`.

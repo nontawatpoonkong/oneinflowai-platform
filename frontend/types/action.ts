@@ -20,4 +20,5 @@ export interface ActionDTO {
   payload: Record<string, unknown>; assigned_to_user_id: string | null;
   assigned_at: string | null; started_at: string | null; completed_at: string | null;
   cancelled_at: string | null; created_at: string; updated_at: string;
+  details_visible?: boolean;
 }

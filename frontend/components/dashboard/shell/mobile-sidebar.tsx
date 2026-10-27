@@ -8,8 +8,10 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { Logo } from "@/components/shared/logo";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { DASHBOARD_NAV } from "@/lib/dashboard-nav";
+import { useMyWorkspace, useWorkspaceAccess } from "@/hooks/api/use-workspace";
+import { DASHBOARD_NAV_GROUPS, permittedNavigation } from "@/lib/dashboard-nav";
 import { cn } from "@/lib/utils";
 
 export function MobileSidebar() {
@@ -17,6 +19,9 @@ export function MobileSidebar() {
   const pathname = usePathname();
   const tNav = useTranslations("dashboard.nav");
   const tShell = useTranslations("dashboard.shell");
+  const { data: workspace } = useMyWorkspace();
+  const { data: access } = useWorkspaceAccess(workspace?.id);
+  const navigation = permittedNavigation(access?.capabilities);
 
   return (
     <div className="md:hidden">
@@ -35,7 +40,7 @@ export function MobileSidebar() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-background/80 backdrop-blur-md"
+            className="fixed inset-0 z-50 bg-foreground/30"
             onClick={() => setOpen(false)}
           >
             <motion.aside
@@ -44,7 +49,10 @@ export function MobileSidebar() {
               exit={{ x: "-100%" }}
               transition={{ type: "spring", stiffness: 260, damping: 30 }}
               onClick={(e) => e.stopPropagation()}
-              className="flex h-full w-72 flex-col gap-2 border-r border-border bg-card p-4"
+              role="dialog"
+              aria-modal="true"
+              aria-label={tShell("primaryNavigation")}
+              className="flex h-full w-[min(88vw,320px)] flex-col gap-2 border-r border-border bg-card p-4 shadow-xl"
             >
               <div className="flex items-center justify-between px-1 py-2">
                 <Logo />
@@ -57,30 +65,37 @@ export function MobileSidebar() {
                   <X className="size-5" />
                 </Button>
               </div>
-              <nav className="flex flex-col gap-1">
-                {DASHBOARD_NAV.map((item) => {
-                  const active =
-                    item.href === "/dashboard"
-                      ? pathname === "/dashboard"
-                      : pathname.startsWith(item.href);
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setOpen(false)}
-                      className={cn(
-                        "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors",
-                        active
-                          ? "bg-brand/10 text-brand"
-                          : "text-muted-foreground hover:bg-accent",
-                      )}
-                    >
-                      <item.icon className="size-4" />
-                      {tNav(item.key)}
-                    </Link>
-                  );
-                })}
+              <nav className="flex flex-col gap-4 overflow-y-auto py-2">
+                {DASHBOARD_NAV_GROUPS.map((group) => (
+                  <div key={group} className="space-y-1">
+                    <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                      {tShell(`navGroups.${group}`)}
+                    </p>
+                    {navigation.filter((item) => item.group === group).map((item) => {
+                      const active = item.href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(item.href);
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setOpen(false)}
+                          aria-current={active ? "page" : undefined}
+                          className={cn(
+                            "flex min-h-11 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors",
+                            active ? "bg-brand-soft text-brand" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                          )}
+                        >
+                          <item.icon className="size-[18px]" />
+                          {tNav(item.key)}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                ))}
               </nav>
+              <div className="mt-auto flex items-center justify-between border-t border-border pt-4">
+                <span className="text-xs font-medium text-muted-foreground">{tShell("theme")}</span>
+                <ThemeToggle />
+              </div>
             </motion.aside>
           </motion.div>
         ) : null}

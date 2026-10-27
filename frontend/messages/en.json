@@ -1,7 +1,7 @@
 {
   "meta": {
-    "homeTitle": "OneInFlow — AI that answers customer chats 24/7",
-    "homeDescription": "Manage every customer conversation from one intelligent platform. Connect LINE OA, Website, Facebook and Hotel systems with AI that answers from your knowledge base instantly.",
+    "homeTitle": "OneInFlowAI — AI Customer Service and Hotel RMS",
+    "homeDescription": "Answer customers, check rooms, take bookings, handle payments, and continue hotel operations in one controlled system.",
     "features": "Features",
     "pricing": "Pricing",
     "docs": "Docs",
@@ -17,6 +17,7 @@
     "customers": "Customers",
     "knowledge": "Knowledge Base",
     "analytics": "Analytics",
+    "automations": "Automations",
     "integrations": "Integrations",
         "workspace": "Workspace",
         "billing": "Plan & Billing",
@@ -39,14 +40,18 @@
     "tryAgain": "Try again",
     "comingSoon": "Coming Soon",
     "online": "Online",
-    "live": "live"
+    "live": "live",
+    "previous": "Previous",
+    "next": "Next",
+    "pageSize": "Rows per page",
+    "pageSummary": "Page {page} of {totalPages} · {total} total"
   },
   "demoChat": {
-    "title": "Try OneInFlow AI",
-    "subtitle": "Answers from OneInFlow public documentation",
-    "welcome": "Ask about OneInFlow features and channels. History is not stored and clears when you refresh.",
+    "title": "Try OneInFlowAI AI",
+    "subtitle": "Answers from OneInFlowAI public documentation",
+    "welcome": "Ask about OneInFlowAI features and channels. History is not stored and clears when you refresh.",
     "sources": "Sources",
-    "placeholder": "Ask about OneInFlow...",
+    "placeholder": "Ask about OneInFlowAI...",
     "launcher": "Try AI",
     "open": "Open demo chat",
     "close": "Close demo chat",
@@ -57,6 +62,9 @@
   },
   "nav": {
     "sections": {
+      "product": "Product",
+      "workflow": "How it works",
+      "hotels": "For Hotels",
       "features": "Features",
       "dashboard": "Dashboard",
       "roi": "ROI",
@@ -70,7 +78,7 @@
     }
   },
   "footer": {
-    "tagline": "Bring every chat channel together and let AI answer your customers 24/7.",
+    "tagline": "Bring supported customer channels together and let AI answer from your workspace knowledge.",
     "rights": "All rights reserved.",
     "built": "Built for multi-channel, AI-powered conversations.",
     "sections": {
@@ -92,28 +100,158 @@
   },
   "landing": {
     "hero": {
-      "badge": "Multi-channel AI conversation platform",
-      "headline1": "The AI that answers",
-      "headline2": "every customer chat",
-      "headline3": "around the clock",
-      "subtitle": "Manage every customer conversation from one intelligent platform. Connect LINE OA, Website, Facebook and Hotel systems, with AI that searches your knowledge base instantly.",
-      "primaryCta": "Get Started",
-      "secondaryCta": "Book Demo",
-      "chat": {
-        "agentName": "OneInFlow Agent",
-        "role": "AI-powered assistant",
-        "online": "Online",
-        "customerMessage": "Hi! Do you have rooms available this weekend?",
-        "thinking": "AI Thinking…",
-        "searching": "Searching Knowledge…",
-        "generating": "Generating Reply…",
-        "reply": "Yes! We have Deluxe rooms from Fri–Sun. Want me to hold one for you?"
+      "badge": "AI Customer Service + Hotel RMS + Automation",
+      "headline1": "Answer customers, check rooms,",
+      "headline2": "take bookings and run hotel operations",
+      "headlineAccent": " in one system",
+      "subtitle": "OneInFlowAI connects AI Customer Service with a Hotel RMS so guests can ask about rooms, rates, bookings, and payments while hotel teams continue the work across bookings, stays, rooms, and back-office operations.",
+      "primaryCta": "Try OneInFlowAI",
+      "secondaryCta": "See how it works",
+      "trustLine": "AI answers from trusted hotel data, while every transaction remains controlled and auditable.",
+      "preview": {
+        "title": "Chat connected to hotel operations",
+        "sample": "Illustrative workflow",
+        "connected": "Connected",
+        "customer": "Do you have a Deluxe room tonight for two guests?",
+        "assistant": "A Deluxe Room is available. The sample rate is ฿2,900. Would you like me to prepare the booking?",
+        "grounded": "Checked against RMS",
+        "actionReady": "Booking action ready",
+        "rmsTitle": "Trusted operational state",
+        "availability": {"label": "Availability", "value": "Deluxe Room · available"},
+        "hold": {"label": "Booking hold", "value": "Ready for confirmation"},
+        "payment": {"label": "Payment", "value": "Awaiting customer"},
+        "confirmed": {"label": "Booking", "value": "Confirms after verification"},
+        "verified": "Verified state",
+        "flowCaption": "Conversation → RMS → Booking"
+      }
+    },
+    "story": {
+      "problem": {
+        "eyebrow": "The real problem",
+        "title": "Hotel work does not end with answering a chat",
+        "description": "A guest asks about a room, then staff switch between systems to check availability, quote a rate, record details, follow payment, and update the booking.",
+        "points": [
+          "Replies are slow because staff must check several places",
+          "Room and rate information becomes inconsistent",
+          "Bookings fall between chat and the front desk",
+          "Payment slips and verification states are hard to follow",
+          "Guest context is scattered across tools",
+          "Check-out work does not flow into housekeeping"
+        ],
+        "transition": "OneInFlowAI keeps every step connected."
+      },
+      "pillars": {
+        "eyebrow": "One operational system",
+        "title": "One system for front-of-house and back-of-house work",
+        "description": "Customer conversations, hotel records, and follow-up automation use the same trusted operational context.",
+        "items": [
+          {
+            "title": "AI Customer Service",
+            "description": "Answer from hotel knowledge and trusted services, then hand the conversation to staff when needed.",
+            "points": ["WebChat, LINE OA, and Facebook Page Messenger", "Knowledge-grounded answers", "Human handoff and controlled actions"]
+          },
+          {
+            "title": "Hotel RMS",
+            "description": "Manage room types, availability, bookings, payments, stays, physical rooms, and housekeeping together.",
+            "points": ["Authoritative booking state", "Room occupancy and readiness", "Payment and stay lifecycle"]
+          },
+          {
+            "title": "Automation",
+            "description": "Let verified hotel events trigger the next operational step without losing staff control.",
+            "points": ["Booking confirmation", "Pre-arrival communication", "Post-stay and team follow-up"]
+          }
+        ]
+      },
+      "workflow": {
+        "eyebrow": "End-to-end workflow",
+        "title": "A guest sends a message. What happens next?",
+        "description": "The conversation moves into a controlled hotel workflow instead of stopping at a chatbot reply.",
+        "steps": [
+          {"title": "Guest asks", "description": "Is a room available tonight?"},
+          {"title": "AI checks trusted data", "description": "Availability, rate, and room information."},
+          {"title": "Guest selects", "description": "The AI prepares a clear booking action."},
+          {"title": "System holds inventory", "description": "Availability is revalidated before the hold."},
+          {"title": "Guest pays", "description": "Payment evidence enters verification."},
+          {"title": "Booking confirms", "description": "The RMS becomes the authoritative state."},
+          {"title": "Hotel continues service", "description": "CRM, stay, check-in, check-out, and housekeeping."},
+          {"title": "Automation follows up", "description": "Confirmation, pre-arrival, and post-stay actions."}
+        ]
+      },
+      "trustedAi": {
+        "eyebrow": "Controlled AI",
+        "title": "AI answers from the real system. It does not guess.",
+        "description": "Room rates, availability, bookings, and payments come from hotel-defined data and trusted services—not from text the model invents.",
+        "pipeline": {"understand": "AI understands", "tool": "Trusted service", "result": "Verified result"},
+        "examples": [
+          {"question": "Is a room available?", "tool": "Availability", "result": "Current inventory"},
+          {"question": "Is my booking confirmed?", "tool": "Booking", "result": "Authoritative status"},
+          {"question": "Did you receive payment?", "tool": "Payment", "result": "Verified state"}
+        ]
+      },
+      "operations": {
+        "eyebrow": "Hotel operations",
+        "title": "It keeps working after the room is sold",
+        "description": "After the booking, the hotel team continues from the same customer and operational records.",
+        "modules": ["Bookings", "Guests", "Payments", "Rooms", "Stays", "Housekeeping", "Automations"],
+        "lifecycle": ["Booking", "Payment", "Check-in", "Check-out", "Room dirty", "Cleaning", "Ready"]
+      },
+      "customerAutomation": {
+        "customer360": {
+          "eyebrow": "Customer 360",
+          "title": "Know the guest without starting over",
+          "description": "Keep relevant conversations, bookings, payments, stays, preferences, and history in one customer context.",
+          "points": ["Conversations", "Bookings", "Payments", "Stays", "Preferences", "Timeline"]
+        },
+        "automation": {
+          "eyebrow": "Operational automation",
+          "title": "When work should continue, the system continues it",
+          "description": "Automation begins from real operational events and stays visible to the team.",
+          "flows": [
+            {"event": "Booking confirmed", "action": "Send confirmation"},
+            {"event": "Before check-in", "action": "Send arrival details"},
+            {"event": "Payment needs review", "action": "Notify staff"},
+            {"event": "Check-out", "action": "Send thank-you message"}
+          ]
+        }
+      },
+      "comparison": {
+        "eyebrow": "Why OneInFlowAI",
+        "title": "Why not use a separate chatbot and hotel system?",
+        "description": "Disconnected tools make staff repeat context and reconcile states by hand.",
+        "disconnectedTitle": "Typical disconnected setup",
+        "disconnected": ["Chatbot, spreadsheet, booking system, payment checks, and CRM stay separate", "Staff switch systems to answer one guest", "The same data is entered more than once", "Conversation and booking states drift apart", "Follow-up depends on manual reminders"],
+        "connected": ["Conversation flows into booking and payment", "CRM and stay context continue from the same record", "Operational status remains visible", "Automation reacts to verified events", "Staff can take control when needed"],
+        "punchline": "The information moves forward. Staff do not start over at every step."
+      },
+      "preview": {
+        "eyebrow": "Product preview",
+        "title": "The work your team needs, in one operational workspace",
+        "description": "A practical view of conversations and hotel operations—without decorative analytics or invented metrics.",
+        "workspace": "Operational workspace",
+        "items": [
+          {"title": "Conversations", "description": "Handle AI and human conversations with customer context.", "status": "Live"},
+          {"title": "Bookings", "description": "Follow holds, confirmation, payment, and lifecycle state.", "status": "Authoritative"},
+          {"title": "Rooms", "description": "Separate occupancy from room readiness.", "status": "Operational"},
+          {"title": "Customer 360", "description": "Review the customer journey from conversation to stay.", "status": "Connected"},
+          {"title": "Housekeeping", "description": "Assign and complete room-turnover work.", "status": "Actionable"},
+          {"title": "Automations", "description": "See event-driven work and execution state.", "status": "Auditable"}
+        ]
+      },
+      "audienceControl": {
+        "audienceEyebrow": "Built for focused hotel teams",
+        "audienceTitle": "For hotels that want less admin work without losing control",
+        "audienceDescription": "Designed for independent accommodation teams that need customer service and hotel operations to stay connected.",
+        "audiences": ["Boutique hotels", "Small and medium hotels", "Resorts", "Independent accommodation"],
+        "controlEyebrow": "Trust and control",
+        "controlTitle": "AI helps. The hotel remains in control.",
+        "controlDescription": "Important decisions stay bounded by server-side rules and verifiable operational state.",
+        "controls": ["AI cannot confirm a payment arbitrarily", "Important actions can require staff confirmation", "Staff can take over a conversation", "Operational events remain auditable", "Workspace data stays isolated"]
       }
     },
     "liveMetrics": {
       "eyebrow": "Live",
       "title": "Your platform, working in real time",
-      "description": "A live snapshot of activity across OneInFlow. Numbers update continuously.",
+      "description": "A live snapshot of activity across OneInFlowAI. Numbers update continuously.",
       "items": {
         "workspaces": "Active Workspaces",
         "customers": "Customers Served",
@@ -130,7 +268,7 @@
       "items": {
         "customers": {
           "title": "Customer Management",
-          "description": "Unify every customer profile across channels into a single, searchable CRM."
+          "description": "Unify customer profiles from connected channels into one searchable workspace."
         },
         "knowledge": {
           "title": "Knowledge Base",
@@ -157,12 +295,12 @@
     "howItWorks": {
       "eyebrow": "How it works",
       "title": "From first message to full automation",
-      "description": "A few steps to turn every channel into an AI-assisted conversation engine.",
+      "description": "A few steps to connect supported channels to one AI-assisted conversation workflow.",
       "step": "Step",
       "items": {
         "connect": {
           "title": "Connect Channels",
-          "description": "Link LINE OA, Website, Facebook, and more in a few clicks."
+          "description": "Connect Website chat, LINE OA, and Facebook Page Messenger."
         },
         "train": {
           "title": "Train Knowledge",
@@ -181,7 +319,7 @@
     "dashboardPreview": {
       "eyebrow": "Dashboard",
       "title": "A control center for every conversation",
-      "description": "A live look at the OneInFlow dashboard — realtime widgets, charts, and server health, fully themed.",
+      "description": "A live look at the OneInFlowAI dashboard — realtime widgets, charts, and server health, fully themed.",
       "widgets": {
         "workspaces": "Workspace Count",
         "conversations": "Conversation Count",
@@ -199,7 +337,7 @@
     "roi": {
       "eyebrow": "ROI",
       "title": "Calculate Your Business Savings",
-      "description": "Drag the sliders to estimate what OneInFlow could save your team. Updates instantly — no signup required.",
+      "description": "Drag the sliders to estimate what OneInFlowAI could save your team. Updates instantly — no signup required.",
       "sliders": {
         "employees": "Employees answering chats",
         "salary": "Average monthly salary",
@@ -229,11 +367,11 @@
     "hotel": {
       "eyebrow": "Hotel Integration",
       "title": "Connect booking, PMS, and AI",
-      "description": "Reservation data flows from your PMS into OneInFlow so the AI can answer guests with live, accurate booking context.",
+      "description": "Reservation data flows from your PMS into OneInFlowAI so the AI can answer guests with live, accurate booking context.",
       "nodes": {
         "booking": "Booking",
         "pms": "PMS",
-        "oneflow": "OneInFlow",
+        "oneflow": "OneInFlowAI",
         "customer": "Customer",
         "ai": "AI",
         "reply": "Reply"
@@ -242,7 +380,7 @@
     "costSaving": {
       "badge": "Always on",
       "title": "AI Never Sleeps.",
-      "description": "While your team rests, OneInFlow keeps every conversation moving — around the clock, across every channel.",
+      "description": "While your team rests, OneInFlowAI keeps every conversation moving — around the clock, across every channel.",
       "items": {
         "hours": "Hours Saved / month",
         "employees": "Equivalent Employees",
@@ -254,7 +392,7 @@
     "trust": {
       "eyebrow": "Use cases",
       "title": "Designed for Every Business",
-      "description": "A channel-agnostic engine that adapts to any industry. Integrations are on the way.",
+      "description": "A shared conversation foundation for the supported channels today, with more integrations planned.",
       "comingSoon": "Coming Soon",
       "industries": {
         "hotels": "Hotels",
@@ -267,8 +405,14 @@
     },
     "pricing": {
       "eyebrow": "Pricing",
-      "title": "Simple pricing that scales with you",
-      "description": "Start free, upgrade when you grow. No hidden fees.",
+      "title": "A package that fits your operation",
+      "description": "Pricing is provided by the OneInFlowAI team based on your operational needs. No public price is invented here.",
+      "contactTitle": "Pilot pricing is available from the OneInFlowAI team",
+      "contactDescription": "Package pricing is not currently published in the public documentation. Tell us about your channels, property operations, and expected volume so the team can provide the right information.",
+      "primaryCta": "Create an account",
+      "secondaryCta": "Review product docs",
+      "includedTitle": "Built for daily operations",
+      "included": ["Unified customer conversations", "Grounded workspace knowledge", "Hotel operations and housekeeping", "Human handoff and action confirmation"],
       "popular": "Most popular",
       "free": "Free",
       "periods": {
@@ -319,8 +463,8 @@
       "title": "Frequently asked questions",
       "items": [
         {
-          "question": "Which channels does OneInFlow support?",
-          "answer": "LINE OA, Website live chat, Facebook, Instagram, WhatsApp, Telegram, and Email — all through one channel-agnostic conversation engine."
+          "question": "Which channels does OneInFlowAI support?",
+          "answer": "OneInFlowAI currently supports Website live chat, LINE OA text messaging, and Facebook Page Messenger text messaging through one shared conversation workflow."
         },
         {
           "question": "Do I need to write any code?",
@@ -341,21 +485,22 @@
       ]
     },
     "cta": {
-      "title": "Ready to unify every conversation?",
-      "description": "Launch your AI-powered support platform in minutes.",
-      "button": "Get Started"
+      "title": "Let guests finish from chat while your team does less admin work",
+      "description": "Bring customer service, bookings, payments, and hotel operations together with OneInFlowAI.",
+      "button": "Get started",
+      "secondaryButton": "See the workflow"
     }
   },
   "auth": {
     "login": {
       "title": "Welcome back",
-      "subtitle": "Log in to your OneInFlow workspace.",
+      "subtitle": "Log in to your OneInFlowAI workspace.",
       "email": "Email",
       "password": "Password",
       "remember": "Remember me",
       "forgot": "Forgot password?",
       "submit": "Log in",
-      "footerText": "New to OneInFlow?",
+      "footerText": "New to OneInFlowAI?",
       "footerLink": "Create an account",
       "emailNotVerified": "Verify your email before logging in.",
       "verifyEmail": "Verify email",
@@ -376,7 +521,7 @@
     },
     "verifyEmail": {
       "title": "Verify your email",
-      "subtitle": "Enter the six-digit code sent for your OneInFlow account.",
+      "subtitle": "Enter the six-digit code sent for your OneInFlowAI account.",
       "codeLabel": "Verification code",
       "codeHint": "Enter all six digits. You can paste the complete code.",
       "codeLength": "Enter the complete six-digit code.",
@@ -450,10 +595,22 @@
       "channels": "Channels",
       "notifications": "Notifications",
       "customers": "Customers",
+      "rooms": "Rooms",
+      "roomCatalog": "Room catalog",
+      "availability": "Availability",
+      "stays": "Stays",
+      "housekeeping": "Housekeeping",
+      "pms": "PMS Integration",
+      "automations": "Automations",
       "knowledge": "Knowledge Base",
       "analytics": "Analytics",
+      "newBooking": "New booking",
+      "promotions": "Promotions",
       "integrations": "Integrations",
       "workspace": "Workspace",
+      "team": "Team",
+      "billing": "Plan & Billing",
+      "audit": "Audit Log",
       "settings": "Settings"
     },
     "shell": {
@@ -471,7 +628,15 @@
       "settings": "Settings",
       "logout": "Log out",
       "member": "Member",
-      "workspaceComingSoon": "Multi-workspace switching is coming soon."
+      "workspaceComingSoon": "Multi-workspace switching is coming soon.",
+      "workspaceSwitchHint": "Switching refreshes permissions and Workspace data.",
+      "primaryNavigation": "Primary navigation",
+      "theme": "Theme",
+      "navGroups": {
+        "workspace": "Workspace",
+        "hotel": "Hotel operations",
+        "system": "Tools & settings"
+      }
     },
     "overview": {
       "welcome": "Welcome back",
@@ -510,7 +675,7 @@
     },
     "integrations": {
       "title": "Channels",
-      "description": "Connect customer messaging channels to the shared OneInFlow conversation layer.",
+      "description": "Connect customer messaging channels to the shared OneInFlowAI conversation layer.",
       "available": "Available for this workspace",
       "notConnected": "Not connected",
       "webchatSetup": "Connect WebChat to add customer chat to your website.",
@@ -549,7 +714,7 @@
         "evening": "Good evening, {name} 👋",
         "fallbackName": "there"
       },
-      "welcomeBack": "Welcome back to OneInFlow.",
+      "welcomeBack": "Welcome back to OneInFlowAI.",
       "hero": {
         "badge": "AI at work",
         "title": "Your AI team is working.",
@@ -602,10 +767,30 @@
       }
     }
   },
-  "analyticsDashboard": {"title":"Analytics","description":"Operational trends from data your workspace already owns.","loading":"Loading analytics...","error":"Unable to load analytics.","empty":"No data yet. Analytics will appear after customer activity.","days":"{count} days","conversations":"Conversations","customers":"Customers","aiHandled":"AI-handled","aiHelp":"Conversations with an AI response and no recorded human handoff. This is not a resolution or success rate.","actions":"Actions","verifiedPayments":"Verified payments","trend":"Conversation trend","channels":"Conversation channels","handling":"AI and human handling","handoffRate":"Handoff rate","handoffs":"Handoffs","actionOutcomes":"Action outcomes","completionRate":"Completion rate","payments":"Customer payments","verificationRate":"Verification rate","currentQueue":"Current queue snapshot","openActions":"Open actions","unassigned":"Unassigned actions","attention":"Conversations needing attention"},
+  "bookingComposer": {"eyebrow":"Bookings","title":"New booking","description":"Create a staff booking hold. Prices, availability and promotions are calculated by the server and re-checked when the hold is created.","loading":"Loading...","loadError":"Unable to load your workspace access.","denied":"You cannot create bookings","deniedDescription":"Creating a booking hold requires the booking.create capability.","catalogDenied":"Room catalog access required","catalogDeniedDescription":"Selecting properties, room types and rate plans requires the room.read capability.","catalogError":"Unable to load the room catalog.","select":"Select...","steps":{"stay":"Property and stay dates","room":"Room, rate and occupancy","guest":"Guest","promotion":"Promotion code"},"property":"Property","checkIn":"Check-in","checkOut":"Check-out","roomType":"Room type","ratePlan":"Rate plan","adults":"Adults","children":"Children","quantity":"Rooms","refundable":"Refundable","nonRefundable":"Non-refundable","searchCustomer":"Find an existing customer","searchPlaceholder":"Name, email or phone","searching":"Searching...","searchError":"Customer search failed.","noCustomers":"No matching customers.","guestReadMissing":"Customer search requires guest.read. Enter a guest name instead.","guestName":"Or guest name","guestNamePlaceholder":"Guest full name","change":"Change","promotionCode":"Promotion code","promotionPlaceholder":"Optional code","apply":"Apply","remove":"Remove","promotionValid":"Applied: {name}","promotionInvalid":"Code not applied ({reason}).","removeInvalidCode":"Remove or correct the promotion code before continuing.","quoteTitle":"Server quote","quoteHint":"Informational. Nothing is reserved until you confirm.","quoteIncomplete":"Complete the stay, room and occupancy details to see a quote.","quoting":"Calculating...","refreshing":"Refreshing quote...","retry":"Retry","unitsNights":"{units} room(s) × {nights} night(s)","subtotal":"Subtotal","discount":"Discount","total":"Total","review":"Review booking","confirmTitle":"Create booking hold?","confirmBody":"This reserves inventory for {minutes} minutes and any promotion quota. The booking is not confirmed until payment is verified.","confirmHold":"Create hold","back":"Back","reasons":{"OCCUPANCY_EXCEEDED":"Occupancy exceeds this room type's capacity.","NOT_AVAILABLE":"Not available for the selected dates.","INSUFFICIENT_UNITS":"Only {units} room(s) available for these dates.","RATE_CURRENCY_MISMATCH":"This rate plan's currency differs from the property's currency. Ask an administrator to fix the rate plan."},"errors":{"property":"Select a property.","roomType":"Select a room type.","ratePlan":"Select a rate plan.","dates":"Check-out must be after check-in.","stayLength":"A stay cannot exceed 60 nights.","adults":"At least one adult is required.","children":"Children cannot be negative.","quantity":"Rooms must be between 1 and 50.","occupancy":"Maximum {adults} adults, {children} children, {total} guests per room.","guest":"Select a customer or enter a guest name."},"result":{"title":"Booking created","stay":"Stay","repriced":"The hold was priced at {held} (quote was {quoted}). The hold price is authoritative.","holdExpires":"Hold expires at {time}.","next":{"DRAFT":"Draft booking. Activate it to reserve inventory.","HELD":"Inventory is reserved. Next: move to payment so the guest can pay.","PENDING_PAYMENT":"Awaiting payment. Link or verify the payment in Payments; the booking confirms only after verification.","CONFIRMED":"Booking confirmed by verified payment.","CANCELLED":"Booking cancelled. Inventory and promotion quota were released.","EXPIRED":"Hold expired. Inventory and promotion quota were released."},"advance":"Move to payment","payments":"Open payments","cancel":"Cancel hold","another":"Create another booking","manageMissing":"Moving to payment requires booking.manage."}},
+  "promotions": {
+    "eyebrow":"Marketing","title":"Promotions","description":"Manage deterministic discount campaigns, controlled codes, eligibility and confirmed usage.","readOnly":"You can view promotions. Management requires promotion.manage.","newCampaign":"New campaign","newPromotion":"New promotion","editCampaign":"Edit campaign","saved":"Promotion settings saved","saveError":"Unable to save promotion settings","loading":"Loading promotions...","error":"Unable to load promotions","tabsLabel":"Promotion sections","tabs":{"campaigns":"Campaigns","codes":"Codes","usage":"Usage"},"emptyCampaigns":"No campaigns yet.","emptyCodes":"No promotion codes yet.","emptyUsage":"No promotion usage yet.","name":"Name","description":"Description","status":"Status","validity":"Validity","promotions":"Promotions","usage":"Confirmed usage","updated":"Updated","actions":"Actions","edit":"Edit","activate":"Activate","pause":"Pause","expire":"Expire","enable":"Enable","platformManaged":"Platform-managed","archive":"Archive","disable":"Disable","code":"Code","promotion":"Promotion","campaign":"Campaign","usageLimit":"Usage limit","unlimited":"Unlimited","booking":"Booking","discount":"Discount","redeemed":"Redeemed","validFrom":"Valid from","validUntil":"Valid until","stayFrom":"Stay from","stayUntil":"Stay until","discountType":"Discount type","discountValue":"Discount value","percentage":"Percentage","fixed":"Fixed amount","currency":"Currency","maxDiscount":"Maximum discount","minimumSubtotal":"Minimum subtotal","properties":"Properties","roomTypes":"Room types","ratePlans":"Rate plans","sources":"Sources / channels","totalLimit":"Total usage limit","customerLimit":"Per-customer limit","codeLimit":"Code usage limit","cancel":"Cancel","save":"Save","sections":{"identity":"Campaign and code","discount":"Discount pricing","validity":"Validity and stay dates","eligibility":"Eligibility","limits":"Usage limits"}
+  },
+  "analyticsDashboard": {
+    "eyebrow": "Workspace intelligence",
+    "title": "Analytics",
+    "description": "Real sales, operations, AI, automation, and product-usage signals. No employee productivity scoring.",
+    "loading": "Loading analytics...",
+    "error": "Unable to load analytics.",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "rangeLimit": "Custom ranges are limited to 366 days and evaluated in UTC.",
+    "sectionsLabel": "Analytics sections",
+    "presets": {"today":"Today","7":"7 days","30":"30 days","month":"This month","custom":"Custom"},
+    "tabs": {"overview":"Overview","sales":"Sales","operations":"Operations","ai":"AI & Conversations","automation":"Automation","usage":"Team & Usage"},
+    "confirmedBookings":"Confirmed bookings","cancelledBookings":"Cancelled bookings","expiredBookings":"Expired bookings","promotionUses":"Promotion uses","promotionPerformance":"Promotion performance by currency","campaignUsage":"Usage by campaign","codeUsage":"Usage by code","sourceUsage":"Usage by source","currency":"Currency","uses":"Uses","gross":"Gross booking value","discount":"Discount","net":"Net booking value","arrivals":"Check-ins","departures":"Check-outs","paymentIssues":"Payment exceptions","homeViews":"Home views","activeStaff":"Active users","conversationTrend":"Conversation trend","operationalSnapshot":"Room readiness","bookingValue":"Confirmed booking value by currency","averageValue":"Average confirmed booking value","funnel":"Supported booking funnel","holds":"Booking holds","paymentInitiated":"Payment initiated","promotionReservations":"Promotion reservations","promotionReserved":"Reserved","promotionConfirmed":"Confirmed","promotionReleased":"Released","promotionLifecycle":"Campaigns by status","promotionCodes":"Codes","propertyUsage":"Usage by property","promotionTrend":"Confirmed promotion uses by day (UTC)","funnelUnsupported":"Conversation and availability-search attribution is not persisted, so no fabricated end-to-end conversion rate is shown.","checkIns":"Check-ins","checkOuts":"Check-outs","noShows":"No-shows","housekeepingCompleted":"Housekeeping completed","turnaround":"Dirty-to-ready turnaround","roomReadiness":"Current room readiness","conversations":"Conversations","handoffs":"Human handoffs","toolActions":"AI tool actions","succeeded":"Succeeded","failed":"Failed","actionOutcomes":"AI tool outcomes","executions":"Executions","successRate":"Success rate","retryRate":"Manual retry rate","terminalFailed":"Terminal failures","averageAttempts":"Average attempts","outcomes":"Execution outcomes","mostUsed":"Most-used automations","pageViews":"Page views","homeViewers":"Unique Home viewers","featureUsage":"Feature usage","homeTrend":"Home views by day","recentViewers":"Recent Home viewers","user":"User","lastViewed":"Last viewed","views":"Views"
+  },
+  "auditLog": {
+    "eyebrow":"Administration","title":"Audit Log","description":"Immutable workspace history of meaningful changes and sensitive operations. Product page views are tracked separately.","filters":"Filters","search":"Search user, resource, or route","actionFilter":"Filter by exact action","area":"Area","result":"Result","allAreas":"All areas","allResults":"All results","startDate":"Start date","endDate":"End date","loading":"Loading audit history...","error":"Unable to load audit history.","empty":"No audit events match these filters.","time":"Time","actor":"User / Actor","action":"Action","resource":"Resource","total":"{count} events","page":"Page {page} of {pages}","previous":"Previous page","next":"Next page","detail":"Audit event detail","close":"Close","operation":"API operation","correlation":"Correlation ID","safeMetadata":"Safe metadata"
+  },
   "billing": {
     "title": "Plan & Billing",
-    "description": "OneInFlow subscription status, configured capabilities, and reliable usage meters.",
+    "description": "OneInFlowAI subscription status, configured capabilities, and reliable usage meters.",
     "currentPlan": "Current plan",
     "noPlan": "No active plan",
     "usage": "Usage and limits",
@@ -621,12 +806,26 @@
     "retry": "Try again"
   },
   "operations": {
-    "overview": {"title":"Operations overview","description":"A current snapshot composed from existing workspace services.","attention":"Conversations needing attention","openActions":"Open actions","knowledgeReady":"Ready knowledge documents","pendingPayments":"Pending payment checks","connectedChannels":"Available channels","unreadNotifications":"Unread notifications","recentConversations":"Recent conversations","emptyConversations":"No conversations yet.","unread":"{count} unread","error":"Some operational data could not be loaded.","retry":"Retry"},
-    "actions": {"title":"Actions","description":"Manage the operational queue and the workspace-defined types AI can collect.","loading":"Loading actions...","error":"Unable to load actions.","empty":"No actions match this filter.","select":"Select an action to see its details.","type":"Type","statusLabel":"Status","priority":"Priority","assignee":"Assignee","created":"Created","assigned":"Assigned","unassigned":"Unassigned","unknownType":"Unknown action","openConversation":"Open conversation","assignMe":"Assign to me","start":"Start","complete":"Complete","fail":"Mark failed","cancel":"Cancel","yes":"Yes","no":"No","tabs":{"queue":"Queue","types":"Action Types"},"types":{"relationshipTitle":"How Action Types work","relationship":"An Action Type defines required information → AI collects missing fields → server validation → customer confirmation → Action Queue.","create":"Create Action Type","readOnly":"You can view Action Types. Only workspace owners and admins can manage them.","readOnlyLabel":"View only","loading":"Loading Action Types...","error":"Unable to load Action Types.","empty":"Create an Action Type to define what information AI must collect from customers before placing work in the queue.","name":"Name","key":"Key / type","state":"State","required":"Required fields","optional":"Optional fields","updated":"Updated","manage":"Manage","enabled":"Enabled","disabled":"Disabled","edit":"Edit","view":"View","enable":"Enable","disable":"Disable","saved":"Action Type saved.","saveError":"Unable to save Action Type.","createTitle":"Create Action Type","editTitle":"Edit Action Type","editorHelp":"Define only the fields supported by the server. AI collection and validation remain server-controlled.","description":"Description","keyImmutable":"The key is immutable after creation.","keyHelp":"Lowercase letters, numbers, and underscores; start with a letter.","fields":"Fields","addField":"Add field","fieldLabel":"Human-readable label","fieldKey":"Field key","requiredField":"Required","optionalField":"Optional","enumValues":"Allowed values, separated by commas","moveUp":"Move field up","moveDown":"Move field down","save":"Save Action Type","back":"Back to Action Types","fieldTypes":{"string":"Text","integer":"Integer","number":"Number","boolean":"Yes / No","enum":"Select / Enum"}},"status":{"OPEN":"Open","WAITING":"Waiting","ASSIGNED":"Assigned","IN_PROGRESS":"In progress","COMPLETED":"Completed","FAILED":"Failed","CANCELLED":"Cancelled"}},
-    "payments": {"title":"Payments","description":"Review customer payments and safe slip-verification outcomes.","loading":"Loading payments...","error":"Unable to load payments.","empty":"No payment records yet.","reference":"Reference","expected":"Expected","verified":"Verified","status":"Status","created":"Created","detail":"Payment details","destination":"Destination","paidAt":"Paid at","verifiedAt":"Verified at","evidence":"Evidence","verificationResult":"Verification result","reportedAmount":"Provider-reported amount","reason":"Safe result code","unavailable":"Slip Verification is unavailable on the current plan.","remaining":"{count} verifications remaining this billing period.","unlimited":"Slip Verification is available without a configured usage limit.","providerNotice":"EasySlip verifies slip properties, but OneInFlow independently checks amount, currency, receiver, ownership, and duplicates before marking a payment verified.","statuses":{"PENDING":"Pending","VERIFYING":"Verifying","VERIFIED":"Verified","REJECTED":"Rejected","DUPLICATE":"Duplicate","EXPIRED":"Expired","REFUNDED":"Refunded"},"verificationStatuses":{"PENDING":"Pending","PROCESSING":"Processing","VALID":"Valid","INVALID":"Invalid","ERROR":"Verification error"},"reasonCodes":{"DUPLICATE":"Duplicate transaction","AUTHENTICATION_FAILED":"Provider authentication failed","RATE_LIMITED":"Provider rate limit reached","TIMEOUT":"Provider timed out","NETWORK_ERROR":"Provider network error","INVALID_EVIDENCE":"Invalid evidence","PROVIDER_REJECTED":"Provider rejected the request","PROVIDER_ERROR":"Provider unavailable"}},
+    "overview": {"eyebrow":"Today","title":"Operations overview","description":"See what needs attention now, then move directly into the work.","attention":"Conversations needing attention","attentionShort":"Needs attention","openActions":"Open actions","knowledgeReady":"Ready knowledge documents","pendingPayments":"Pending payment checks","connectedChannels":"Connected channels","unreadNotifications":"Unread notifications","needsAttention":"Needs attention","needsAttentionDescription":"Live queues that may require staff action.","systemReadiness":"Service readiness","systemReadinessDescription":"Workspace resources available to customer operations.","liveDataNotice":"Counts come from current workspace services. Unavailable metrics are never estimated.","recentConversations":"Recent conversations","recentConversationsDescription":"Latest customer activity across connected channels.","viewInbox":"Open inbox","emptyConversations":"No conversations yet.","unread":"{count} unread","error":"Some operational data could not be loaded.","errorDescription":"Retry the request. Existing data and server-side rules are unchanged.","refresh":"Refresh","retry":"Retry"},
+    "actions": {"operateRestricted":"Changing actions requires the action.operate permission.","title":"Actions","description":"Manage the operational queue and the workspace-defined types AI can collect.","loading":"Loading actions...","error":"Unable to load actions.","empty":"No actions match this filter.","select":"Select an action to see its details.","type":"Type","statusLabel":"Status","priority":"Priority","assignee":"Assignee","created":"Created","assigned":"Assigned","unassigned":"Unassigned","unknownType":"Unknown action","openConversation":"Open conversation","assignMe":"Assign to me","start":"Start","complete":"Complete","fail":"Mark failed","cancel":"Cancel","yes":"Yes","no":"No","tabs":{"queue":"Queue","types":"Action Types"},"types":{"relationshipTitle":"How Action Types work","relationship":"An Action Type defines required information → AI collects missing fields → server validation → customer confirmation → Action Queue.","create":"Create Action Type","readOnly":"You can view Action Types. Only workspace owners and admins can manage them.","readOnlyLabel":"View only","loading":"Loading Action Types...","error":"Unable to load Action Types.","empty":"Create an Action Type to define what information AI must collect from customers before placing work in the queue.","name":"Name","key":"Key / type","state":"State","required":"Required fields","optional":"Optional fields","updated":"Updated","manage":"Manage","enabled":"Enabled","disabled":"Disabled","edit":"Edit","view":"View","enable":"Enable","disable":"Disable","saved":"Action Type saved.","saveError":"Unable to save Action Type.","createTitle":"Create Action Type","editTitle":"Edit Action Type","editorHelp":"Define only the fields supported by the server. AI collection and validation remain server-controlled.","description":"Description","keyImmutable":"The key is immutable after creation.","keyHelp":"Lowercase letters, numbers, and underscores; start with a letter.","fields":"Fields","addField":"Add field","fieldLabel":"Human-readable label","fieldKey":"Field key","requiredField":"Required","optionalField":"Optional","enumValues":"Allowed values, separated by commas","moveUp":"Move field up","moveDown":"Move field down","save":"Save Action Type","back":"Back to Action Types","fieldTypes":{"string":"Text","integer":"Integer","number":"Number","boolean":"Yes / No","enum":"Select / Enum"}},"status":{"OPEN":"Open","WAITING":"Waiting","ASSIGNED":"Assigned","IN_PROGRESS":"In progress","COMPLETED":"Completed","FAILED":"Failed","CANCELLED":"Cancelled"}},
+    "payments": {"title":"Payments","description":"Review customer payments and safe slip-verification outcomes.","loading":"Loading payments...","error":"Unable to load payments.","empty":"No payment records yet.","reference":"Reference","expected":"Expected","verified":"Verified","status":"Status","created":"Created","detail":"Payment details","destination":"Destination","paidAt":"Paid at","verifiedAt":"Verified at","evidence":"Evidence","verificationResult":"Verification result","reportedAmount":"Provider-reported amount","reason":"Safe result code","unavailable":"Slip Verification is unavailable on the current plan.","remaining":"{count} verifications remaining this billing period.","unlimited":"Slip Verification is available without a configured usage limit.","providerNotice":"EasySlip verifies slip properties, but OneInFlowAI independently checks amount, currency, receiver, ownership, and duplicates before marking a payment verified.","statuses":{"PENDING":"Pending","VERIFYING":"Verifying","VERIFIED":"Verified","REJECTED":"Rejected","DUPLICATE":"Duplicate","EXPIRED":"Expired","REFUNDED":"Refunded"},"verificationStatuses":{"PENDING":"Pending","PROCESSING":"Processing","VALID":"Valid","INVALID":"Invalid","ERROR":"Verification error"},"reasonCodes":{"DUPLICATE":"Duplicate transaction","AUTHENTICATION_FAILED":"Provider authentication failed","RATE_LIMITED":"Provider rate limit reached","TIMEOUT":"Provider timed out","NETWORK_ERROR":"Provider network error","INVALID_EVIDENCE":"Invalid evidence","PROVIDER_REJECTED":"Provider rejected the request","PROVIDER_ERROR":"Provider unavailable"}},
     "notifications": {"title":"Notifications","description":"Operational alerts with links back to the related work.","markAllRead":"Mark all read","error":"Unable to load notifications.","empty":"You're all caught up."},
     "workspace": {"title":"Workspace","description":"View workspace identity, your role, and current members.","loading":"Loading workspace...","error":"Unable to load workspace.","workspaceName":"Workspace","roleNotice":"Permissions remain enforced by the server for every operation.","manageChannels":"Open channel settings","members":"Members","name":"Name","email":"Email","role":"Role","roles":{"owner":"Owner","admin":"Admin","member":"Member"}},
     "knowledge": {"title":"Knowledge","description":"Upload and monitor documents used by grounded AI answers.","upload":"Upload document","uploading":"Uploading","uploadSuccess":"Document uploaded.","uploadError":"Unable to upload document.","deleteConfirm":"Delete {title}?","deleteSuccess":"Document deleted.","deleteError":"Unable to delete document.","loadError":"Unable to load documents.","empty":"No documents yet.","formats":"Supported uploads: PDF, DOCX, TXT, and Markdown.","name":"Document","size":"Size","pipeline":"Pipeline","index":"Index","updated":"Updated","actions":"Actions","indexFailed":"Indexing failed. Safe details are available from server status only.","retry":"Retry chunking","indexNow":"Index now","delete":"Delete document","tabs":{"knowledge":"Knowledge","instructions":"AI Instructions"},"instructions":{"title":"AI Instructions","description":"Set the response style, tone, and behavior for this Workspace. These instructions are not factual evidence; add business facts under Knowledge.","placeholder":"Describe how your AI should communicate with customers...","counter":"{count} / {max} characters","save":"Save instructions","saving":"Saving...","saved":"AI instructions saved.","saveError":"Unable to save AI instructions.","loadError":"Unable to load AI instructions.","readOnly":"Only Workspace owners and admins can edit these instructions."}}
+  },
+  "settingsHub": {
+    "title": "Settings",
+    "description": "Manage workspace operations through the dedicated area for each setting.",
+    "sections": {
+      "workspace": {"title":"Workspace","description":"Workspace identity, membership, and your current role."},
+      "hotel": {"title":"Hotel","description":"Open room and hotel operational settings."},
+      "team": {"title":"Team","description":"Review workspace members and access roles."},
+      "ai": {"title":"AI & knowledge","description":"Manage grounded documents and workspace AI instructions."},
+      "channels": {"title":"Channels","description":"Connect and review customer messaging channels."},
+      "automations": {"title":"Automations","description":"Manage operational rules and execution health."},
+      "integrations": {"title":"PMS integration","description":"Configure read-only PMS imports and mappings."},
+      "billing": {"title":"Billing","description":"Review the current plan, entitlements, and usage."}
+    }
   },
   "errors": {
     "notFoundTitle": "Page not found",
@@ -636,7 +835,7 @@
   },
   "docs": {
     "title": "Documentation",
-    "description": "Everything you need to build on OneInFlow (mock content in this build).",
+    "description": "Everything you need to build on OneInFlowAI (mock content in this build).",
     "topics": {
       "gettingStarted": {
         "title": "Getting Started",
@@ -663,8 +862,19 @@
   "units": {
     "seconds": "sec"
   },
-  "workspaceOnboarding": {"title":"Get started with OneInFlow","description":"Create a Workspace or join one through a valid invitation. Registration does not create a Workspace automatically.","createTitle":"Create a new Workspace","createDescription":"Set up a Workspace for your business. You will become its owner.","name":"Workspace name","create":"Create Workspace","created":"Workspace created.","error":"Unable to create Workspace.","joinTitle":"Join a Workspace","joinDescription":"A Workspace owner or admin must invite you. Self-joining by ID is not allowed.","joinPending":"Waiting for an invitation"},
+  "workspaceOnboarding": {"title":"Get started with OneInFlowAI","description":"Create a Workspace or join one through a valid invitation. Registration does not create a Workspace automatically.","createTitle":"Create a new Workspace","createDescription":"Choose a plan, wait for Pilot activation, then create the Workspace you will own.","choosePlan":"Choose a plan","joinTitle":"Join a hotel team","joinDescription":"Enter the secure join code from a Workspace owner or admin. A code only creates an access request.","joinPending":"Waiting for an invitation","codePlaceholder":"Workspace join code","findWorkspace":"Find Workspace","invalidCode":"The join code is invalid or unavailable.","workspaceFound":"Workspace found","confirmRequest":"Request access","useAnotherCode":"Use another code","requestSent":"Access request sent.","requestFailed":"Unable to request access.","pendingTitle":"คำขอเข้าร่วมกำลังรอการอนุมัติ","workspace":"Workspace"},
+  "teamAccess": {
+    "title":"Team access","description":"Review requests and grant only the operational permissions each employee needs.","joinCodeTitle":"Workspace join code","joinCodeDescription":"Share this code privately. It can only request access and never creates membership directly.","joinCodeGenerated":"A new join code was generated. The previous code is now invalid.","joinRequestsEnabled":"Join requests enabled.","joinRequestsDisabled":"Join requests disabled.","joinRequestsOn":"Join requests are enabled","joinRequestsOff":"Join requests are disabled","enableJoinRequests":"Enable requests","disableJoinRequests":"Disable requests","codeHint":"Code hint","copy":"Copy code","copied":"Code copied.","regenerate":"Regenerate code","members":"Members","requests":"Access requests","loading":"Loading...","editAccess":"Edit access","remove":"Remove member","review":"Review","reject":"Reject","noRequests":"No pending access requests.","approveAccess":"Approve access","roleLabel":"Workspace role","adminBaselineNotice":"Admins receive the broad administrative baseline defined by the server. Member capability checkboxes do not override it.","cancel":"Cancel","save":"Save permissions","approve":"Approve member","approved":"Access approved.","saved":"Permissions saved.",
+    "roles":{"owner":"Owner","admin":"Admin","member":"Member"},
+    "presets":{"frontDesk":"Front desk","customerService":"Customer service","housekeeping":"Housekeeping","payments":"Payments","readOnly":"Read only"},
+    "groups":{"conversations":"Conversations","guests":"Guests","bookings":"Bookings","payments":"Payments","rooms":"Rooms","stays":"Stays","actions":"Actions","housekeeping":"Housekeeping","automation":"Automations","pms":"PMS","knowledge":"Knowledge","workspace":"Workspace & audit"},
+    "capabilities":{"conversation":{"read":"View conversations","reply":"Reply to customers","handoff":"Hand off conversations"},"guest":{"read":"View guests","manage":"Create, edit and delete guests","note":"Add guest notes","preference":{"manage":"Manage guest preferences"}},"booking":{"read":"View bookings","create":"Create bookings","manage":"Manage bookings","cancel":"Cancel bookings"},"promotion":{"read":"View promotions","manage":"Manage promotions"},"payment":{"read":"View payments","review":"Review payments"},"room":{"read":"View rooms","manage":"Manage rooms"},"stay":{"read":"View stays","checkin":"Check guests in","checkout":"Check guests out","no_show":"Mark no-show"},"housekeeping":{"read":"View housekeeping","operate":"Operate housekeeping tasks","manage":"Manage housekeeping"},"action":{"read":"View actions and collected guest details","operate":"Create, assign and update actions"},"automation":{"read":"View automations","manage":"Manage automations"},"pms":{"read":"View PMS data","manage":"Manage PMS connection"},"knowledge":{"read":"View Knowledge","manage":"Manage Knowledge"},"workspace":{"members":{"read":"View team","manage":"Manage team"},"settings":{"manage":"Manage Workspace settings"},"billing":{"read":"View Workspace billing"}},"analytics":{"read":"View analytics"},"audit":{"read":"View audit events"}}
+  },
+  "billingOnboarding": {"title":"Plan and Workspace setup","description":"Choose a Pilot plan first. No online payment is collected; a trusted OneInFlowAI platform administrator activates eligible subscriptions.","back":"Back to onboarding","pilotPricing":"Pilot pricing is confirmed separately by the OneInFlowAI team.","selectPlan":"Request Pilot activation","noPlans":"No Pilot plans are currently available.","subscriptionCreated":"Subscription created and awaiting activation.","subscriptionError":"Unable to create the subscription.","pendingTitle":"Your subscription is awaiting activation","pendingDescription":"The OneInFlowAI Pilot team must activate this subscription before you can create a Workspace. Workspace owners and admins cannot activate it themselves.","refresh":"Check activation status","readyTitle":"Your subscription is active","readyDescription":"{plan} can provision one Workspace.","workspaceName":"Hotel Workspace name","createWorkspace":"Create Workspace","workspaceCreated":"Workspace created.","workspaceError":"Unable to create Workspace.","unavailableTitle":"Workspace creation is unavailable","unavailableDescription":"This subscription cannot provision another Workspace. Current status: {status}.","loadError":"Unable to load billing setup.","retry":"Try again"},
   "inbox": {
+    "title": "Conversations",
+    "description": "Customer messages across every connected channel.",
+    "backToList": "Back to conversations",
     "search": "Search conversations",
     "deliveryFailed": "The reply was saved but could not be sent to the external channel.",
     "handoff": "Hand off to staff",
@@ -696,7 +906,19 @@
     },
     "composer": {
       "placeholder": "Type a message...",
-      "hint": "Sending will be enabled in a later version"
+      "hint": "Sending will be enabled in a later version",
+      "send": "Send message"
+    },
+    "context": {
+      "title": "Conversation context",
+      "description": "Trusted state available for this conversation.",
+      "customer": "Customer",
+      "channel": "Channel",
+      "mode": "AI / staff mode",
+      "attention": "Attention",
+      "required": "Staff review required",
+      "clear": "No attention flag",
+      "unread": "Unread messages"
     },
     "customer": {
       "title": "Customer",
@@ -714,5 +936,345 @@
       "warm": "Warm",
       "cold": "Cold"
     }
+  },
+  "hotelPaymentExceptions": {
+    "title": "Hotel payment exceptions",
+    "description": "Verified payments that have not been applied to a booking. Review before taking any financial action.",
+    "loading": "Loading payment exceptions...",
+    "loadError": "Unable to load payment exceptions.",
+    "empty": "No verified but unapplied hotel payments.",
+    "refresh": "Refresh",
+    "payment": "Payment",
+    "booking": "Booking",
+    "amount": "Verified amount",
+    "bookingStatus": "Booking status",
+    "reviewNote": "Staff review note",
+    "viewPayment": "View payment",
+    "retry": "Retry safely",
+    "retryError": "Reconciliation could not be retried.",
+    "applied": "Payment applied to the booking.",
+    "stillNeedsReview": "Payment still requires staff review.",
+    "acknowledge": "Add review note",
+    "acknowledged": "Review note saved.",
+    "acknowledgeError": "Review note could not be saved.",
+    "saveNote": "Save note",
+    "noFinancialAction": "This note does not refund, transfer, or apply the payment.",
+    "unclassified": "Needs investigation",
+    "reasons": {
+      "BOOKING_EXPIRED": "Booking hold expired",
+      "BOOKING_CANCELLED": "Booking was cancelled",
+      "BOOKING_ALREADY_CONFIRMED": "Booking already confirmed with another payment",
+      "AMOUNT_MISMATCH": "Amount does not match the booking snapshot",
+      "CURRENCY_MISMATCH": "Currency does not match the booking snapshot",
+      "PAYMENT_ALREADY_APPLIED": "Payment was already applied",
+      "BOOKING_LINK_CONFLICT": "Payment and booking link conflict",
+      "INVALID_BOOKING_STATE": "Booking cannot accept payment",
+      "PAYMENT_NOT_VERIFIED": "Payment is not verified"
+    }
+  },
+  "hotelOperations": {
+    "loading": "Loading hotel operations...",
+    "error": "Unable to load hotel operations.",
+    "saved": "Hotel operation saved.",
+    "empty": "No records match these filters.",
+    "property": "Property",
+    "status": "Status",
+    "occupancy": "Occupancy",
+    "readiness": "Readiness",
+    "actions": "Actions",
+    "all": "All",
+    "allStatuses": "All statuses",
+    "allProperties": "All properties",
+    "allRoomTypes": "All room types",
+    "allOccupancy": "All occupancy states",
+    "allReadiness": "All readiness states",
+    "activeFilter": "Active state",
+    "allActivity": "Active and inactive",
+    "active": "Active",
+    "inactive": "Inactive",
+    "floor": "Floor",
+    "building": "Building",
+    "wing": "Wing",
+    "location": "Location",
+    "selectProperty": "Select property",
+    "selectRoomType": "Select room type",
+    "roomCode": "Room code",
+    "roomType": "Room type",
+    "createRoom": "Add room",
+    "makeAvailable": "Return to service",
+    "outOfService": "Mark out of service",
+    "overrideReasonPrompt": "Enter the operational reason for this readiness override (at least 10 characters).",
+    "overrideDirty": "Override as dirty",
+    "overrideReady": "Override as ready",
+    "bookingId": "Confirmed booking ID",
+    "createStay": "Create stay",
+    "guest": "Guest",
+    "dates": "Stay dates",
+    "roomsLabel": "Assigned rooms",
+    "requiredRooms": "Required rooms",
+    "actualCheckIn": "Actual check-in",
+    "actualCheckOut": "Actual check-out",
+    "assignRooms": "Assign rooms",
+    "checkIn": "Check in",
+    "checkOut": "Check out",
+    "noShow": "Mark no-show",
+    "arrivalDate": "Arrival date",
+    "departureDate": "Departure date",
+    "timeline": "Stay timeline",
+    "rooms": {
+      "title": "Rooms",
+      "description": "Manage physical rooms and their operational availability.",
+      "create": "Add room",
+      "code": "Room code",
+      "type": "Room type",
+      "available": "Available",
+      "occupied": "Occupied",
+      "outOfService": "Out of service",
+      "markOutOfService": "Mark out of service",
+      "returnToService": "Return to service"
+    },
+    "stays": {
+      "title": "Stays",
+      "description": "Coordinate arrivals, room assignments, check-in, and check-out.",
+      "guest": "Guest",
+      "arrival": "Arrival",
+      "departure": "Departure",
+      "rooms": "Rooms",
+      "view": "View stay"
+    }
+  },
+  "hotelCatalog": {
+    "title": "Room catalog",
+    "description": "Manage sellable room types, guest-facing details, amenities, photos, and physical room quantity.",
+    "availability": {
+      "title": "Availability",
+      "description": "Authoritative room-type inventory by date, including reserved and blocked units.",
+      "selectPropertyEmpty": "Select a property to view its availability calendar.",
+      "empty": "No room types or availability data for this range."
+    },
+    "property": "Property",
+    "selectProperty": "Select property",
+    "allProperties": "All properties",
+    "roomType": "Room type",
+    "roomTypes": "Room types",
+    "selectRoomType": "Select a room type to view its catalog.",
+    "catalogHint": "Sellable categories remain separate from physical rooms.",
+    "createRoomType": "Create room type",
+    "createFirst": "Create your first room type",
+    "editRoomType": "Edit room type",
+    "edit": "Edit",
+    "emptyRoomTypes": "No room types yet.",
+    "formDescription": "Complete each structured section. Physical-room state remains separate.",
+    "sections": {"basic":"Basic information","capacity":"Capacity","beds":"Beds","view":"View","amenities":"Amenities","physicalRooms":"Physical rooms"},
+    "categories": {"BATHROOM":"Bathroom","BEDROOM_FURNITURE":"Bedroom & furniture","ENTERTAINMENT":"Entertainment","FOOD_AND_DRINK":"Food & drink","COMFORT":"Comfort","CONNECTIVITY":"Connectivity","SAFETY":"Safety","ACCESSIBILITY":"Accessibility","OTHER":"Other"},
+    "code": "Code",
+    "name": "Name",
+    "shortDescription": "Short description",
+    "description": "Description",
+    "maxAdults": "Max adults",
+    "maxChildren": "Max children",
+    "maxOccupancy": "Max occupancy",
+    "baseCapacity": "Base capacity",
+    "roomSize": "Room size",
+    "capacity": "Capacity",
+    "guests": "{count} guests",
+    "beds": "Beds",
+    "addBed": "Add bed",
+    "amenities": "Amenities",
+    "view": "View",
+    "customView": "Custom view label",
+    "physicalRoomCount": "Active physical rooms",
+    "roomCodesHelp": "Enter one room per line: room code, floor, building, wing. Exact codes are required; placeholders are not generated.",
+    "photo": "Photo",
+    "altText": "Accessible alt text",
+    "upload": "Upload",
+    "movePrevious": "Move image earlier",
+    "moveNext": "Move image later",
+    "setCover": "Set as cover image",
+    "noPhotos": "No room photos yet.",
+    "save": "Save",
+    "cancel": "Cancel",
+    "remove": "Remove",
+    "saved": "Room catalog saved.",
+    "saveError": "Unable to save the room catalog.",
+    "loadError": "Unable to load hotel catalog data.",
+    "loading": "Loading room catalog",
+    "startDate": "Start date",
+    "previousRange": "Previous date range",
+    "nextRange": "Next date range",
+    "days": "{count} days",
+    "used": "used",
+    "noInventory": "No inventory",
+    "total": "Total",
+    "reserved": "Reserved",
+    "blocked": "Blocked",
+    "available": "Available",
+    "authority": "Inventory authority",
+    "syncedFromPms": "Synced from PMS",
+    "localAuthority": "Local inventory",
+    "close": "Close"
+  },
+  "automations": {
+    "title": "Automations",
+    "description": "Run opt-in Hotel workflows from durable domain events.",
+    "create": "Create automation",
+    "name": "Name",
+    "trigger": "Trigger",
+    "action": "Action",
+    "status": "Status",
+    "manage": "Manage",
+    "notification": "Internal notification",
+    "customerMessage": "Customer message",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "enable": "Enable",
+    "disable": "Disable",
+    "history": "Execution history",
+    "attempts": "{count} attempts",
+    "empty": "No automations yet.",
+    "noHistory": "No executions yet.",
+    "optIn": "New automations are disabled until an owner or admin enables them.",
+    "saved": "Automation saved.",
+    "error": "Unable to update automations.",
+    "loading": "Loading automations",
+    "operations": "Operations",
+    "operationsDescription": "Worker health, queue state, and failures requiring attention.",
+    "statusError": "Unable to load automation operations status.",
+    "noAlerts": "No active operational alerts.",
+    "recentFailures": "Recent terminal failures",
+    "noFailures": "No terminal failures.",
+    "unknownError": "Unknown error",
+    "retry": "Retry",
+    "retryQueued": "Execution queued for retry.",
+    "retryError": "Execution could not be retried.",
+    "worker": {
+      "HEALTHY": "Worker healthy",
+      "STALE": "Worker stale",
+      "NOT_RUNNING": "Worker not running"
+    },
+    "queue": {
+      "pending": "Pending",
+      "running": "Running",
+      "scheduled": "Scheduled",
+      "terminal_failed": "Terminal failed"
+    }
+  },
+  "housekeeping": {
+    "title": "Housekeeping",
+    "description": "Manage dirty rooms, cleaning work, and readiness for the next guest.",
+    "all": "All",
+    "allProperties": "All properties",
+    "allStatuses": "All task statuses",
+    "allPriorities": "All priorities",
+    "allReadiness": "All readiness states",
+    "allAssignees": "All assignees",
+    "room": "Room",
+    "property": "Property",
+    "readiness": "Readiness",
+    "status": "Task status",
+    "priority": "Priority",
+    "assignee": "Assignee",
+    "unassigned": "Unassigned",
+    "checkout": "Checkout",
+    "started": "Started",
+    "actions": "Actions",
+    "start": "Start cleaning",
+    "complete": "Complete",
+    "cancel": "Cancel",
+    "saved": "Housekeeping updated.",
+    "error": "Unable to update housekeeping.",
+    "empty": "No housekeeping tasks match this filter.",
+    "loading": "Loading housekeeping tasks"
+  },
+  "pms": {
+    "title": "PMS Integration",
+    "description": "Import and reconcile hotel data through a read-only provider boundary.",
+    "readOnlyTitle": "Read-only import",
+    "readOnlyNotice": "OneInFlowAI can read mapped PMS data. It cannot create, update, or delete data in the external PMS.",
+    "connectionName": "Connection name",
+    "provider": "Provider",
+    "inventoryAuthority": "Inventory authority",
+    "authority": {"LOCAL": "OneInFlowAI (reconciliation only)", "PMS": "PMS (safe mapped import)"},
+    "addConnection": "Add connection",
+    "connectionCreated": "PMS connection created.",
+    "connectionUpdated": "PMS connection updated.",
+    "noProviders": "No PMS provider is configured for this deployment.",
+    "empty": "No PMS connection has been configured.",
+    "connections": "Connections",
+    "inactive": "Inactive",
+    "lastSuccess": "Last successful sync",
+    "lastFailure": "Last failed sync",
+    "test": "Test connection",
+    "testSucceeded": "PMS connection test succeeded.",
+    "sync": "Sync now",
+    "syncStarted": "PMS sync completed.",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "mappings": "Entity mappings",
+    "mappingDescription": "Map stable external identities explicitly. Names are never silently matched.",
+    "entityType": "Entity type",
+    "externalId": "External ID",
+    "localId": "Local entity ID",
+    "map": "Create mapping",
+    "mappingCreated": "PMS mapping created.",
+    "noMappings": "No mappings for this connection.",
+    "reconciliation": "Reconciliation issues",
+    "reconciliationDescription": "Unmapped entities and safety conflicts remain visible for staff review.",
+    "noIssues": "No reconciliation issues.",
+    "syncHistory": "Sync history",
+    "status": "Status",
+    "started": "Started",
+    "fetched": "Fetched",
+    "applied": "Applied",
+    "conflicts": "Conflicts",
+    "error": "Error",
+    "noRuns": "No sync runs yet.",
+    "readOnlyMember": "Members can inspect PMS operations but cannot change connections, mappings, or start syncs.",
+    "loadError": "Unable to load PMS operations.",
+    "operationFailed": "The PMS operation could not be completed safely."
+  },
+  "guestCrm": {
+    "paymentsRestricted": "Payment details require the payment.read permission.",
+    "bookingsRestricted": "Booking details require the booking.read permission.",
+    "staysRestricted": "Stay details require the stay.read permission.",
+    "conversationsRestricted": "Conversations require the conversation.read permission.",
+    "title": "Guests",
+    "detailTitle": "Guest profile",
+    "description": "Customer 360 across conversations, bookings, payments, preferences, and staff context.",
+    "search": "Search name, email, or phone",
+    "searchAction": "Search",
+    "loading": "Loading guests...",
+    "error": "Unable to load guest information.",
+    "empty": "No guests match these filters.",
+    "guest": "Guest",
+    "tags": "Tags",
+    "bookings": "Bookings",
+    "stays": "Stays",
+    "payments": "Payments",
+    "conversations": "Conversations",
+    "preferences": "Preferences",
+    "notes": "Staff notes",
+    "timeline": "Journey timeline",
+    "latestBooking": "Latest booking",
+    "lastContact": "Last contact",
+    "attention": "Attention",
+    "repeatGuest": "Repeat guest",
+    "paymentException": "Payment review",
+    "paymentExceptions": "Unresolved payment issues",
+    "needsAttention": "Needs attention",
+    "back": "Back to guests",
+    "tagPlaceholder": "Tag name",
+    "addTag": "Add tag",
+    "removeTag": "Remove tag",
+    "addPreference": "Add or update an explicit preference",
+    "preferenceValue": "Confirmed preference value",
+    "notePlaceholder": "Add an operational note",
+    "addNote": "Add note",
+    "save": "Save",
+    "saved": "Saved.",
+    "saveError": "Unable to save changes.",
+    "sectionEmpty": "No records yet.",
+    "filters": {"exceptions":"Payment exceptions","repeat":"Repeat guests"},
+    "preferenceKeys": {"preferred_room_type":"Preferred room type","bed_preference":"Bed preference","smoking_preference":"Smoking preference","accessibility_request":"Accessibility request","arrival_preference":"Arrival preference","language":"Language","other":"Other"}
   }
 }

@@ -38,6 +38,13 @@ class PaymentDestinationRepository(BaseRepository[PaymentDestination]):
 class PaymentRepository(BaseRepository[Payment]):
     model = Payment
 
+    async def get_for_update(self, workspace_id, payment_id):
+        return await self.session.scalar(
+            select(Payment)
+            .where(Payment.workspace_id == workspace_id, Payment.id == payment_id)
+            .with_for_update()
+        )
+
     async def get(self, workspace_id, payment_id):
         return await self.session.scalar(
             select(Payment).where(

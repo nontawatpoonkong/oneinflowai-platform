@@ -6,8 +6,8 @@ import { knowledgeService } from "@/services/knowledge/knowledge.service";
 
 const params = { page: 1, page_size: 100 };
 
-export function useKnowledgeDocuments() {
-  return useQuery({ queryKey: queryKeys.knowledge(params), queryFn: () => knowledgeService.list(params) });
+export function useKnowledgeDocuments(enabled = true) {
+  return useQuery({ queryKey: queryKeys.knowledge(params), queryFn: () => knowledgeService.list(params), enabled });
 }
 
 export function useUploadKnowledgeDocument() {

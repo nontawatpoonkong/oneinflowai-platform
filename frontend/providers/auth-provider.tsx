@@ -14,6 +14,7 @@ import {
 import { queryKeys } from "@/lib/query-keys";
 import { authService } from "@/services/auth/auth.service";
 import { clearToken, getToken, setToken } from "@/services/auth/token";
+import { clearActiveWorkspaceId } from "@/services/workspace/active-workspace";
 import type {
   LoginPayload,
   RegisterPayload,
@@ -83,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     clearToken();
+    clearActiveWorkspaceId();
     setHasToken(false);
     queryClient.clear();
     router.replace("/login");

@@ -7,7 +7,6 @@ import { useTranslations } from "next-intl";
 
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { Logo } from "@/components/shared/logo";
-import { Magnetic } from "@/components/shared/magnetic";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { useActiveSection } from "@/hooks/use-active-section";
@@ -45,7 +44,7 @@ export function Navbar() {
       >
         <Logo className={cn("transition-transform", scrolled && "scale-95")} />
 
-        <nav className="hidden items-center gap-1 md:flex">
+        <nav className="hidden items-center gap-1 lg:flex">
           {isLanding
             ? LANDING_SECTIONS.map((section) => (
                 <a
@@ -87,14 +86,12 @@ export function Navbar() {
           <div className="hidden sm:block">
             <ThemeToggle />
           </div>
-          <Button asChild variant="ghost" size="sm" className="hidden md:inline-flex">
+          <Button asChild variant="ghost" size="sm" className="hidden lg:inline-flex">
             <Link href="/login">{t("common.login")}</Link>
           </Button>
-          <Magnetic className="hidden md:inline-flex">
-            <Button asChild size="sm">
-              <Link href="/dashboard">{t("common.getStarted")}</Link>
-            </Button>
-          </Magnetic>
+          <Button asChild size="sm" className="hidden lg:inline-flex">
+            <Link href="/register">{t("common.getStarted")}</Link>
+          </Button>
           <MobileNav />
         </div>
       </div>
@@ -102,7 +99,7 @@ export function Navbar() {
       <motion.div
         aria-hidden
         style={{ scaleX: scrollYProgress }}
-        className="h-0.5 origin-left bg-brand-gradient"
+        className="h-0.5 origin-left bg-brand"
       />
     </header>
   );

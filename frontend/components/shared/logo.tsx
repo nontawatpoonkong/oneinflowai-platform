@@ -1,4 +1,4 @@
-import { Sparkles } from "lucide-react";
+import { Workflow } from "lucide-react";
 import Link from "next/link";
 
 import { SITE } from "@/lib/constants";
@@ -11,11 +11,11 @@ export function Logo({ className }: { className?: string }) {
       className={cn("group inline-flex items-center gap-2", className)}
       aria-label={`${SITE.name} home`}
     >
-      <span className="grid size-8 place-items-center rounded-xl bg-brand-gradient text-brand-foreground shadow-glow transition-transform group-hover:scale-105">
-        <Sparkles className="size-4" />
+      <span className="grid size-8 place-items-center rounded-lg bg-foreground text-background transition-colors group-hover:bg-brand group-hover:text-brand-foreground">
+        <Workflow className="size-4" strokeWidth={2.2} />
       </span>
-      <span className="text-lg font-semibold tracking-tight">
-        One<span className="text-gradient">InFlow</span>
+      <span className="text-base font-semibold tracking-[-0.02em]">
+        OneInFlow<span className="text-brand">AI</span>
       </span>
     </Link>
   );

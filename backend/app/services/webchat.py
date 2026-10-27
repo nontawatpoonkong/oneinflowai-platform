@@ -29,6 +29,7 @@ from app.services.conversation import ConversationService
 from app.services.customer import CustomerService
 from app.services.entitlement import EntitlementService
 from app.services.message import MessageService
+from app.services.workspace_lifecycle import require_workspace_active
 
 
 class WebChatService:
@@ -62,6 +63,7 @@ class WebChatService:
         workspace = await self.workspaces.get_by_slug(data.workspace_key)
         if workspace is None:
             raise NotFoundError("Workspace not found")
+        await require_workspace_active(self.session, workspace.id)
         await EntitlementService(self.session).require(workspace.id, "channels.webchat")
         connection = await ChannelConnectionService(self.session).get_web(workspace.id)
         if (
@@ -116,6 +118,12 @@ class WebChatService:
             or not hmac.compare_digest(stored.token_hash, candidate)
         ):
             raise AuthenticationError("Invalid or expired WebChat session")
+        conversation = await ConversationService(self.session).conversations.get_by_id(
+            conversation_id
+        )
+        if conversation is None:
+            raise AuthenticationError("Invalid or expired WebChat session")
+        await require_workspace_active(self.session, conversation.workspace_id)
         return stored
 
     async def send_message(
@@ -127,6 +135,7 @@ class WebChatService:
         )
         if conversation is None:
             raise AuthenticationError("Invalid or expired WebChat session")
+        await require_workspace_active(self.session, conversation.workspace_id)
         message = await MessageService(self.session).create_message(
             conversation.workspace_id,
             conversation_id,
@@ -142,6 +151,7 @@ class WebChatService:
         )
         if conversation is None:
             raise AuthenticationError("Invalid or expired WebChat session")
+        await require_workspace_active(self.session, conversation.workspace_id)
         return conversation
 
     async def list_messages(
@@ -158,6 +168,7 @@ class WebChatService:
         )
         if conversation is None:
             raise AuthenticationError("Invalid or expired WebChat session")
+        await require_workspace_active(self.session, conversation.workspace_id)
         result = await MessageService(self.session).list_messages(
             conversation.workspace_id,
             conversation_id,

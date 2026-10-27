@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { webchatService } from "@/services/webchat/webchat.service";
 import type {
   StoredWebChatSession,
+  WebChatAIToolDecision,
   WebChatActionDecision,
   WebChatMessageCreate,
   WebChatSessionCreate,
@@ -69,6 +70,32 @@ export function useDecideWebChatAction(session: StoredWebChatSession | null) {
       return webchatService.decideAction(
         session.conversationId,
         collectionId,
+        session.token,
+        decision,
+        payload,
+      );
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: webchatMessagesKey(session) }),
+  });
+}
+
+export function useDecideWebChatAITool(session: StoredWebChatSession | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      actionId,
+      decision,
+      payload,
+    }: {
+      actionId: string;
+      decision: "confirm" | "cancel";
+      payload: WebChatAIToolDecision;
+    }) => {
+      if (!session) throw new Error("WebChat session is required");
+      return webchatService.decideAITool(
+        session.conversationId,
+        actionId,
         session.token,
         decision,
         payload,

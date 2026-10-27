@@ -3,19 +3,22 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
-import { NAV_LINKS } from "@/lib/constants";
+import { LANDING_SECTIONS, NAV_LINKS } from "@/lib/constants";
 
 export function MobileNav() {
   const t = useTranslations();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const isLanding = pathname === "/";
 
   return (
-    <div className="md:hidden">
+    <div className="lg:hidden">
       <Button
         variant="ghost"
         size="icon"
@@ -54,16 +57,17 @@ export function MobileNav() {
               </div>
 
               <nav className="flex flex-col gap-1">
-                {NAV_LINKS.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => setOpen(false)}
-                    className="rounded-xl px-4 py-3 text-lg font-medium text-foreground transition-colors hover:bg-accent"
-                  >
-                    {t(`nav.links.${link.key}`)}
-                  </Link>
-                ))}
+                {isLanding
+                  ? LANDING_SECTIONS.map((section) => (
+                      <a key={section.id} href={`#${section.id}`} onClick={() => setOpen(false)} className="rounded-md px-4 py-3 text-lg font-medium text-foreground transition-colors hover:bg-accent">
+                        {t(`nav.sections.${section.key}`)}
+                      </a>
+                    ))
+                  : NAV_LINKS.map((link) => (
+                      <Link key={link.href} href={link.href} onClick={() => setOpen(false)} className="rounded-md px-4 py-3 text-lg font-medium text-foreground transition-colors hover:bg-accent">
+                        {t(`nav.links.${link.key}`)}
+                      </Link>
+                    ))}
               </nav>
 
               <div className="mt-auto flex flex-col gap-3">
@@ -73,7 +77,7 @@ export function MobileNav() {
                   </Link>
                 </Button>
                 <Button asChild className="w-full">
-                  <Link href="/dashboard" onClick={() => setOpen(false)}>
+                  <Link href="/register" onClick={() => setOpen(false)}>
                     {t("common.getStarted")}
                   </Link>
                 </Button>

@@ -8,12 +8,15 @@ from decimal import Decimal
 from sqlalchemy import (
     TIMESTAMP,
     Boolean,
+    CheckConstraint,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Numeric,
     String,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import UUID
@@ -36,6 +39,24 @@ class PaymentStatus(enum.StrEnum):
     DUPLICATE = "DUPLICATE"
     EXPIRED = "EXPIRED"
     REFUNDED = "REFUNDED"
+
+
+class PaymentApplicationStatus(enum.StrEnum):
+    UNAPPLIED = "UNAPPLIED"
+    APPLIED = "APPLIED"
+    REQUIRES_REVIEW = "REQUIRES_REVIEW"
+
+
+class PaymentApplicationReason(enum.StrEnum):
+    BOOKING_EXPIRED = "BOOKING_EXPIRED"
+    BOOKING_CANCELLED = "BOOKING_CANCELLED"
+    BOOKING_ALREADY_CONFIRMED = "BOOKING_ALREADY_CONFIRMED"
+    AMOUNT_MISMATCH = "AMOUNT_MISMATCH"
+    CURRENCY_MISMATCH = "CURRENCY_MISMATCH"
+    PAYMENT_ALREADY_APPLIED = "PAYMENT_ALREADY_APPLIED"
+    BOOKING_LINK_CONFLICT = "BOOKING_LINK_CONFLICT"
+    INVALID_BOOKING_STATE = "INVALID_BOOKING_STATE"
+    PAYMENT_NOT_VERIFIED = "PAYMENT_NOT_VERIFIED"
 
 
 class VerificationStatus(enum.StrEnum):
@@ -82,10 +103,49 @@ class Payment(UUIDMixin, TimestampMixin, Base):
         UniqueConstraint(
             "workspace_id", "idempotency_key", name="uq_payment_workspace_idempotency"
         ),
+        Index(
+            "uq_payment_booking_applied",
+            "workspace_id",
+            "booking_id",
+            unique=True,
+            postgresql_where=text("booking_applied_at IS NOT NULL"),
+        ),
+        ForeignKeyConstraint(
+            ["workspace_id", "booking_id"],
+            ["hotel_bookings.workspace_id", "hotel_bookings.id"],
+            ondelete="RESTRICT",
+            name="fk_payment_booking_scope",
+        ),
         Index("ix_payments_workspace_status", "workspace_id", "status"),
+        Index(
+            "ix_payments_application_review",
+            "workspace_id",
+            "booking_application_status",
+        ),
+        CheckConstraint(
+            "booking_applied_at IS NULL OR booking_id IS NOT NULL",
+            name="ck_payment_applied_has_booking",
+        ),
     )
     workspace_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
+    )
+    booking_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), index=True)
+    booking_applied_at: Mapped[datetime | None] = mapped_column(
+        TIMESTAMP(timezone=True)
+    )
+    booking_application_status: Mapped[PaymentApplicationStatus | None] = mapped_column(
+        _enum(PaymentApplicationStatus, "payment_application_status")
+    )
+    booking_application_reason: Mapped[PaymentApplicationReason | None] = mapped_column(
+        _enum(PaymentApplicationReason, "payment_application_reason")
+    )
+    booking_review_note: Mapped[str | None] = mapped_column(String(1000))
+    booking_reviewed_at: Mapped[datetime | None] = mapped_column(
+        TIMESTAMP(timezone=True)
+    )
+    booking_reviewed_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL")
     )
     action_request_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),

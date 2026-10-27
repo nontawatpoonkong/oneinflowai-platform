@@ -45,13 +45,20 @@ class ActionDefinitionRepository(BaseRepository[ActionDefinition]):
 class ActionRequestRepository(BaseRepository[ActionRequest]):
     model = ActionRequest
 
-    async def get(self, workspace_id: uuid.UUID, action_id: uuid.UUID):
-        return await self.session.scalar(
-            select(ActionRequest).where(
-                ActionRequest.workspace_id == workspace_id,
-                ActionRequest.id == action_id,
-            )
+    async def get(
+        self,
+        workspace_id: uuid.UUID,
+        action_id: uuid.UUID,
+        *,
+        for_update: bool = False,
+    ):
+        statement = select(ActionRequest).where(
+            ActionRequest.workspace_id == workspace_id,
+            ActionRequest.id == action_id,
         )
+        if for_update:
+            statement = statement.with_for_update()
+        return await self.session.scalar(statement)
 
     async def get_idempotent(self, workspace_id: uuid.UUID, key: str):
         return await self.session.scalar(

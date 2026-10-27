@@ -33,7 +33,7 @@ export function ProfileMenu() {
       <div
         role="menu"
         className={cn(
-          "absolute right-0 mt-2 w-60 origin-top-right overflow-hidden rounded-2xl border border-border bg-popover p-1.5 shadow-soft transition-all",
+          "absolute right-0 mt-2 w-60 origin-top-right overflow-hidden rounded-lg border border-border bg-popover p-1.5 shadow-soft transition-all",
           open
             ? "pointer-events-auto scale-100 opacity-100"
             : "pointer-events-none scale-95 opacity-0",
@@ -48,7 +48,7 @@ export function ProfileMenu() {
         <Link
           href="/dashboard/settings"
           role="menuitem"
-          className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-foreground transition-colors hover:bg-accent"
+          className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground transition-colors hover:bg-accent"
         >
           <User className="size-4 text-muted-foreground" />
           {t("profile")}
@@ -56,7 +56,7 @@ export function ProfileMenu() {
         <Link
           href="/dashboard/settings"
           role="menuitem"
-          className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-foreground transition-colors hover:bg-accent"
+          className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground transition-colors hover:bg-accent"
         >
           <Settings className="size-4 text-muted-foreground" />
           {t("settings")}
@@ -65,7 +65,7 @@ export function ProfileMenu() {
           type="button"
           role="menuitem"
           onClick={logout}
-          className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-destructive transition-colors hover:bg-destructive/10"
+          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-destructive transition-colors hover:bg-destructive/10"
         >
           <LogOut className="size-4" />
           {t("logout")}

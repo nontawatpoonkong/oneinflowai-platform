@@ -10,6 +10,7 @@ from app.core.config import get_settings
 from app.database.session import get_db
 from app.integrations.embedding import create_embedding_provider
 from app.integrations.qdrant_knowledge import QdrantKnowledgeVectorStore
+from app.knowledge.upload_limits import enforce_knowledge_upload_limits
 from app.models.knowledge_document import KnowledgeDocument
 from app.models.user import User
 from app.models.workspace import Workspace
@@ -33,9 +34,15 @@ from app.services.knowledge_document import KnowledgeDocumentService
 from app.services.knowledge_indexing import KnowledgeIndexingService
 from app.services.knowledge_retrieval import KnowledgeRetrievalService
 from app.services.rag_preparation import RAGPreparationService
-from app.workspace.dependencies import get_current_workspace
+from app.services.workspace_capability import WorkspaceCapability
+from app.workspace.dependencies import require_workspace_capability
 
 router = APIRouter()
+
+_knowledge_read = require_workspace_capability(WorkspaceCapability.KNOWLEDGE_READ)
+_knowledge_manage = require_workspace_capability(
+    WorkspaceCapability.KNOWLEDGE_MANAGE
+)
 
 
 def _document_data(document: KnowledgeDocument) -> dict:
@@ -47,9 +54,10 @@ async def upload_document(
     file: UploadFile = File(...),
     title: str | None = Form(default=None, max_length=255),
     language: str | None = Form(default=None, max_length=16),
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_knowledge_manage),
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
+    _limits: None = Depends(enforce_knowledge_upload_limits),
 ) -> dict:
     document = await KnowledgeDocumentService(session).upload(
         workspace_id=workspace.id,
@@ -65,7 +73,7 @@ async def upload_document(
 async def list_documents(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_knowledge_read),
     session: AsyncSession = Depends(get_db),
 ) -> dict:
     items, total = await KnowledgeDocumentService(session).list(
@@ -85,7 +93,7 @@ async def list_documents(
 async def search_knowledge(
     payload: KnowledgeSearchRequest,
     request: Request,
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_knowledge_read),
     session: AsyncSession = Depends(get_db),
 ) -> dict:
     settings = get_settings()
@@ -112,7 +120,7 @@ async def search_knowledge(
 async def preview_rag(
     payload: KnowledgeSearchRequest,
     request: Request,
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_knowledge_read),
     session: AsyncSession = Depends(get_db),
 ) -> dict:
     """Prepare bounded RAG context and prompts without calling a generation model."""
@@ -151,7 +159,7 @@ async def preview_rag(
 async def answer_from_knowledge(
     payload: KnowledgeAnswerRequest,
     request: Request,
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_knowledge_read),
     session: AsyncSession = Depends(get_db),
 ) -> dict:
     settings = get_settings()
@@ -181,7 +189,7 @@ async def answer_from_knowledge(
 @router.get("/{document_id}")
 async def get_document(
     document_id: uuid.UUID,
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_knowledge_read),
     session: AsyncSession = Depends(get_db),
 ) -> dict:
     document = await KnowledgeDocumentService(session).get(workspace.id, document_id)
@@ -191,7 +199,7 @@ async def get_document(
 @router.get("/{document_id}/content")
 async def get_document_content(
     document_id: uuid.UUID,
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_knowledge_read),
     session: AsyncSession = Depends(get_db),
 ) -> dict:
     content = await KnowledgeDocumentService(session).get_content(
@@ -206,7 +214,7 @@ async def get_document_content(
 @router.get("/{document_id}/chunks")
 async def get_document_chunks(
     document_id: uuid.UUID,
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_knowledge_read),
     session: AsyncSession = Depends(get_db),
 ) -> dict:
     chunks = await ChunkingService(session).list_chunks(document_id, workspace.id)
@@ -220,7 +228,7 @@ async def get_document_chunks(
 @router.post("/{document_id}/rechunk")
 async def rechunk_document(
     document_id: uuid.UUID,
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_knowledge_manage),
     session: AsyncSession = Depends(get_db),
 ) -> dict:
     result = await ChunkingService(session).chunk_document(document_id, workspace.id)
@@ -237,7 +245,7 @@ async def rechunk_document(
 async def index_document(
     document_id: uuid.UUID,
     request: Request,
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_knowledge_manage),
     session: AsyncSession = Depends(get_db),
 ) -> dict:
     settings = get_settings()
@@ -267,7 +275,7 @@ async def index_document(
 @router.delete("/{document_id}")
 async def delete_document(
     document_id: uuid.UUID,
-    workspace: Workspace = Depends(get_current_workspace),
+    workspace: Workspace = Depends(_knowledge_manage),
     session: AsyncSession = Depends(get_db),
 ) -> dict:
     await KnowledgeDocumentService(session).delete(workspace.id, document_id)

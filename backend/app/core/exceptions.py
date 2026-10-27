@@ -96,6 +96,24 @@ class WorkspaceAccessDeniedError(AppError):
     message = "You do not have permission to perform this action"
 
 
+class WorkspaceJoinCodeInvalidError(AppError):
+    status_code = 404
+    code = "WORKSPACE_JOIN_CODE_INVALID"
+    message = "Workspace join code is invalid or unavailable"
+
+
+class WorkspaceAccessRequestConflictError(AppError):
+    status_code = 409
+    code = "WORKSPACE_ACCESS_REQUEST_CONFLICT"
+    message = "Workspace access request cannot be changed in its current state"
+
+
+class WorkspaceOwnerProtectionError(AppError):
+    status_code = 409
+    code = "WORKSPACE_OWNER_PROTECTED"
+    message = "Workspace owner access cannot be removed or downgraded"
+
+
 class SlugAlreadyExistsError(AppError):
     status_code = 409
     code = "SLUG_ALREADY_EXISTS"
@@ -124,6 +142,29 @@ class KnowledgeExtractionFailedError(AppError):
     status_code = 422
     code = "KNOWLEDGE_EXTRACTION_FAILED"
     message = "Document text could not be extracted"
+
+
+class KnowledgeUploadRateLimitedError(AppError):
+    status_code = 429
+    code = "KNOWLEDGE_UPLOAD_RATE_LIMITED"
+    message = "Too many document uploads; try again later"
+
+    def __init__(self, retry_after_seconds: int) -> None:
+        self.headers = {"Retry-After": str(retry_after_seconds)}
+        super().__init__()
+
+
+class KnowledgeUploadBusyError(AppError):
+    status_code = 503
+    code = "KNOWLEDGE_UPLOAD_BUSY"
+    message = "Document processing is busy; try again shortly"
+    headers = {"Retry-After": "5"}
+
+
+class KnowledgeUploadLimitUnavailableError(AppError):
+    status_code = 503
+    code = "KNOWLEDGE_UPLOAD_UNAVAILABLE"
+    message = "Document upload is temporarily unavailable"
 
 
 class KnowledgeStorageReadError(AppError):
@@ -257,6 +298,48 @@ class SubscriptionRequiredError(AppError):
     message = "An active subscription is required for this capability"
 
 
+class BillingAccountAccessDeniedError(AppError):
+    status_code = 403
+    code = "BILLING_ACCOUNT_FORBIDDEN"
+    message = "You do not have access to this billing account"
+
+
+class PlatformAdminRequiredError(AppError):
+    status_code = 403
+    code = "PLATFORM_ADMIN_REQUIRED"
+    message = "Platform administrator access is required"
+
+
+class WorkspaceSuspendedError(AppError):
+    status_code = 403
+    code = "WORKSPACE_SUSPENDED"
+    message = "Workspace access is suspended"
+
+
+class SubscriptionNotFoundError(AppError):
+    status_code = 404
+    code = "SUBSCRIPTION_NOT_FOUND"
+    message = "Subscription not found"
+
+
+class SubscriptionNotEligibleError(AppError):
+    status_code = 409
+    code = "SUBSCRIPTION_NOT_ELIGIBLE"
+    message = "Subscription is not eligible for Workspace provisioning"
+
+
+class SubscriptionAllocationExhaustedError(AppError):
+    status_code = 409
+    code = "SUBSCRIPTION_ALLOCATION_EXHAUSTED"
+    message = "Subscription has no remaining Workspace allocation"
+
+
+class InvalidSubscriptionTransitionError(AppError):
+    status_code = 409
+    code = "INVALID_SUBSCRIPTION_TRANSITION"
+    message = "Subscription status transition is not allowed"
+
+
 class EntitlementDeniedError(AppError):
     status_code = 403
     code = "ENTITLEMENT_DENIED"
@@ -339,6 +422,12 @@ class PaymentVerificationProviderError(AppError):
     status_code = 502
     code = "PAYMENT_VERIFICATION_PROVIDER_ERROR"
     message = "Payment verification is temporarily unavailable"
+
+
+class PaymentVerificationInProgressError(AppError):
+    status_code = 409
+    code = "PAYMENT_VERIFICATION_IN_PROGRESS"
+    message = "Payment verification is already in progress"
 
 
 class ActionCollectionNotFoundError(AppError):

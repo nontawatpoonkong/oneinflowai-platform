@@ -1,3 +1,16 @@
+x-backend-environment: &backend-environment
+  POSTGRES_HOST: postgres
+  REDIS_HOST: redis
+  QDRANT_HOST: qdrant
+
+x-backend-depends: &backend-depends
+  postgres:
+    condition: service_healthy
+  redis:
+    condition: service_healthy
+  qdrant:
+    condition: service_healthy
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -60,24 +73,36 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    environment:
-      POSTGRES_HOST: postgres
-      REDIS_HOST: redis
-      QDRANT_HOST: qdrant
+    environment: *backend-environment
     ports:
       - "8000:8000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      qdrant:
-        condition: service_healthy
+    depends_on: *backend-depends
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 15s
       timeout: 5s
       retries: 5
+    networks:
+      - oneflowai
+
+  automation-worker:
+    build:
+      context: .
+      target: production
+    container_name: oneflowai_automation_worker
+    command: ["python", "-m", "app.automation.worker"]
+    restart: unless-stopped
+    stop_grace_period: 30s
+    env_file:
+      - .env
+    environment: *backend-environment
+    depends_on: *backend-depends
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.automation.worker", "--healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
     networks:
       - oneflowai
 

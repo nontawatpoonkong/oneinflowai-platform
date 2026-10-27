@@ -1,0 +1,18 @@
+{
+  "version": "query-intelligence-eval-v1",
+  "cases": [
+    {"case_id":"qi-th-price-objection","language":"th","workspace_id":"thai-shop","query":"แพงไปหน่อย","recent_messages":["Premium Package ราคาเท่าไหร่"],"expected_markers":["Basic Package ราคา 990 บาทต่อเดือน","Premium Package ราคา 2,990 บาทต่อเดือน"],"category":"PRICE_OBJECTION","negative":false,"notes":"Objection depends on prior product context"},
+    {"case_id":"qi-th-budget","language":"th","workspace_id":"thai-shop","query":"มีงบไม่เกิน 3000","expected_markers":["Premium Package ราคา 2,990 บาทต่อเดือน"],"category":"BUDGET","negative":false,"notes":"Budget constraint"},
+    {"case_id":"qi-th-feature","language":"th","workspace_id":"thai-shop","query":"ต้องต่อ LINE ได้ 3 บัญชี","expected_markers":["Premium Package ราคา 2,990 บาทต่อเดือน"],"category":"FEATURE_REQUIREMENT","negative":false,"notes":"Feature requirement"},
+    {"case_id":"qi-th-comparison","language":"th","workspace_id":"thai-shop","query":"Basic กับ Premium ต่างกันตรงไหน","expected_markers":["Basic ไม่มี LINE OA ส่วน Premium เชื่อม LINE OA ได้ 3 บัญชี"],"category":"COMPARISON","negative":false,"notes":"Direct comparison"},
+    {"case_id":"qi-th-purchase","language":"th","workspace_id":"thai-shop","query":"ถ้าเอา Premium วันนี้จ่ายเท่าไหร่","expected_markers":["Premium Package ราคา 2,990 บาทต่อเดือน"],"category":"PURCHASE_INTENT","negative":false,"notes":"Purchase price"},
+    {"case_id":"qi-th-followup-cheaper","language":"th","workspace_id":"thai-shop","query":"แล้วตัวไหนถูกกว่า","recent_messages":["Premium ต่างจาก Basic ยังไง"],"expected_markers":["Basic Package ราคา 990 บาทต่อเดือน","Premium Package ราคา 2,990 บาทต่อเดือน"],"category":"FOLLOW_UP_REFERENCE","negative":false,"notes":"Current turn alone lacks entities"},
+    {"case_id":"qi-th-followup-previous","language":"th","workspace_id":"thai-shop","query":"เอาตัวเมื่อกี้","recent_messages":["แพ็กไหนเชื่อม LINE ได้ 3 บัญชี","Premium รองรับตามที่ถาม"],"expected_markers":["Premium Package ราคา 2,990 บาทต่อเดือน"],"category":"FOLLOW_UP_REFERENCE","negative":false,"notes":"Previous entity reference"},
+    {"case_id":"qi-th-payment","language":"th","workspace_id":"thai-shop","query":"จ่ายยังไง","expected_markers":["รองรับบัตรเครดิต โอนผ่านธนาคาร และ PromptPay"],"category":"PAYMENT","negative":false,"notes":"Colloquial payment"},
+    {"case_id":"qi-th-promotion","language":"th","workspace_id":"thai-shop","query":"มีโปรอะไรตอนนี้","expected_markers":["โปรโมชั่นรายปีของ Premium ลด 10 เปอร์เซ็นต์"],"category":"PROMOTION","negative":false,"notes":"Current promotion"},
+    {"case_id":"qi-en-followup","language":"en","workspace_id":"english-shop","query":"Which one is cheaper?","recent_messages":["Compare Starter and Premium"],"expected_markers":["Starter costs 1,490 THB per month","Premium costs 4,990 THB per month"],"category":"FOLLOW_UP_REFERENCE","negative":false,"notes":"English contextual comparison"},
+    {"case_id":"qi-en-payment","language":"en","workspace_id":"english-shop","query":"How can I pay?","expected_markers":["Customers may pay by credit card, bank transfer, or PromptPay"],"category":"PAYMENT","negative":false,"notes":"English payment paraphrase"},
+    {"case_id":"qi-mixed-feature","language":"mixed","workspace_id":"mixed-services","query":"budget 3500 ต่อ LINE ได้สามอันไหม","expected_markers":["Hotel Pro ราคา 3,200 THB/month รองรับ LINE OA 3 accounts"],"category":"FEATURE_REQUIREMENT","negative":false,"notes":"Mixed noisy requirement"},
+    {"case_id":"qi-negative-objection","language":"th","workspace_id":"thai-shop","query":"Diamond แพงไป มี lifetime warranty ไหม","expected_markers":[],"category":"NEGATIVE","negative":true,"notes":"Unknown product must remain a measured false positive"}
+  ]
+}

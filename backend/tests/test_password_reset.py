@@ -339,3 +339,29 @@ def test_reset_invalidates_other_active_reset_authorizations(
             return all(item.used_at is not None for item in result.all())
 
     assert asyncio.run(_all_used())
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "Access tokens are not revoked by a password reset yet: revocation "
+        "needs a per-user token version column (migration awaiting approval)."
+    ),
+)
+def test_password_reset_revokes_access_tokens_issued_before_it(
+    client_db: TestClient, fake_email_provider: FakeEmailProvider
+) -> None:
+    asyncio.run(_seed_user())
+    old_token = client_db.post(
+        LOGIN_URL, json={"email": EMAIL, "password": OLD_PASSWORD}
+    ).json()["data"]["access_token"]
+    _forgot(client_db)
+    token = _verify(client_db, fake_email_provider.latest_otp).json()["data"][
+        "reset_token"
+    ]
+    assert _reset(client_db, token).status_code == 200
+
+    response = client_db.get(
+        "/api/v1/auth/me", headers={"Authorization": f"Bearer {old_token}"}
+    )
+    assert response.status_code == 401

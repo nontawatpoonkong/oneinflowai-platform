@@ -14,6 +14,10 @@ from app.models.notification import (
     NotificationType,
 )
 from app.models.workspace_member import WorkspaceMember, WorkspaceRole
+from app.services.workspace_capability import (
+    WorkspaceCapability,
+    WorkspaceCapabilityService,
+)
 
 
 class NotificationService:
@@ -30,6 +34,45 @@ class NotificationService:
             )
         )
         return list(result)
+
+    async def may_follow_up(
+        self,
+        workspace_id: uuid.UUID,
+        user_id: uuid.UUID,
+        required: frozenset[WorkspaceCapability],
+    ) -> bool:
+        """Whether a user is still a member holding every required capability.
+
+        Read from the database now, so revoked grants and removed members are
+        honoured for notices about work assigned to them earlier.
+        """
+
+        member = await self.session.scalar(
+            select(WorkspaceMember).where(
+                WorkspaceMember.workspace_id == workspace_id,
+                WorkspaceMember.user_id == user_id,
+            )
+        )
+        if member is None:
+            return False
+        capabilities = await WorkspaceCapabilityService(
+            self.session
+        ).effective_for_member(member)
+        return capabilities >= required
+
+    async def assignee_or_administrators(
+        self,
+        workspace_id: uuid.UUID,
+        assignee_id: uuid.UUID | None,
+        required: frozenset[WorkspaceCapability],
+    ) -> list[uuid.UUID]:
+        """The assignee while they may still act, otherwise owners and admins."""
+
+        if assignee_id and await self.may_follow_up(
+            workspace_id, assignee_id, required
+        ):
+            return [assignee_id]
+        return await self.administrative_recipients(workspace_id)
 
     async def create_for_recipients(
         self,

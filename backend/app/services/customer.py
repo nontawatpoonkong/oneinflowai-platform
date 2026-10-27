@@ -11,6 +11,7 @@ from datetime import UTC, datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundError
+from app.models.audit import AuditActorType, AuditArea
 from app.models.customer import Customer, CustomerStatus
 from app.repositories.customer import CustomerRepository
 from app.schemas.customer import (
@@ -19,6 +20,7 @@ from app.schemas.customer import (
     CustomerUpdate,
     SortOrder,
 )
+from app.services.audit import AuditService
 
 
 class CustomerService:
@@ -27,10 +29,21 @@ class CustomerService:
         self.customers = CustomerRepository(session)
 
     async def create_customer(
-        self, workspace_id: uuid.UUID, data: CustomerCreate
+        self,
+        workspace_id: uuid.UUID,
+        data: CustomerCreate,
+        *,
+        actor_user_id: uuid.UUID | None = None,
     ) -> Customer:
         customer = Customer(workspace_id=workspace_id, **data.model_dump())
         await self.customers.add(customer)
+        if actor_user_id is not None:
+            self._audit(
+                customer,
+                actor_user_id,
+                "CUSTOMER_CREATED",
+                {"provided_fields": sorted(data.model_dump(exclude_unset=True))},
+            )
         await self.session.commit()
         await self.session.refresh(customer)
         return customer
@@ -70,19 +83,50 @@ class CustomerService:
         workspace_id: uuid.UUID,
         customer_id: uuid.UUID,
         data: CustomerUpdate,
+        *,
+        actor_user_id: uuid.UUID | None = None,
     ) -> Customer:
         customer = await self.get_customer(workspace_id, customer_id)
         changes = data.model_dump(exclude_unset=True)
         for field, value in changes.items():
             setattr(customer, field, value)
+        if actor_user_id is not None:
+            self._audit(
+                customer,
+                actor_user_id,
+                "CUSTOMER_UPDATED",
+                {"changed_fields": sorted(changes)},
+            )
         await self.session.commit()
         await self.session.refresh(customer)
         return customer
 
     async def delete_customer(
-        self, workspace_id: uuid.UUID, customer_id: uuid.UUID
+        self,
+        workspace_id: uuid.UUID,
+        customer_id: uuid.UUID,
+        *,
+        actor_user_id: uuid.UUID | None = None,
     ) -> None:
         """Soft delete: mark deleted_at; row is retained."""
         customer = await self.get_customer(workspace_id, customer_id)
         customer.deleted_at = datetime.now(UTC)
+        if actor_user_id is not None:
+            self._audit(customer, actor_user_id, "CUSTOMER_DELETED", {})
         await self.session.commit()
+
+    def _audit(
+        self, customer: Customer, actor_user_id: uuid.UUID, action: str, metadata
+    ) -> None:
+        # Field names only: guest names, contact details, and notes stay out of
+        # the audit trail.
+        AuditService(self.session).record(
+            workspace_id=customer.workspace_id,
+            actor_user_id=actor_user_id,
+            actor_type=AuditActorType.USER,
+            action=action,
+            area=AuditArea.GUESTS,
+            resource_type="Customer",
+            resource_id=customer.id,
+            metadata=metadata,
+        )

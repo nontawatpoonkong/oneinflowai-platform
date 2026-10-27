@@ -22,6 +22,7 @@ from app.models.action import (
     ActionRequest,
     ActionRequestStatus,
 )
+from app.models.audit import AuditActorType, AuditArea
 from app.models.conversation import Conversation
 from app.models.customer import Customer
 from app.models.notification import NotificationEntityType, NotificationType
@@ -37,8 +38,17 @@ from app.schemas.action import (
     ActionDefinitionUpdate,
 )
 from app.services.action_validation import ActionPayloadValidator
+from app.services.audit import AuditService
 from app.services.entitlement import ACTION_TYPES, EntitlementService
 from app.services.notification import NotificationService
+from app.services.workspace_capability import (
+    WorkspaceCapability,
+    WorkspaceCapabilityService,
+)
+
+_ASSIGNEE_CAPABILITIES = frozenset(
+    {WorkspaceCapability.ACTION_READ, WorkspaceCapability.ACTION_OPERATE}
+)
 
 _TRANSITIONS = {
     ActionRequestStatus.WAITING: {
@@ -75,7 +85,13 @@ class ActionService:
         if role not in {WorkspaceRole.OWNER, WorkspaceRole.ADMIN}:
             raise WorkspaceAccessDeniedError()
 
-    async def create_definition(self, workspace_id, data: ActionDefinitionCreate):
+    async def create_definition(
+        self,
+        workspace_id,
+        data: ActionDefinitionCreate,
+        *,
+        actor_user_id: uuid.UUID | None = None,
+    ):
         await EntitlementService(self.session).require_capacity(
             workspace_id, ACTION_TYPES
         )
@@ -85,6 +101,18 @@ class ActionService:
             workspace_id=workspace_id, **data.model_dump(mode="json")
         )
         await self.definitions.add(definition)
+        await self.session.flush()
+        fields = [*definition.required_fields, *definition.optional_fields]
+        self._audit_definition(
+            definition,
+            actor_user_id,
+            "ACTION_DEFINITION_CREATED",
+            {
+                "definition_key": definition.key,
+                "fields": [field["key"] for field in fields],
+                "is_active": definition.is_active,
+            },
+        )
         await self.session.commit()
         await self.session.refresh(definition)
         return definition
@@ -99,11 +127,26 @@ class ActionService:
         return definition
 
     async def update_definition(
-        self, workspace_id, definition_id, data: ActionDefinitionUpdate
+        self,
+        workspace_id,
+        definition_id,
+        data: ActionDefinitionUpdate,
+        *,
+        actor_user_id: uuid.UUID | None = None,
     ):
         definition = await self.get_definition(workspace_id, definition_id)
+        changed = []
         for key, value in data.model_dump(exclude_unset=True, mode="json").items():
+            if getattr(definition, key) != value:
+                changed.append(key)
             setattr(definition, key, value)
+        if changed:
+            self._audit_definition(
+                definition,
+                actor_user_id,
+                "ACTION_DEFINITION_UPDATED",
+                {"changed_fields": sorted(changed)},
+            )
         await self.session.commit()
         await self.session.refresh(definition)
         return definition
@@ -168,8 +211,8 @@ class ActionService:
         await self.session.refresh(action)
         return action
 
-    async def get(self, workspace_id, action_id):
-        action = await self.actions.get(workspace_id, action_id)
+    async def get(self, workspace_id, action_id, *, for_update: bool = False):
+        action = await self.actions.get(workspace_id, action_id, for_update=for_update)
         if not action:
             raise ActionNotFoundError()
         return action
@@ -186,7 +229,18 @@ class ActionService:
         )
         if not member:
             raise ActionAssignmentError()
-        action = await self.get(workspace_id, action_id)
+        # The assignee is notified about the Action and must be able to read and
+        # work on it; refuse before any state, event or notification is written.
+        assignee_capabilities = await WorkspaceCapabilityService(
+            self.session
+        ).effective_for_member(member)
+        if not assignee_capabilities >= _ASSIGNEE_CAPABILITIES:
+            raise ActionAssignmentError(
+                "Assigned user needs action.read and action.operate"
+            )
+        # The row lock serialises concurrent changes, so only one request can
+        # move the Action out of a given state and notify for it.
+        action = await self.get(workspace_id, action_id, for_update=True)
         self._transition(action, ActionRequestStatus.ASSIGNED)
         action.assigned_to_user_id = assigned_user_id
         action.assigned_at = datetime.now(UTC)
@@ -208,7 +262,7 @@ class ActionService:
         )
 
     async def transition(self, workspace_id, action_id, target, actor_user_id):
-        action = await self.get(workspace_id, action_id)
+        action = await self.get(workspace_id, action_id, for_update=True)
         self._transition(action, target)
         now = datetime.now(UTC)
         event = {
@@ -249,6 +303,20 @@ class ActionService:
                 actor_type=ActionActorType.HUMAN,
                 event_metadata=metadata or {},
             )
+        )
+
+    def _audit_definition(self, definition, actor_user_id, action, metadata):
+        # Keys and field names only: names, descriptions and labels may carry
+        # free text, so they stay out of the audit trail.
+        AuditService(self.session).record(
+            workspace_id=definition.workspace_id,
+            actor_user_id=actor_user_id,
+            actor_type=AuditActorType.USER,
+            action=action,
+            area=AuditArea.SETTINGS,
+            resource_type="ActionDefinition",
+            resource_id=definition.id,
+            metadata=metadata,
         )
 
     async def _validate_links(self, workspace_id, conversation_id, customer_id):

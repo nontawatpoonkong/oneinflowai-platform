@@ -2,10 +2,12 @@
 
 import asyncio
 import uuid
+from datetime import UTC, datetime
 
 from fastapi.testclient import TestClient
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 
+from app.models.workspace_access import WorkspaceMemberCapability
 from app.models.workspace_member import WorkspaceMember, WorkspaceRole
 from tests.conftest import TestSessionLocal, register_verify_and_login
 from tests.test_conversation import _create_conversation, _create_customer
@@ -28,6 +30,23 @@ def _setup(client: TestClient):
                     WorkspaceMember.user_id == uuid.UUID(member["user"]["id"]),
                     WorkspaceMember.workspace_id
                     != uuid.UUID(owner["workspace"]["id"]),
+                )
+            )
+            membership = await session.scalar(
+                select(WorkspaceMember).where(
+                    WorkspaceMember.user_id == uuid.UUID(member["user"]["id"]),
+                    WorkspaceMember.workspace_id
+                    == uuid.UUID(owner["workspace"]["id"]),
+                )
+            )
+            assert membership is not None
+            session.add(
+                WorkspaceMemberCapability(
+                    workspace_id=membership.workspace_id,
+                    membership_id=membership.id,
+                    capability="conversation.read",
+                    granted_by_user_id=uuid.UUID(owner["user"]["id"]),
+                    granted_at=datetime.now(UTC),
                 )
             )
             await session.commit()

@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 from app.models.billing import WorkspaceSubscription
 from app.models.workspace import Workspace
 from app.models.workspace_member import WorkspaceMember
-from tests.conftest import TestSessionLocal
+from tests.conftest import TestSessionLocal, provision_active_test_subscription
 
 REGISTER_URL = "/api/v1/auth/register"
 LOGIN_URL = "/api/v1/auth/login"
@@ -118,9 +118,14 @@ def test_zero_workspace_user_explicitly_creates_workspace_as_only_owner(
         json={"email": "alice@example.com", "password": "supersecret123"},
     ).json()["data"]["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
+    subscription_id = provision_active_test_subscription(
+        registered["user"]["id"]
+    )
 
     created = client_db.post(
-        "/api/v1/workspaces", headers=headers, json={"name": "ABC Hotel"}
+        "/api/v1/workspaces",
+        headers=headers,
+        json={"name": "ABC Hotel", "subscription_id": subscription_id},
     )
 
     assert created.status_code == 201

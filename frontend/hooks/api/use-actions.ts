@@ -2,7 +2,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { actionService, type ActionFilters } from "@/services/action/action.service";
 
-export function useActions(filters: ActionFilters = {}) { return useQuery({ queryKey: ["actions", filters], queryFn: () => actionService.list(filters) }); }
+export function useActions(filters: ActionFilters = {}, enabled = true) { return useQuery({ queryKey: ["actions", filters], queryFn: () => actionService.list(filters), enabled }); }
 export function useActionDefinitions() { return useQuery({ queryKey: ["actions", "definitions"], queryFn: actionService.definitions }); }
 export function useActionOperations() {
   const client = useQueryClient(); const refresh = () => client.invalidateQueries({ queryKey: ["actions"] });
