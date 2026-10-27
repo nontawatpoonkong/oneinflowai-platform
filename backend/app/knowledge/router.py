@@ -10,6 +10,7 @@ from app.core.config import get_settings
 from app.database.session import get_db
 from app.integrations.embedding import create_embedding_provider
 from app.integrations.qdrant_knowledge import QdrantKnowledgeVectorStore
+from app.knowledge.upload_limits import enforce_knowledge_upload_limits
 from app.models.knowledge_document import KnowledgeDocument
 from app.models.user import User
 from app.models.workspace import Workspace
@@ -56,6 +57,7 @@ async def upload_document(
     workspace: Workspace = Depends(_knowledge_manage),
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
+    _limits: None = Depends(enforce_knowledge_upload_limits),
 ) -> dict:
     document = await KnowledgeDocumentService(session).upload(
         workspace_id=workspace.id,

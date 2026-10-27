@@ -9,6 +9,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api.health import router as health_router
 from app.api.router import api_router
+from app.core.body_limit import BodySizeLimitMiddleware
 from app.core.config import get_settings
 from app.core.exceptions import AppError
 from app.core.lifespan import lifespan
@@ -27,6 +28,17 @@ def create_app() -> FastAPI:
         version="0.1.0",
         debug=settings.DEBUG,
         lifespan=lifespan,
+    )
+
+    # Innermost, so CORS and request-id headers still wrap its 413 responses.
+    app.add_middleware(
+        BodySizeLimitMiddleware,
+        limits={
+            ("POST", f"{settings.API_V1_PREFIX}/knowledge/upload"): (
+                settings.KNOWLEDGE_MAX_FILE_SIZE_BYTES
+                + settings.KNOWLEDGE_UPLOAD_REQUEST_OVERHEAD_BYTES
+            ),
+        },
     )
 
     # CORS for local frontend development. Registered before RequestIDMiddleware.

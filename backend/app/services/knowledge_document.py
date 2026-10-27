@@ -1,6 +1,7 @@
 """Knowledge document metadata and storage orchestration."""
 
 import asyncio
+import threading
 import uuid
 from contextlib import suppress
 from io import BytesIO
@@ -19,10 +20,12 @@ from app.core.exceptions import (
     KnowledgeExtractionFailedError,
     KnowledgeFileTooLargeError,
     KnowledgeStorageReadError,
+    KnowledgeUploadBusyError,
 )
 from app.core.logging import get_logger
-from app.document_parsers import DocumentParserRegistry
+from app.document_parsers import DocumentParserRegistry, ExtractionOutput
 from app.document_parsers.exceptions import DocumentExtractionError
+from app.document_parsers.isolation import ParseLimits, extract_in_subprocess
 from app.models.audit import AuditActorType, AuditArea
 from app.models.knowledge_document import (
     KnowledgeDocument,
@@ -49,7 +52,20 @@ _ALLOWED_TYPES: dict[str, set[str]] = {
 }
 _READ_CHUNK_SIZE = 64 * 1024
 _DOCX_REQUIRED_MEMBERS = {"[Content_Types].xml", "word/document.xml"}
+# Parsed in a killable child process; the remaining types use plain readers.
+_ISOLATED_MIME_TYPES = frozenset({"application/pdf"})
 logger = get_logger(__name__)
+
+_parse_slots: dict[int, threading.BoundedSemaphore] = {}
+_parse_slots_lock = threading.Lock()
+
+
+def _local_parse_slots(limit: int) -> threading.BoundedSemaphore:
+    """Process-wide parse slots; a threading semaphore works on any event loop."""
+    with _parse_slots_lock:
+        if limit not in _parse_slots:
+            _parse_slots[limit] = threading.BoundedSemaphore(limit)
+        return _parse_slots[limit]
 
 
 class KnowledgeDocumentService:
@@ -88,6 +104,37 @@ class KnowledgeDocumentService:
         if content_type not in _ALLOWED_TYPES[extension]:
             raise InvalidKnowledgeFileError()
 
+        # Claim a local parse slot before buffering the file, so a burst of
+        # uploads is refused instead of queueing parses on this process.
+        slots = _local_parse_slots(self.settings.KNOWLEDGE_MAX_CONCURRENT_PARSES)
+        if not slots.acquire(blocking=False):
+            raise KnowledgeUploadBusyError()
+        try:
+            return await self._store_and_extract(
+                workspace_id=workspace_id,
+                created_by=created_by,
+                file=file,
+                filename=filename,
+                extension=extension,
+                content_type=content_type,
+                title=title,
+                language=language,
+            )
+        finally:
+            slots.release()
+
+    async def _store_and_extract(
+        self,
+        *,
+        workspace_id: uuid.UUID,
+        created_by: uuid.UUID,
+        file: UploadFile,
+        filename: str,
+        extension: str,
+        content_type: str,
+        title: str | None,
+        language: str | None,
+    ) -> KnowledgeDocument:
         data = await self._read_limited(file)
         if not data:
             raise InvalidKnowledgeFileError()
@@ -143,25 +190,21 @@ class KnowledgeDocumentService:
                 data = await self.storage.read(key=document.storage_key)
             except (OSError, ValueError):
                 raise KnowledgeStorageReadError() from None
-            output = await asyncio.to_thread(
-                self.parsers.extract,
-                mime_type=document.mime_type,
-                data=data,
-                maximum_characters=self.settings.KNOWLEDGE_MAX_EXTRACTED_CHARACTERS,
-            )
+            output = await self._extract_text(document.mime_type, data)
             await self.contents.upsert(document.id, output)
             # Persist extraction while READY remains false until chunking succeeds.
             await self.session.commit()
             await ChunkingService(self.session, settings=self.settings).chunk_document(
                 document.id, document.workspace_id
             )
-        except DocumentExtractionError:
+        except DocumentExtractionError as exc:
             await self._mark_failed(document)
             logger.warning(
                 "knowledge_extraction_failed",
                 extra={
                     "event": "knowledge_extraction_failed",
                     "document_id": str(document.id),
+                    "reason": type(exc).__name__,
                 },
             )
             raise KnowledgeExtractionFailedError() from None
@@ -174,6 +217,25 @@ class KnowledgeDocumentService:
         except Exception:
             await self._mark_failed(document)
             raise
+
+    async def _extract_text(self, mime_type: str, data: bytes) -> ExtractionOutput:
+        maximum_characters = self.settings.KNOWLEDGE_MAX_EXTRACTED_CHARACTERS
+        if mime_type in _ISOLATED_MIME_TYPES:
+            limits = ParseLimits(
+                maximum_characters=maximum_characters,
+                maximum_pages=self.settings.KNOWLEDGE_MAX_PDF_PAGES,
+                timeout_seconds=self.settings.KNOWLEDGE_PARSE_TIMEOUT_SECONDS,
+                memory_limit_bytes=self.settings.KNOWLEDGE_PARSE_MEMORY_LIMIT_BYTES,
+            )
+            return await asyncio.to_thread(
+                extract_in_subprocess, mime_type=mime_type, data=data, limits=limits
+            )
+        return await asyncio.to_thread(
+            self.parsers.extract,
+            mime_type=mime_type,
+            data=data,
+            maximum_characters=maximum_characters,
+        )
 
     async def _mark_failed(self, document: KnowledgeDocument) -> None:
         await self.session.rollback()

@@ -64,11 +64,25 @@ TestSessionLocal = async_sessionmaker(
 class _FakeRedis:
     def __init__(self) -> None:
         self.values: dict[str, int] = {}
+        self.leases: dict[str, dict[str, float]] = {}
 
     async def ping(self) -> bool:
         return True
 
-    async def eval(self, script, key_count, key, window):
+    async def eval(self, script, key_count, key, *args):
+        if "ZADD" in script:  # knowledge parse lease: acquire
+            now, expires_at, lease_id, limit, _ttl = args
+            leases = self.leases.setdefault(key, {})
+            for held, held_until in list(leases.items()):
+                if held_until <= float(now):
+                    del leases[held]
+            if len(leases) >= int(limit):
+                return 0
+            leases[lease_id] = float(expires_at)
+            return 1
+        if "ZREM" in script:  # knowledge parse lease: release
+            return int(self.leases.get(key, {}).pop(args[0], None) is not None)
+        (window,) = args
         self.values[key] = self.values.get(key, 0) + 1
         return [self.values[key], int(window)]
 

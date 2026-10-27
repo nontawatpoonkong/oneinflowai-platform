@@ -56,6 +56,19 @@ class Settings(BaseSettings):
     STORAGE_LOCAL_PATH: str = "storage"
     KNOWLEDGE_MAX_FILE_SIZE_BYTES: int = 10 * 1024 * 1024
     KNOWLEDGE_MAX_EXTRACTED_CHARACTERS: int = 2_000_000
+    # Multipart framing plus the title/language fields on top of the file.
+    KNOWLEDGE_UPLOAD_REQUEST_OVERHEAD_BYTES: int = 64 * 1024
+    # PDF parsing runs in a child process that is killed at the deadline.
+    KNOWLEDGE_MAX_PDF_PAGES: int = 500
+    KNOWLEDGE_PARSE_TIMEOUT_SECONDS: float = 60.0
+    # Address-space cap for the parser process; enforced where the OS allows
+    # it (Linux containers), not on Windows development hosts.
+    KNOWLEDGE_PARSE_MEMORY_LIMIT_BYTES: int = 1024 * 1024 * 1024
+    KNOWLEDGE_MAX_CONCURRENT_PARSES: int = 2  # per application process
+    KNOWLEDGE_MAX_CONCURRENT_PARSES_PER_WORKSPACE: int = 2  # across instances
+    KNOWLEDGE_UPLOAD_RATE_LIMIT_PER_USER: int = 10
+    KNOWLEDGE_UPLOAD_RATE_LIMIT_PER_WORKSPACE: int = 30
+    KNOWLEDGE_UPLOAD_RATE_LIMIT_WINDOW_SECONDS: int = 60
     KNOWLEDGE_CHUNK_SIZE: int = 1200
     KNOWLEDGE_CHUNK_OVERLAP: int = 200
     KNOWLEDGE_MAX_CHUNKS_PER_DOCUMENT: int = 10_000
@@ -115,6 +128,20 @@ class Settings(BaseSettings):
             raise ValueError("RAG_MAX_CONTEXT_CHARACTERS must be positive")
         if self.RAG_MAX_SOURCES <= 0:
             raise ValueError("RAG_MAX_SOURCES must be positive")
+        for name in (
+            "KNOWLEDGE_MAX_FILE_SIZE_BYTES",
+            "KNOWLEDGE_UPLOAD_REQUEST_OVERHEAD_BYTES",
+            "KNOWLEDGE_MAX_PDF_PAGES",
+            "KNOWLEDGE_PARSE_TIMEOUT_SECONDS",
+            "KNOWLEDGE_PARSE_MEMORY_LIMIT_BYTES",
+            "KNOWLEDGE_MAX_CONCURRENT_PARSES",
+            "KNOWLEDGE_MAX_CONCURRENT_PARSES_PER_WORKSPACE",
+            "KNOWLEDGE_UPLOAD_RATE_LIMIT_PER_USER",
+            "KNOWLEDGE_UPLOAD_RATE_LIMIT_PER_WORKSPACE",
+            "KNOWLEDGE_UPLOAD_RATE_LIMIT_WINDOW_SECONDS",
+        ):
+            if getattr(self, name) <= 0:
+                raise ValueError(f"{name} must be positive")
         if self.PAYMENT_EVIDENCE_MAX_FILE_SIZE_BYTES <= 0:
             raise ValueError("PAYMENT_EVIDENCE_MAX_FILE_SIZE_BYTES must be positive")
         if not self.SLIP_VERIFICATION_PROVIDER.strip():
@@ -287,17 +314,60 @@ class Settings(BaseSettings):
         return [item.strip() for item in self.TRUSTED_HOSTS.split(",") if item.strip()]
 
 
+# Only local work and the test suite may run on the published defaults; any
+# other APP_ENV (staging, a typo such as "prod") is treated as deployed.
+_LOCAL_ENVIRONMENTS = frozenset({"development", "test"})
+_MINIMUM_SECRET_BYTES = 32
+# Secrets checked on every deployed environment. The defaults above and in
+# .env.example are public, so keeping one is the same as having no secret.
+_STARTUP_SECRETS = ("JWT_SECRET_KEY", "WEBCHAT_METADATA_HASH_SECRET", "OTP_HASH_SECRET")
+_PUBLISHED_DEFAULT_PREFIX = "change-me"
+
+
+def _secret_problem(name: str, value: str | None) -> str | None:
+    """Describe why a secret is unusable, without ever echoing its value."""
+    secret = (value or "").strip()
+    if not secret:
+        return f"{name} must be set"
+    if secret.lower().startswith(_PUBLISHED_DEFAULT_PREFIX):
+        return f"{name} must not be a published default"
+    if len(secret.encode()) < _MINIMUM_SECRET_BYTES:
+        return f"{name} must contain at least {_MINIMUM_SECRET_BYTES} bytes"
+    return None
+
+
+def is_local_environment(settings: Settings) -> bool:
+    return settings.APP_ENV.strip().lower() in _LOCAL_ENVIRONMENTS
+
+
+def insecure_secret_names(settings: Settings) -> list[str]:
+    """Names of the signing/hashing secrets that fail the deployed policy."""
+    return [
+        name
+        for name in ("JWT_SECRET_KEY", "WEBCHAT_METADATA_HASH_SECRET")
+        if _secret_problem(name, getattr(settings, name))
+    ]
+
+
 def validate_production_settings(settings: Settings) -> None:
-    """Fail startup closed on unsafe production-only configuration."""
-    if settings.APP_ENV != "production":
+    """Fail startup closed on unsafe deployed configuration.
+
+    Secrets are enforced on every non-local environment; the remaining rules
+    apply to production only.
+    """
+    if is_local_environment(settings):
         return
-    errors: list[str] = []
+    errors = [
+        problem
+        for name in _STARTUP_SECRETS
+        if (problem := _secret_problem(name, getattr(settings, name)))
+    ]
+    if settings.APP_ENV.strip().lower() != "production":
+        if errors:
+            raise ValueError("Unsafe deployed configuration: " + "; ".join(errors))
+        return
     if settings.DEBUG:
         errors.append("DEBUG must be false")
-    if len(settings.JWT_SECRET_KEY.encode()) < 32:
-        errors.append("JWT_SECRET_KEY must contain at least 32 bytes")
-    if not settings.OTP_HASH_SECRET or len(settings.OTP_HASH_SECRET.encode()) < 32:
-        errors.append("OTP_HASH_SECRET must contain at least 32 bytes")
     if "*" in settings.cors_origins or not settings.cors_origins:
         errors.append("CORS_ORIGINS must contain explicit origins")
     if "*" in settings.trusted_hosts or not settings.trusted_hosts:

@@ -144,6 +144,29 @@ class KnowledgeExtractionFailedError(AppError):
     message = "Document text could not be extracted"
 
 
+class KnowledgeUploadRateLimitedError(AppError):
+    status_code = 429
+    code = "KNOWLEDGE_UPLOAD_RATE_LIMITED"
+    message = "Too many document uploads; try again later"
+
+    def __init__(self, retry_after_seconds: int) -> None:
+        self.headers = {"Retry-After": str(retry_after_seconds)}
+        super().__init__()
+
+
+class KnowledgeUploadBusyError(AppError):
+    status_code = 503
+    code = "KNOWLEDGE_UPLOAD_BUSY"
+    message = "Document processing is busy; try again shortly"
+    headers = {"Retry-After": "5"}
+
+
+class KnowledgeUploadLimitUnavailableError(AppError):
+    status_code = 503
+    code = "KNOWLEDGE_UPLOAD_UNAVAILABLE"
+    message = "Document upload is temporarily unavailable"
+
+
 class KnowledgeStorageReadError(AppError):
     status_code = 500
     code = "KNOWLEDGE_STORAGE_READ_FAILED"

@@ -17,6 +17,7 @@ def _production(**overrides) -> Settings:
         "DEBUG": False,
         "JWT_SECRET_KEY": "j" * 32,
         "OTP_HASH_SECRET": "o" * 32,
+        "WEBCHAT_METADATA_HASH_SECRET": "w" * 32,
         "CORS_ORIGINS": "https://app.example.com",
         "TRUSTED_HOSTS": "api.example.com",
         "EMAIL_PROVIDER": "resend",
