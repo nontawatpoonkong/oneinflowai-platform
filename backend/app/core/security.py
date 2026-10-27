@@ -1,5 +1,6 @@
 """Security primitives: password hashing (bcrypt) and JWT (HS256)."""
 
+import logging
 import uuid
 from datetime import UTC, datetime, timedelta
 
@@ -9,6 +10,11 @@ import jwt
 from app.core.config import get_settings
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
+
+# Every token this server issues carries these claims; a token without them is
+# refused instead of being treated as never expiring.
+_REQUIRED_CLAIMS = ["exp", "sub"]
 
 # bcrypt operates on at most 72 bytes; longer inputs are truncated to stay
 # within that bound consistently for both hashing and verification.
@@ -47,8 +53,16 @@ def create_access_token(*, user_id: uuid.UUID | str, email: str) -> str:
 
 def decode_access_token(token: str) -> dict:
     """Decode/verify a token. Raises `jwt.PyJWTError` on failure."""
-    return jwt.decode(
-        token,
-        settings.JWT_SECRET_KEY,
-        algorithms=[settings.JWT_ALGORITHM],
-    )
+    try:
+        return jwt.decode(
+            token,
+            settings.JWT_SECRET_KEY,
+            algorithms=[settings.JWT_ALGORITHM],
+            options={"require": _REQUIRED_CLAIMS},
+        )
+    except RecursionError as exc:
+        # Deeply nested JSON in an attacker-supplied header or payload
+        # exhausts the JSON parser before the signature is checked. That is a
+        # malformed token, not a server failure. The token is never logged.
+        logger.warning("auth.token.malformed", extra={"reason": "nesting"})
+        raise jwt.DecodeError("Malformed token") from exc
