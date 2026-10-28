@@ -58,8 +58,11 @@ class Settings(BaseSettings):
     KNOWLEDGE_MAX_EXTRACTED_CHARACTERS: int = 2_000_000
     # Multipart framing plus the title/language fields on top of the file.
     KNOWLEDGE_UPLOAD_REQUEST_OVERHEAD_BYTES: int = 64 * 1024
-    # PDF parsing runs in a child process that is killed at the deadline.
+    # Document parsing runs in a child process that is killed at the deadline.
     KNOWLEDGE_MAX_PDF_PAGES: int = 500
+    # Sum of the sizes a DOCX archive declares for its members once inflated;
+    # refuses zip bombs before any XML is parsed, on every platform.
+    KNOWLEDGE_DOCX_MAX_UNCOMPRESSED_BYTES: int = 100 * 1024 * 1024
     KNOWLEDGE_PARSE_TIMEOUT_SECONDS: float = 60.0
     # Address-space cap for the parser process; enforced where the OS allows
     # it (Linux containers), not on Windows development hosts.
@@ -132,6 +135,7 @@ class Settings(BaseSettings):
             "KNOWLEDGE_MAX_FILE_SIZE_BYTES",
             "KNOWLEDGE_UPLOAD_REQUEST_OVERHEAD_BYTES",
             "KNOWLEDGE_MAX_PDF_PAGES",
+            "KNOWLEDGE_DOCX_MAX_UNCOMPRESSED_BYTES",
             "KNOWLEDGE_PARSE_TIMEOUT_SECONDS",
             "KNOWLEDGE_PARSE_MEMORY_LIMIT_BYTES",
             "KNOWLEDGE_MAX_CONCURRENT_PARSES",
@@ -139,6 +143,9 @@ class Settings(BaseSettings):
             "KNOWLEDGE_UPLOAD_RATE_LIMIT_PER_USER",
             "KNOWLEDGE_UPLOAD_RATE_LIMIT_PER_WORKSPACE",
             "KNOWLEDGE_UPLOAD_RATE_LIMIT_WINDOW_SECONDS",
+            "REQUEST_BODY_DEFAULT_MAX_BYTES",
+            "UPLOAD_REQUEST_OVERHEAD_BYTES",
+            "CHANNEL_WEBHOOK_MAX_BYTES",
         ):
             if getattr(self, name) <= 0:
                 raise ValueError(f"{name} must be positive")
@@ -216,6 +223,11 @@ class Settings(BaseSettings):
     APP_ENV: str = "development"  # development | staging | production
     DEBUG: bool = False
     API_V1_PREFIX: str = "/api/v1"
+    # Request body ceiling for every route without a larger upload limit of
+    # its own; JSON fields here are capped far below it.
+    REQUEST_BODY_DEFAULT_MAX_BYTES: int = 1024 * 1024
+    # Multipart framing and form fields on top of an upload's file limit.
+    UPLOAD_REQUEST_OVERHEAD_BYTES: int = 64 * 1024
     CORS_ORIGINS: str = "http://localhost:3000"
     TRUSTED_HOSTS: str = "localhost,127.0.0.1,testserver"
 

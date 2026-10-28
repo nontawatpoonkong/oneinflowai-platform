@@ -21,7 +21,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-oneflowai}
       POSTGRES_DB: ${POSTGRES_DB:-oneflowai}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -37,7 +37,7 @@ services:
     container_name: oneflowai_redis
     restart: unless-stopped
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -53,8 +53,8 @@ services:
     container_name: oneflowai_qdrant
     restart: unless-stopped
     ports:
-      - "${QDRANT_PORT:-6333}:6333"
-      - "6334:6334"
+      - "127.0.0.1:${QDRANT_PORT:-6333}:6333"
+      - "127.0.0.1:6334:6334"
     volumes:
       - qdrant_data:/qdrant/storage
     healthcheck:
@@ -75,7 +75,7 @@ services:
       - .env
     environment: *backend-environment
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     depends_on: *backend-depends
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]

@@ -31,7 +31,9 @@ def check_startup_secrets() -> None:
     settings = get_settings()
     validate_production_settings(settings)
     for name in insecure_secret_names(settings):
-        logger.warning("config.insecure_secret", extra={"setting": name})
+        logger.warning(
+            "config.insecure_secret setting=%s", name, extra={"setting": name}
+        )
 
 
 @asynccontextmanager

@@ -9,13 +9,15 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api.health import router as health_router
 from app.api.router import api_router
-from app.core.body_limit import BodySizeLimitMiddleware
+from app.auth.dependencies import preauthorize_bearer
+from app.core.body_limit import BodyLimitRule, BodySizeLimitMiddleware
 from app.core.config import get_settings
 from app.core.exceptions import AppError
 from app.core.lifespan import lifespan
 from app.core.logging import get_logger, setup_logging
 from app.core.middleware import RequestIDMiddleware
 from app.schemas.response import error_response
+from app.services.hotel_catalog import ROOM_IMAGE_MAX_BYTES
 
 setup_logging()
 logger = get_logger(__name__)
@@ -31,14 +33,43 @@ def create_app() -> FastAPI:
     )
 
     # Innermost, so CORS and request-id headers still wrap its 413 responses.
+    api = settings.API_V1_PREFIX
+    upload_overhead = settings.UPLOAD_REQUEST_OVERHEAD_BYTES
     app.add_middleware(
         BodySizeLimitMiddleware,
-        limits={
-            ("POST", f"{settings.API_V1_PREFIX}/knowledge/upload"): (
+        default_max_bytes=settings.REQUEST_BODY_DEFAULT_MAX_BYTES,
+        rules=[
+            BodyLimitRule(
+                "POST",
+                f"{api}/knowledge/upload",
                 settings.KNOWLEDGE_MAX_FILE_SIZE_BYTES
-                + settings.KNOWLEDGE_UPLOAD_REQUEST_OVERHEAD_BYTES
+                + settings.KNOWLEDGE_UPLOAD_REQUEST_OVERHEAD_BYTES,
+                preauthorize_bearer,
             ),
-        },
+            BodyLimitRule(
+                "POST",
+                f"{api}/payments/{{payment_id}}/evidence",
+                settings.PAYMENT_EVIDENCE_MAX_FILE_SIZE_BYTES + upload_overhead,
+                preauthorize_bearer,
+            ),
+            BodyLimitRule(
+                "POST",
+                f"{api}/hotel/catalog/room-types/{{room_type_id}}/images",
+                ROOM_IMAGE_MAX_BYTES + upload_overhead,
+                preauthorize_bearer,
+            ),
+            # Public, signature-verified once the body is in: size only.
+            BodyLimitRule(
+                "POST",
+                f"{api}/channels/webhooks/line/{{connection_id}}",
+                settings.CHANNEL_WEBHOOK_MAX_BYTES,
+            ),
+            BodyLimitRule(
+                "POST",
+                f"{api}/channels/webhooks/facebook/{{connection_id}}",
+                settings.CHANNEL_WEBHOOK_MAX_BYTES,
+            ),
+        ],
     )
 
     # CORS for local frontend development. Registered before RequestIDMiddleware.

@@ -1,7 +1,8 @@
-"""Knowledge upload resource limits: body size, PDF isolation, rate limits.
+"""Knowledge upload resource limits: body size, parser isolation, rate limits.
 
 Covers the request-body limit enforced while the body arrives, the killable
-PDF parser process (deadline, worker failure, page and character limits),
+parser process for every document type (deadline, worker failure, PDF page
+and character limits, DOCX inflation limit),
 per-process and per-Workspace parse capacity, per-user and per-Workspace
 upload rate limits that fail closed without Redis, authorization, and that
 rejected uploads leave no document, content, or stored file behind.
@@ -10,7 +11,9 @@ rejected uploads leave no document, content, or stored file behind.
 import asyncio
 import logging
 import time
+from io import BytesIO
 from pathlib import Path
+from zipfile import ZIP_DEFLATED, ZipFile
 
 import pytest
 import starlette.formparsers as formparsers
@@ -22,9 +25,14 @@ from sqlalchemy import func, select
 import app.document_parsers.isolation as isolation
 import app.knowledge.upload_limits as upload_limits_module
 import app.services.knowledge_document as knowledge_service_module
-from app.core.body_limit import BodySizeLimitMiddleware
+from app.core.body_limit import BodyLimitRule, BodySizeLimitMiddleware
 from app.core.config import get_settings
-from app.document_parsers.exceptions import ParserWorkerFailedError, ParseTimeoutError
+from app.document_parsers.docx import DocxDocumentParser
+from app.document_parsers.exceptions import (
+    ArchiveExpansionLimitError,
+    ParserWorkerFailedError,
+    ParseTimeoutError,
+)
 from app.document_parsers.isolation import ParseLimits, extract_in_subprocess
 from app.models.knowledge_document import KnowledgeDocument
 from app.models.knowledge_document_content import KnowledgeDocumentContent
@@ -32,7 +40,7 @@ from app.models.workspace_member import WorkspaceRole
 from app.storage.local import LocalStorageProvider
 from tests import parse_worker_doubles
 from tests.conftest import TestSessionLocal, register_verify_and_login
-from tests.test_document_extraction import _pdf
+from tests.test_document_extraction import _docx, _pdf
 from tests.test_workspace_access import _add_member, _headers, _zero_workspace_account
 
 UPLOAD_URL = "/api/v1/knowledge/upload"
@@ -165,7 +173,11 @@ def _limited_app(limit: int, reached: list[int]) -> FastAPI:
         reached.append(1)
         return {"size": len(await file.read())}
 
-    app.add_middleware(BodySizeLimitMiddleware, limits={("POST", "/upload"): limit})
+    app.add_middleware(
+        BodySizeLimitMiddleware,
+        default_max_bytes=1 << 30,
+        rules=[BodyLimitRule("POST", "/upload", limit)],
+    )
     return app
 
 
@@ -309,6 +321,7 @@ def _limits(timeout: float) -> ParseLimits:
     return ParseLimits(
         maximum_characters=1000,
         maximum_pages=10,
+        maximum_docx_uncompressed_bytes=1024 * 1024,
         timeout_seconds=timeout,
         memory_limit_bytes=512 * 1024 * 1024,
     )
@@ -353,6 +366,90 @@ def test_upload_whose_parse_times_out_is_marked_failed(
     assert _counts() == (1, 0)
     reasons = [getattr(record, "reason", None) for record in caplog.records]
     assert "ParseTimeoutError" in reasons
+
+
+DOCX_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+
+def _inflating_docx(padding_bytes: int) -> bytes:
+    """A valid DOCX plus a member that inflates far beyond its stored size."""
+    output = BytesIO()
+    with (
+        ZipFile(BytesIO(_docx())) as source,
+        ZipFile(output, "w", ZIP_DEFLATED) as target,
+    ):
+        for member in source.infolist():
+            target.writestr(member, source.read(member.filename))
+        target.writestr("customXml/padding.xml", b" " * padding_bytes)
+    return output.getvalue()
+
+
+@pytest.mark.parametrize(
+    ("name", "content", "content_type"),
+    [
+        ("guide.docx", _docx(), DOCX_TYPE),
+        ("notes.txt", b"plain text notes", "text/plain"),
+        ("notes.md", b"# Notes", "text/markdown"),
+    ],
+    ids=["docx", "txt", "md"],
+)
+def test_every_document_type_is_parsed_under_the_deadline(
+    client_db,
+    knowledge_storage,
+    knowledge_settings,
+    caplog,
+    name,
+    content,
+    content_type,
+):
+    # Only a parse in the killable child process can be cut off at 10 ms; a
+    # parse in a thread of this process would finish and succeed.
+    _, headers = _owner(client_db, f"deadline-{name}@example.com")
+    knowledge_settings(KNOWLEDGE_PARSE_TIMEOUT_SECONDS=0.01)
+    with caplog.at_level(logging.WARNING):
+        response = _upload(client_db, headers, name, content, content_type)
+    assert response.status_code == 422
+    _assert_safe_error(response, "KNOWLEDGE_EXTRACTION_FAILED", knowledge_storage)
+    reasons = [getattr(record, "reason", None) for record in caplog.records]
+    assert "ParseTimeoutError" in reasons
+
+
+def test_valid_docx_is_parsed_in_the_isolated_process(client_db, knowledge_storage):
+    _, headers = _owner(client_db, "docx-ok@example.com")
+    response = _upload(client_db, headers, "guide.docx", _docx(), DOCX_TYPE)
+    assert response.status_code == 201, response.text
+    assert response.json()["data"]["status"] == "READY"
+    document_id = response.json()["data"]["id"]
+    content = client_db.get(f"/api/v1/knowledge/{document_id}/content", headers=headers)
+    assert "First paragraph" in content.json()["data"]["extracted_text"]
+
+
+def test_docx_that_inflates_past_the_limit_is_refused(
+    client_db, knowledge_storage, knowledge_settings, caplog
+):
+    _, headers = _owner(client_db, "docx-bomb@example.com")
+    knowledge_settings(KNOWLEDGE_DOCX_MAX_UNCOMPRESSED_BYTES=1024 * 1024)
+    bomb = _inflating_docx(4 * 1024 * 1024)
+    assert len(bomb) < 64 * 1024, "the archive itself stays small"
+    with caplog.at_level(logging.WARNING):
+        response = _upload(client_db, headers, "bomb.docx", bomb, DOCX_TYPE)
+    assert response.status_code == 422
+    _assert_safe_error(response, "KNOWLEDGE_EXTRACTION_FAILED", knowledge_storage)
+    assert _counts() == (1, 0)
+    reasons = [getattr(record, "reason", None) for record in caplog.records]
+    assert "ArchiveExpansionLimitError" in reasons
+
+
+def test_docx_expansion_is_checked_before_any_xml_is_parsed(monkeypatch):
+    import app.document_parsers.docx as docx_module
+
+    def never(*args, **kwargs):
+        raise AssertionError("python-docx must not open an oversized archive")
+
+    monkeypatch.setattr(docx_module, "Document", never)
+    parser = DocxDocumentParser(maximum_uncompressed_bytes=1024 * 1024)
+    with pytest.raises(ArchiveExpansionLimitError):
+        parser.extract(_inflating_docx(2 * 1024 * 1024))
 
 
 # ------------------------------------------------------ capacity and rates

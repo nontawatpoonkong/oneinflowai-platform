@@ -13,6 +13,11 @@ __pycache__
 .test-temp-*
 .mypy_cache
 .ruff_cache
+.uv-cache*
+.uv-python
+# Uploaded files (payment evidence, knowledge documents) are runtime data:
+# mounted in development, a named volume in production, never baked in.
+storage
 *.log
 .DS_Store
 tests

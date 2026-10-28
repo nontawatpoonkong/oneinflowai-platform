@@ -11,6 +11,11 @@ const nextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: [],
+    // Only statically imported images may be optimized. Without this list
+    // every local path qualifies, including /api/v1/* that the rewrite below
+    // sends to the backend. Add a pattern here before optimizing files from
+    // public/ (room images are authenticated blobs rendered `unoptimized`).
+    localPatterns: [{ pathname: "/_next/static/media/**", search: "" }],
   },
   async rewrites() {
     return [

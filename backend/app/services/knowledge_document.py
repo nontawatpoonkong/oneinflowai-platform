@@ -23,7 +23,7 @@ from app.core.exceptions import (
     KnowledgeUploadBusyError,
 )
 from app.core.logging import get_logger
-from app.document_parsers import DocumentParserRegistry, ExtractionOutput
+from app.document_parsers import ExtractionOutput
 from app.document_parsers.exceptions import DocumentExtractionError
 from app.document_parsers.isolation import ParseLimits, extract_in_subprocess
 from app.models.audit import AuditActorType, AuditArea
@@ -52,8 +52,6 @@ _ALLOWED_TYPES: dict[str, set[str]] = {
 }
 _READ_CHUNK_SIZE = 64 * 1024
 _DOCX_REQUIRED_MEMBERS = {"[Content_Types].xml", "word/document.xml"}
-# Parsed in a killable child process; the remaining types use plain readers.
-_ISOLATED_MIME_TYPES = frozenset({"application/pdf"})
 logger = get_logger(__name__)
 
 _parse_slots: dict[int, threading.BoundedSemaphore] = {}
@@ -75,12 +73,10 @@ class KnowledgeDocumentService:
         *,
         storage: StorageProvider | None = None,
         settings: Settings | None = None,
-        parsers: DocumentParserRegistry | None = None,
     ) -> None:
         self.session = session
         self.settings = settings or get_settings()
         self.storage = storage or create_storage_provider(self.settings)
-        self.parsers = parsers or DocumentParserRegistry()
         self.documents = KnowledgeDocumentRepository(session)
         self.contents = KnowledgeDocumentContentRepository(session)
 
@@ -219,22 +215,20 @@ class KnowledgeDocumentService:
             raise
 
     async def _extract_text(self, mime_type: str, data: bytes) -> ExtractionOutput:
-        maximum_characters = self.settings.KNOWLEDGE_MAX_EXTRACTED_CHARACTERS
-        if mime_type in _ISOLATED_MIME_TYPES:
-            limits = ParseLimits(
-                maximum_characters=maximum_characters,
-                maximum_pages=self.settings.KNOWLEDGE_MAX_PDF_PAGES,
-                timeout_seconds=self.settings.KNOWLEDGE_PARSE_TIMEOUT_SECONDS,
-                memory_limit_bytes=self.settings.KNOWLEDGE_PARSE_MEMORY_LIMIT_BYTES,
-            )
-            return await asyncio.to_thread(
-                extract_in_subprocess, mime_type=mime_type, data=data, limits=limits
-            )
+        # Every type is parsed in a killable child process: DOCX inflates a
+        # zip archive and builds an XML tree, and text decoding of any size
+        # is kept off the web worker the same way.
+        limits = ParseLimits(
+            maximum_characters=self.settings.KNOWLEDGE_MAX_EXTRACTED_CHARACTERS,
+            maximum_pages=self.settings.KNOWLEDGE_MAX_PDF_PAGES,
+            maximum_docx_uncompressed_bytes=(
+                self.settings.KNOWLEDGE_DOCX_MAX_UNCOMPRESSED_BYTES
+            ),
+            timeout_seconds=self.settings.KNOWLEDGE_PARSE_TIMEOUT_SECONDS,
+            memory_limit_bytes=self.settings.KNOWLEDGE_PARSE_MEMORY_LIMIT_BYTES,
+        )
         return await asyncio.to_thread(
-            self.parsers.extract,
-            mime_type=mime_type,
-            data=data,
-            maximum_characters=maximum_characters,
+            extract_in_subprocess, mime_type=mime_type, data=data, limits=limits
         )
 
     async def _mark_failed(self, document: KnowledgeDocument) -> None:
