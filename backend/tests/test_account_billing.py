@@ -75,9 +75,9 @@ def _activate(
     status: str = "ACTIVE",
 ):
     return client.post(
-        f"/api/v1/platform/billing/subscriptions/{subscription_id}/activate",
+        f"/api/v1/platform/subscriptions/{subscription_id}/activate",
         headers=headers,
-        json={"status": status, "reason": "Pilot owner approval"},
+        json={"status": status, "reason": "Pilot owner approval", "confirmed": True},
     )
 
 
@@ -155,6 +155,40 @@ def test_manual_activation_is_platform_only_and_idempotent(
             assert event.new_status == "ACTIVE"
 
     asyncio.run(inspect())
+
+
+def test_activation_requires_confirmation_and_reason_with_no_legacy_route(
+    client_db: TestClient,
+) -> None:
+    owner, owner_headers = _register(client_db, "pilot-legacy@example.com")
+    admin, admin_headers = _register(client_db, "platform-legacy@example.com")
+    _make_platform_admin(admin["user"]["id"])
+    pending = _pending(client_db, owner_headers)
+    path = f"/api/v1/platform/subscriptions/{pending['id']}/activate"
+
+    # The removed /platform/billing route took no confirmation and an optional
+    # reason; it must not come back as a way around that contract.
+    legacy = client_db.post(
+        f"/api/v1/platform/billing/subscriptions/{pending['id']}/activate",
+        headers=admin_headers,
+        json={"status": "ACTIVE"},
+    )
+    assert legacy.status_code == 404
+
+    for body in (
+        {"status": "ACTIVE"},
+        {"status": "ACTIVE", "reason": "Pilot owner approval"},
+        {"status": "ACTIVE", "reason": "Pilot owner approval", "confirmed": False},
+        {"status": "ACTIVE", "reason": "  ", "confirmed": True},
+    ):
+        refused = client_db.post(path, headers=admin_headers, json=body)
+        assert refused.status_code == 422, body
+
+    still_pending = client_db.get("/api/v1/billing/account", headers=owner_headers)
+    assert still_pending.json()["data"]["subscriptions"][0]["status"] == (
+        "PENDING_ACTIVATION"
+    )
+    assert _activate(client_db, pending["id"], admin_headers).status_code == 200
 
 
 @pytest.mark.parametrize("eligible_status", ["ACTIVE", "TRIALING"])

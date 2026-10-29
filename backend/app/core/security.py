@@ -13,8 +13,9 @@ settings = get_settings()
 logger = logging.getLogger(__name__)
 
 # Every token this server issues carries these claims; a token without them is
-# refused instead of being treated as never expiring.
-_REQUIRED_CLAIMS = ["exp", "sub"]
+# refused instead of being treated as never expiring or never revocable.
+# `ver` is the user's token version when the token was issued.
+_REQUIRED_CLAIMS = ["exp", "sub", "ver"]
 
 # bcrypt operates on at most 72 bytes; longer inputs are truncated to stay
 # within that bound consistently for both hashing and verification.
@@ -36,13 +37,16 @@ def verify_password(password: str, hashed_password: str) -> bool:
         return False
 
 
-def create_access_token(*, user_id: uuid.UUID | str, email: str) -> str:
-    """Create an HS256 access token with `sub`, `email`, `iat`, `exp`."""
+def create_access_token(
+    *, user_id: uuid.UUID | str, email: str, token_version: int
+) -> str:
+    """Create an HS256 access token with `sub`, `email`, `ver`, `iat`, `exp`."""
     now = datetime.now(UTC)
     expire = now + timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
     payload = {
         "sub": str(user_id),
         "email": email,
+        "ver": token_version,
         "iat": now,
         "exp": expire,
     }

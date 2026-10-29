@@ -34,6 +34,7 @@ def _claims(user_id: str, **overrides):
     claims = {
         "sub": user_id,
         "email": EMAIL,
+        "ver": 0,
         "iat": now,
         "exp": now + timedelta(minutes=5),
     }
@@ -104,10 +105,11 @@ def test_unsigned_none_algorithm_token_is_refused(client_db, user_id):
     _assert_unauthenticated(_me(client_db, f"{header}.{payload}."), "Invalid token")
 
 
-@pytest.mark.parametrize("missing", ["exp", "sub"])
+@pytest.mark.parametrize("missing", ["exp", "sub", "ver"])
 def test_token_without_required_claims_is_refused(client_db, user_id, missing):
-    # The server always issues exp and sub; a signed token without them is
-    # not one of ours and must not be accepted indefinitely.
+    # The server always issues exp, sub and ver; a signed token without them
+    # is not one of ours. Without ver it could never be revoked, so tokens
+    # issued before token versions existed are refused, not grandfathered.
     token = _sign(_claims(user_id, **{missing: None}))
     _assert_unauthenticated(_me(client_db, token))
 
@@ -164,3 +166,66 @@ def test_deeply_nested_header_is_refused_without_server_error(client_db, user_id
 )
 def test_generally_malformed_tokens_are_refused(client_db, user_id, token):
     _assert_unauthenticated(_me(client_db, token), "Invalid token")
+
+
+async def _set_token_version(user_id: str, version: int) -> None:
+    async with TestSessionLocal() as session:
+        await session.execute(
+            update(User)
+            .where(User.id == uuid.UUID(user_id))
+            .values(token_version=version)
+        )
+        await session.commit()
+
+
+@pytest.mark.parametrize("version", ["0", 0.0, True, False, -1, None, [0]])
+def test_token_version_must_be_a_non_negative_integer(client_db, user_id, version):
+    claims = _claims(user_id)
+    claims["ver"] = version
+    # A null ver is a missing required claim to PyJWT; the rest fail our check.
+    message = "Invalid token" if version is None else "Invalid token payload"
+    _assert_unauthenticated(_me(client_db, _sign(claims)), message)
+
+
+def test_token_from_an_older_version_is_revoked(client_db, user_id):
+    old_token = _sign(_claims(user_id, ver=0))
+    asyncio.run(_set_token_version(user_id, 1))
+    _assert_unauthenticated(_me(client_db, old_token), "Token has been revoked")
+    assert _me(client_db, _sign(_claims(user_id, ver=1))).status_code == 200
+
+
+def test_a_version_ahead_of_the_user_is_refused(client_db, user_id):
+    # Only the server can mint versions; one the user has not reached is not
+    # a token this server issued for the current state.
+    _assert_unauthenticated(
+        _me(client_db, _sign(_claims(user_id, ver=5))), "Token has been revoked"
+    )
+
+
+def test_editing_ver_without_the_key_breaks_the_signature(client_db, user_id):
+    asyncio.run(_set_token_version(user_id, 3))
+    header, _, signature = _sign(_claims(user_id, ver=0)).split(".")
+    forged = _b64(
+        json.dumps(
+            {
+                "sub": user_id,
+                "ver": 3,
+                "exp": int(datetime.now(UTC).timestamp()) + 300,
+            }
+        ).encode()
+    )
+    forged_token = f"{header}.{forged}.{signature}"
+    _assert_unauthenticated(_me(client_db, forged_token), "Invalid token")
+
+
+def test_login_issues_a_token_for_the_current_version(client_db):
+    user, token = register_verify_and_login(client_db, email="versioned@example.com")
+    asyncio.run(_set_token_version(user["user"]["id"], 4))
+    _assert_unauthenticated(_me(client_db, token), "Token has been revoked")
+    login = client_db.post(
+        "/api/v1/auth/login",
+        json={"email": "versioned@example.com", "password": "supersecret123"},
+    )
+    fresh = login.json()["data"]["access_token"]
+    assert jwt.decode(fresh, options={"verify_signature": False})["ver"] == 4
+    assert _me(client_db, fresh).status_code == 200

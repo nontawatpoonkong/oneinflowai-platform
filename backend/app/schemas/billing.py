@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 from app.models.billing import (
     BillingAccountStatus,
@@ -60,11 +60,6 @@ class BillingAccountResponse(BaseModel):
 
 class SubscriptionCreateRequest(BaseModel):
     plan_id: uuid.UUID
-
-
-class SubscriptionActivationRequest(BaseModel):
-    status: SubscriptionStatus = SubscriptionStatus.ACTIVE
-    reason: str | None = Field(default=None, max_length=500)
 
 
 class UsageResponse(BaseModel):

@@ -21,7 +21,6 @@ from app.knowledge.router import router as knowledge_router
 from app.notification.router import router as notification_router
 from app.payment.router import router as payment_router
 from app.platform.router import router as platform_router
-from app.platform_billing.router import router as platform_billing_router
 from app.pms.router import router as pms_router
 from app.promotion.router import router as promotion_router
 from app.stay.router import router as stay_router
@@ -44,11 +43,6 @@ api_router.include_router(
 )
 api_router.include_router(auth_router, prefix="/auth", tags=["auth"])
 api_router.include_router(billing_router, prefix="/billing", tags=["billing"])
-api_router.include_router(
-    platform_billing_router,
-    prefix="/platform/billing",
-    tags=["platform-billing"],
-)
 api_router.include_router(platform_router, prefix="/platform", tags=["platform"])
 api_router.include_router(workspace_router, prefix="/workspaces", tags=["workspaces"])
 api_router.include_router(

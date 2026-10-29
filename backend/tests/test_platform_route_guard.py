@@ -31,13 +31,28 @@ def test_every_platform_route_refuses_workspace_owners(client_db):
     leaked = []
     for method, path in routes:
         concrete = re.sub(r"\{[^}]+\}", lambda _: str(uuid.uuid4()), path)
-        response = client_db.request(method, concrete, headers=headers, json={})
+        # A JSON list is an invalid body for every route. The guard runs
+        # before the body is validated, so it must still get 403; a 422 means
+        # the route reached validation without the guard.
+        response = client_db.request(method, concrete, headers=headers, json=[])
         body = response.json() if response.content else {}
-        # 403 from the guard; 422 only when the body is validated first. Either
-        # way nothing is returned or changed.
-        if response.status_code not in {403, 422} or body.get("data") not in (
-            None,
-            [],
+        if (
+            response.status_code != 403
+            or body.get("error", {}).get("code") != "PLATFORM_ADMIN_REQUIRED"
+            or body.get("data") not in (None, [])
         ):
+            leaked.append((method, path, response.status_code))
+    assert leaked == []
+
+
+def test_every_platform_route_refuses_anonymous_requests(client_db):
+    routes = list(_platform_routes())
+    assert len(routes) >= 30
+    leaked = []
+    for method, path in routes:
+        concrete = re.sub(r"\{[^}]+\}", lambda _: str(uuid.uuid4()), path)
+        response = client_db.request(method, concrete, json=[])
+        body = response.json() if response.content else {}
+        if response.status_code != 401 or body.get("data") not in (None, []):
             leaked.append((method, path, response.status_code))
     assert leaked == []

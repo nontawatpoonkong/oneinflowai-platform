@@ -22,6 +22,9 @@ Supported actions are limited to User suspension/reactivation, Workspace
 suspension/reactivation, existing Pilot subscription activation, campaign
 pause/archive, and promotion-code disable/archive. They use existing domain
 state machines where one exists and append `PLATFORM_ADMIN` audit events.
+Subscription activation has a single entry point under `/api/v1/platform`; the
+earlier `/api/v1/platform/billing` activation route, which skipped the
+confirmation and reason, was removed.
 Historical Booking price snapshots, redemption rows, and audit rows remain
 immutable.
 
