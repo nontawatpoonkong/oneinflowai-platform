@@ -200,3 +200,10 @@ server pagination capped at 100. High-impact POST actions require `confirmed:
 true` and a bounded reason. The API exposes no generic PATCH/DELETE, arbitrary
 database search, impersonation, credentials, prompts, payment evidence, or
 audit mutation endpoint.
+
+Pilot subscription activation is only
+`POST /api/v1/platform/subscriptions/{id}/activate` with `status`, `reason`, and
+`confirmed: true`. The earlier `POST /api/v1/platform/billing/subscriptions/{id}/activate`
+accepted no confirmation and an optional reason; it has been removed and now
+returns 404. Callers move to the canonical path and add `reason` and
+`confirmed: true`; the activation semantics and audit events are unchanged.
