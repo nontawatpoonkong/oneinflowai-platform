@@ -1,0 +1,256 @@
+# Backend CI: Ruff, the Alembic migration chain on an empty database, and the
+# full backend suite (serial, one pytest process) against disposable
+# PostgreSQL and Redis service containers.
+#
+# Every credential below is a synthetic CI-only value for a service container
+# that exists for one job and is destroyed with it. The workflow uses no
+# repository secrets and never reads a .env file (none is committed).
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# One run per PR (a new push supersedes the old run) or per pushed commit on
+# main (never cancelled). The workflow name keeps other workflows unaffected.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    shell: bash
+    working-directory: backend
+
+env:
+  UV_VERSION: "0.11.7"
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  lint:
+    name: Ruff
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: ${{ env.PYTHON_VERSION }}
+          working-directory: backend
+          cache-dependency-glob: uv.lock
+
+      - name: Install dependencies from uv.lock
+        run: uv sync --locked
+
+      - name: Ruff check
+        run: uv run --no-sync ruff check .
+
+  migrations:
+    name: Alembic migrations
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: oneflowai_ci
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: oneflowai_ci_migrations
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U oneflowai_ci -d oneflowai_ci_migrations"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      # alembic/env.py builds its URL from these application settings. This
+      # job's own empty database, separate from the one the test suite uses.
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: oneflowai_ci
+      POSTGRES_PASSWORD: ci-only-password
+      POSTGRES_DB: oneflowai_ci_migrations
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: ${{ env.PYTHON_VERSION }}
+          working-directory: backend
+          cache-dependency-glob: uv.lock
+
+      - name: Install dependencies from uv.lock
+        run: uv sync --locked
+
+      - name: Require a single migration head
+        run: |
+          uv run --no-sync alembic heads | tee "$RUNNER_TEMP/heads.txt"
+          test "$(grep -c '(head)' "$RUNNER_TEMP/heads.txt")" -eq 1
+
+      - name: Upgrade an empty database to head
+        run: uv run --no-sync alembic upgrade head
+
+      - name: Require the database to be at head
+        run: |
+          uv run --no-sync alembic current | tee "$RUNNER_TEMP/current.txt"
+          grep -q '(head)' "$RUNNER_TEMP/current.txt"
+
+      - name: Check models and migrations agree
+        run: uv run --no-sync alembic check
+
+  tests:
+    name: Backend tests
+    runs-on: ubuntu-24.04
+    # The suite took ~1h43m on a developer machine; leave headroom.
+    timeout-minutes: 180
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: oneflowai_ci
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: oneflowai_ci_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U oneflowai_ci -d oneflowai_ci_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7.4.9-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      # The CI user and database differ from the fallback in tests/conftest.py,
+      # so an unset or ignored TEST_DATABASE_URL fails instead of passing.
+      TEST_DATABASE_URL: postgresql+asyncpg://oneflowai_ci:ci-only-password@127.0.0.1:5432/oneflowai_ci_test
+      REAL_REDIS_URL: redis://127.0.0.1:6379/0
+      # Application settings point at the same disposable services.
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: oneflowai_ci
+      POSTGRES_PASSWORD: ci-only-password
+      POSTGRES_DB: oneflowai_ci_test
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: "6379"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: ${{ env.PYTHON_VERSION }}
+          working-directory: backend
+          cache-dependency-glob: uv.lock
+
+      - name: Install dependencies from uv.lock
+        run: uv sync --locked
+
+      - name: Check PostgreSQL and Redis are reachable
+        run: |
+          uv run --no-sync python - <<'PY'
+          import asyncio
+          import os
+
+          import asyncpg
+          from redis.asyncio import Redis
+          from sqlalchemy.engine import make_url
+
+          url = make_url(os.environ["TEST_DATABASE_URL"])
+
+          async def main() -> None:
+              conn = await asyncpg.connect(
+                  host=url.host,
+                  port=url.port,
+                  user=url.username,
+                  password=url.password,
+                  database=url.database,
+              )
+              try:
+                  database = await conn.fetchval("SELECT current_database()")
+                  version = await conn.fetchval("SHOW server_version")
+              finally:
+                  await conn.close()
+              assert database == url.database, database
+              print(f"PostgreSQL {version}: {url.host}:{url.port}/{database}")
+
+              redis = Redis.from_url(os.environ["REAL_REDIS_URL"])
+              try:
+                  assert await redis.ping()
+                  info = await redis.info("server")
+              finally:
+                  await redis.aclose()
+              print(f"Redis {info['redis_version']}: reachable")
+
+          asyncio.run(main())
+          PY
+
+      - name: Run backend test suite
+        run: >-
+          uv run --no-sync pytest
+          -p no:cacheprovider
+          -o addopts="-ra"
+          --durations=25
+          --junitxml="$RUNNER_TEMP/pytest-junit.xml"
+
+      # The real-Redis tests skip themselves when REAL_REDIS_URL is absent, and
+      # a skip does not fail pytest. Require each of them to have passed.
+      - name: Require the real-Redis tests to have run and passed
+        run: |
+          uv run --no-sync python - "$RUNNER_TEMP/pytest-junit.xml" <<'PY'
+          import sys
+          import xml.etree.ElementTree as ET
+
+          REQUIRED = {
+              "test_parse_leases_hold_their_limit_across_instances",
+              "test_expired_leases_free_capacity_for_other_instances",
+              "test_lease_script_sets_an_expiry_on_the_key",
+              "test_user_rate_limit_holds_across_instances",
+          }
+          found = {}
+          for case in ET.parse(sys.argv[1]).iter("testcase"):
+              if case.get("classname") == "tests.test_upload_limits_real_redis":
+                  bad = [
+                      child.tag
+                      for child in case
+                      if child.tag in {"skipped", "failure", "error"}
+                  ]
+                  found[case.get("name")] = bad[0] if bad else "passed"
+
+          problems = []
+          for name in sorted(REQUIRED):
+              outcome = found.get(name, "missing")
+              print(f"{name}: {outcome}")
+              if outcome != "passed":
+                  problems.append(name)
+          if problems:
+              sys.exit(f"Real-Redis tests did not pass: {', '.join(problems)}")
+          PY
