@@ -341,13 +341,6 @@ def test_reset_invalidates_other_active_reset_authorizations(
     assert asyncio.run(_all_used())
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "Access tokens are not revoked by a password reset yet: revocation "
-        "needs a per-user token version column (migration awaiting approval)."
-    ),
-)
 def test_password_reset_revokes_access_tokens_issued_before_it(
     client_db: TestClient, fake_email_provider: FakeEmailProvider
 ) -> None:
@@ -365,3 +358,28 @@ def test_password_reset_revokes_access_tokens_issued_before_it(
         "/api/v1/auth/me", headers={"Authorization": f"Bearer {old_token}"}
     )
     assert response.status_code == 401
+
+    assert response.json()["error"]["code"] == "UNAUTHENTICATED"
+
+    fresh = client_db.post(LOGIN_URL, json={"email": EMAIL, "password": NEW_PASSWORD})
+    assert fresh.status_code == 200
+    me = client_db.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {fresh.json()['data']['access_token']}"},
+    )
+    assert me.status_code == 200
+
+
+def test_failed_password_reset_keeps_existing_tokens_valid(
+    client_db: TestClient, fake_email_provider: FakeEmailProvider
+) -> None:
+    asyncio.run(_seed_user())
+    token = client_db.post(
+        LOGIN_URL, json={"email": EMAIL, "password": OLD_PASSWORD}
+    ).json()["data"]["access_token"]
+    assert _reset(client_db, "not-a-real-reset-token").status_code in (400, 401, 422)
+
+    response = client_db.get(
+        "/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 200

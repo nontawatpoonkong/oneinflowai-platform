@@ -48,7 +48,9 @@ class AuthService:
         self.verification = EmailVerificationService(session)
 
     def issue_token(self, user: User) -> TokenResponse:
-        token = create_access_token(user_id=user.id, email=user.email)
+        token = create_access_token(
+            user_id=user.id, email=user.email, token_version=user.token_version
+        )
         return TokenResponse(
             access_token=token,
             expires_in=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,

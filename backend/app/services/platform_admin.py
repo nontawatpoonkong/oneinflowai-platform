@@ -275,6 +275,10 @@ class PlatformAdminService:
         if user.is_active == active:
             return user
         user.is_active = active
+        if not active:
+            # Tokens issued before the suspension stay revoked after a later
+            # reactivation; the user signs in again.
+            user.token_version += 1
         AuditService(self.session).record(
             workspace_id=None,
             actor_user_id=actor.id,

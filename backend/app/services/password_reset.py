@@ -190,6 +190,7 @@ class PasswordResetService:
             raise InvalidPasswordResetTokenError()
 
         user.hashed_password = hash_password(new_password)
+        user.token_version += 1
         reset_session.used_at = now
         await self.reset_sessions.invalidate_active(user.id, now)
         await self.challenges.invalidate_active(

@@ -1,6 +1,7 @@
 """Authentication dependencies."""
 
 import uuid
+from dataclasses import dataclass
 
 import jwt
 from fastapi import Depends
@@ -20,8 +21,14 @@ from app.services.auth import AuthService
 _bearer = HTTPBearer(auto_error=False)
 
 
-def user_id_from_access_token(token: str) -> uuid.UUID:
-    """Verify an access token and return its subject; no database access."""
+@dataclass(frozen=True, slots=True)
+class AccessTokenClaims:
+    user_id: uuid.UUID
+    token_version: int
+
+
+def claims_from_access_token(token: str) -> AccessTokenClaims:
+    """Verify an access token and return its subject and version; no database."""
     try:
         payload = decode_access_token(token)
     except jwt.ExpiredSignatureError as exc:
@@ -32,9 +39,13 @@ def user_id_from_access_token(token: str) -> uuid.UUID:
     subject = payload.get("sub")
     if not subject:
         raise AuthenticationError("Invalid token payload")
+    version = payload.get("ver")
+    # bool is an int subclass; only a plain non-negative integer is ours.
+    if type(version) is not int or version < 0:
+        raise AuthenticationError("Invalid token payload")
 
     try:
-        return uuid.UUID(subject)
+        return AccessTokenClaims(uuid.UUID(subject), version)
     except ValueError as exc:
         raise AuthenticationError("Invalid token subject") from exc
 
@@ -51,7 +62,7 @@ def preauthorize_bearer(scope: Scope) -> AuthenticationError | None:
     if not (authorization and scheme and token) or scheme.lower() != "bearer":
         return AuthenticationError("Missing bearer token")
     try:
-        user_id_from_access_token(token)
+        claims_from_access_token(token)
     except AuthenticationError as exc:
         return exc
     return None
@@ -64,11 +75,15 @@ async def get_current_user(
     if credentials is None:
         raise AuthenticationError("Missing bearer token")
 
-    user_id = user_id_from_access_token(credentials.credentials)
+    claims = claims_from_access_token(credentials.credentials)
 
-    user = await AuthService(session).get_user_by_id(user_id)
+    user = await AuthService(session).get_user_by_id(claims.user_id)
     if not user.is_active:
         raise InactiveUserError()
+    # Read on every request, so a revocation committed by any instance holds
+    # for the next request everywhere.
+    if claims.token_version != user.token_version:
+        raise AuthenticationError("Token has been revoked")
 
     # Populate logging context for the remainder of the request.
     context.set_user_id(str(user.id))

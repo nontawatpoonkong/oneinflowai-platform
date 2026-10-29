@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import TIMESTAMP, Boolean, String, false, true
+from sqlalchemy import TIMESTAMP, Boolean, Integer, String, false, text, true
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
@@ -33,6 +33,11 @@ class User(UUIDMixin, TimestampMixin, Base):
     )
     email_verified_at: Mapped[datetime | None] = mapped_column(
         TIMESTAMP(timezone=True), nullable=True
+    )
+    # Every access token carries the version it was issued under; raising it
+    # revokes all tokens issued before (password reset, suspension).
+    token_version: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default=text("0")
     )
 
     memberships: Mapped[list["WorkspaceMember"]] = relationship(

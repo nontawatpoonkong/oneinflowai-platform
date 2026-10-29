@@ -108,7 +108,15 @@ def test_user_suspend_reactivate_requires_reason_and_revokes_existing_session(
         json=_confirmed("Investigation resolved"),
     )
     assert restored.status_code == 200
-    assert client_db.get("/api/v1/auth/me", headers=target_headers).status_code == 200
+    # Suspension revoked the session for good: reactivation does not revive
+    # the old token, and a fresh login works.
+    assert client_db.get("/api/v1/auth/me", headers=target_headers).status_code == 401
+    login = client_db.post(
+        "/api/v1/auth/login",
+        json={"email": "suspend-me@example.com", "password": "supersecret123"},
+    )
+    fresh = {"Authorization": f"Bearer {login.json()['data']['access_token']}"}
+    assert client_db.get("/api/v1/auth/me", headers=fresh).status_code == 200
 
     audits = client_db.get(
         "/api/v1/platform/audit/events?action=PLATFORM_USER_SUSPENDED",
@@ -223,3 +231,17 @@ def test_platform_audit_remains_append_only(client_db: TestClient) -> None:
                 raise AssertionError("Audit mutation unexpectedly succeeded")
 
     asyncio.run(inspect())
+
+
+def test_non_admin_cannot_suspend_and_revoke_another_account(
+    client_db: TestClient,
+) -> None:
+    target, target_headers = _register(client_db, "victim@example.com")
+    _, attacker_headers = _register(client_db, "attacker@example.com")
+    response = client_db.post(
+        f"/api/v1/platform/users/{target['id']}/suspend",
+        headers=attacker_headers,
+        json=_confirmed("Not allowed"),
+    )
+    assert response.status_code == 403
+    assert client_db.get("/api/v1/auth/me", headers=target_headers).status_code == 200

@@ -190,7 +190,9 @@ def test_pre_authorization_gives_the_same_answer_as_get_current_user(
 def test_valid_token_is_let_through_to_the_full_dependency_checks(client_db):
     # A correctly signed token for a user that does not exist passes the
     # header check; the dependency's user lookup still refuses it.
-    token = create_access_token(user_id=uuid.uuid4(), email="ghost@example.com")
+    token = create_access_token(
+        user_id=uuid.uuid4(), email="ghost@example.com", token_version=0
+    )
     response = client_db.post(
         f"{API}/knowledge/upload",
         headers=_bearer(token),
